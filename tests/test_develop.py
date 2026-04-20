@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 """测试开发（Discover/Develop）机制。"""
 import sys
 sys.path.insert(0, __file__.rsplit("\\", 1)[0])

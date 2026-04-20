@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 """
 测试三张"对战"卡牌：僵尸猪人、怪物猎人、鸮(铁)
 直接测试效果函数，绕过 play_card 的费用检查。

@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 """
 测试效果队列：验证"效果一旦开始结算不被打断"的规则。
 场景：
