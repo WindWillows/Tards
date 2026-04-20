@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tards 效果工具库 - 函数查询</title>
+<title>Tards 效果工具库 - 函数与关键词查询</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -20,6 +20,27 @@
   }
   .header h1 { margin: 0; font-size: 24px; }
   .header p { margin: 8px 0 0; opacity: 0.9; font-size: 14px; }
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    background: white;
+    border-bottom: 1px solid #e1e4e8;
+  }
+  .tab {
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: #4a5568; }
+  .tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+  }
   .toolbar {
     display: flex;
     gap: 12px;
@@ -52,6 +73,8 @@
     max-width: 1400px;
     margin: 0 auto;
   }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
   .category {
     margin-bottom: 24px;
   }
@@ -171,40 +194,91 @@
   }
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .legend-box { width: 12px; height: 12px; border-radius: 2px; }
+  /* Keyword cards */
+  .kw-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 14px;
+  }
+  .kw-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #667eea;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .kw-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+  }
+  .kw-card.hidden { display: none; }
+  .kw-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 8px;
+  }
+  .kw-desc {
+    font-size: 13px;
+    color: #4a5568;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .kw-funcs {
+    font-size: 12px;
+    color: #667eea;
+  }
+  .kw-func-tag {
+    display: inline-block;
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 2px 4px 2px 0;
+    font-size: 11px;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🔧 Tards 效果工具库 - 函数查询</h1>
-  <p>共 133 个通用函数（含 28 个兼容层） | 点击卡片查看调用详情</p>
+  <h1>🔧 Tards 效果工具库 - 函数与关键词查询</h1>
+  <p>共 133 个通用函数（含 28 个兼容层） | 26 个关键词</p>
 </div>
 
-<div class="toolbar">
-  <input type="text" id="search" placeholder="搜索函数名或描述..." oninput="filter()">
-  <select id="usageFilter" onchange="filter()">
-    <option value="all">全部</option>
-    <option value="used">已使用</option>
-    <option value="unused">未使用</option>
-  </select>
-  <select id="packFilter" onchange="filter()">
-    <option value="all">全部卡包</option>
-    <option value="离散卡包">离散卡包</option>
-    <option value="冥刻卡包">冥刻卡包</option>
-    <option value="血契卡包">血契卡包</option>
-  </select>
-  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#4a5568;">
-    <input type="checkbox" id="hideCompat" onchange="filter()"> 隐藏兼容层
-  </label>
-  <div class="legend">
-    <div class="legend-item"><div class="legend-box" style="background:#f56565;"></div>未使用</div>
-    <div class="legend-item"><div class="legend-box" style="background:#48bb78;"></div>已使用（≤3处）</div>
-    <div class="legend-item"><div class="legend-box" style="background:#4299e1;"></div>广泛使用（&gt;3处）</div>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('functions')">📦 函数查询</div>
+  <div class="tab" onclick="switchTab('keywords')">🏷️ 关键词查询</div>
+</div>
+
+<div id="tab-functions" class="tab-panel active">
+  <div class="toolbar">
+    <input type="text" id="searchFunc" placeholder="搜索函数名或描述..." oninput="filterFunc()">
+    <select id="usageFilter" onchange="filterFunc()">
+      <option value="all">全部</option>
+      <option value="used">已使用</option>
+      <option value="unused">未使用</option>
+    </select>
+    <select id="packFilter" onchange="filterFunc()">
+      <option value="all">全部卡包</option>
+      <option value="离散卡包">离散卡包</option>
+      <option value="冥刻卡包">冥刻卡包</option>
+      <option value="血契卡包">血契卡包</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#4a5568;">
+      <input type="checkbox" id="hideCompat" onchange="filterFunc()"> 隐藏兼容层
+    </label>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-box" style="background:#f56565;"></div>未使用</div>
+      <div class="legend-item"><div class="legend-box" style="background:#48bb78;"></div>已使用（≤3处）</div>
+      <div class="legend-item"><div class="legend-box" style="background:#4299e1;"></div>广泛使用（&gt;3处）</div>
+    </div>
+    <div class="stats" id="funcStats"></div>
   </div>
-  <div class="stats" id="stats"></div>
-</div>
 
-<div class="container">
+  <div class="container">
 <div class="category" data-category="伤害与治疗">
 <div class="category-title">伤害与治疗 (14)</div>
 <div class="func-grid">
@@ -2674,12 +2748,263 @@ amount: 需要消耗的正数
     </div>
   </div>
 </div></div>
+</div></div>
 
+<div id="tab-keywords" class="tab-panel">
+  <div class="toolbar">
+    <input type="text" id="searchKw" placeholder="搜索关键词..." oninput="filterKw()">
+    <div class="stats" id="kwStats"></div>
+  </div>
+  <div class="container">
+    <div class="kw-grid" id="kwGrid">
+
+      <div class="kw-card" data-kw="两栖">
+        <div class="kw-name">两栖</div>
+        <div class="kw-desc">本异象可以部署在水路。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::is_valid_deploy</span><span class="kw-func-tag">board.py::move_minion</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="丰饶">
+        <div class="kw-name">丰饶</div>
+        <div class="kw-desc">本异象被献祭时，提供X点鲜血。（冥刻卡包异象默认具有丰饶1）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">game.py::action_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="串击">
+        <div class="kw-name">串击</div>
+        <div class="kw-desc">本异象攻击时，指向本列的所有敌方异象。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::attack_target</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="亡语">
+        <div class="kw-name">亡语</div>
+        <div class="kw-desc">本异象被消灭时，触发相应效果。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">add_deathrattle</span><span class="kw-func-tag">board.py::move_minion</span><span class="kw-func-tag">board.py::remove_minion</span><span class="kw-func-tag">board.py::replace_minion</span><span class="kw-func-tag">cards.py::do_remove</span><span class="kw-func-tag">cards.py::fn</span><span class="kw-func-tag">cards.py::make_dr</span><span class="kw-func-tag">cards.py::minion_death</span><span class="kw-func-tag">+7 more</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="休眠">
+        <div class="kw-name">休眠</div>
+        <div class="kw-desc">结算回合结束时，若本异象试图攻击且X＞0，改为将X减1。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::can_attack_this_turn</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="先攻">
+        <div class="kw-name">先攻</div>
+        <div class="kw-desc">同列异象结算时，优先结算先攻等级更高的异象。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="协同">
+        <div class="kw-name">协同</div>
+        <div class="kw-desc">若试图使2个友方异象处于同一列，其中至少一个异象需要具有协同。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::is_valid_deploy</span><span class="kw-func-tag">cards.py::recalculate</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="回响">
+        <div class="kw-name">回响</div>
+        <div class="kw-desc">若是异象，将其花费设为2T，面板设为1/1。若是策略，将其打出后，返回手牌并使回响等级-1。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">create_echo_card</span><span class="kw-func-tag">player.py::deploy_fn</span><span class="kw-func-tag">player.py::play_card</span><span class="kw-func-tag">player.py::play_fn</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="坚韧">
+        <div class="kw-name">坚韧</div>
+        <div class="kw-desc">本异象受到的战斗伤害与策略伤害-X。（X可以是负数！）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::take_damage</span><span class="kw-func-tag">deal_damage_to_minion</span><span class="kw-func-tag">lose_hp_to_player</span><span class="kw-func-tag">modify_keyword_number</span><span class="kw-func-tag">player.py::lose_hp</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="尖刺">
+        <div class="kw-name">尖刺</div>
+        <div class="kw-desc">本异象受到战斗伤害时，对伤害来源造成X点伤害。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::attack_target</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="异象可能具有一个或多个简短的词条。列举如下">
+        <div class="kw-name">异象可能具有一个或多个简短的词条。列举如下</div>
+        <div class="kw-desc"></div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span style="color:#a0aec0;">无</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="成长">
+        <div class="kw-name">成长</div>
+        <div class="kw-desc">若满足卡面记述条件，本异象将在X回合后转换为卡面记述的下一个形态。（若无X，则在满足条件时立刻成长）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::evolve</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="横扫">
+        <div class="kw-name">横扫</div>
+        <div class="kw-desc">本异象同时攻击本列及相邻X列的目标。（对手受到横扫的多路攻击时，只计算一次伤害）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="水生">
+        <div class="kw-name">水生</div>
+        <div class="kw-desc">本异象只能部署在水路。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::is_valid_deploy</span><span class="kw-func-tag">board.py::move_minion</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="潜行">
+        <div class="kw-name">潜行</div>
+        <div class="kw-desc">本异象攻击后，具有无法选中直到结算阶段开始。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span><span class="kw-func-tag">get_frontmost_enemy</span><span class="kw-func-tag">targeting.py::get_attack_target_candidates</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="独行">
+        <div class="kw-name">独行</div>
+        <div class="kw-desc">本异象无法与友方异象处于同一列。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::is_valid_deploy</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="献祭">
+        <div class="kw-name">献祭</div>
+        <div class="kw-desc">本异象可以被献祭X次。（冥刻卡包异象默认具有献祭1）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">_init_event_name_map</span><span class="kw-func-tag">cards.py::__init__</span><span class="kw-func-tag">game.py::action_phase</span><span class="kw-func-tag">if_has_friendly_minions_then</span><span class="kw-func-tag">on</span><span class="kw-func-tag">on_sacrifice_global</span><span class="kw-func-tag">player.py::__init__</span><span class="kw-func-tag">player.py::request_sacrifice</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="空袭">
+        <div class="kw-name">空袭</div>
+        <div class="kw-desc">本异象无法选中非防空异象。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::get_front_minion</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="穿刺">
+        <div class="kw-name">穿刺</div>
+        <div class="kw-desc">本异象攻击时，也会指向对手。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::attack_target</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="绝缘">
+        <div class="kw-name">绝缘</div>
+        <div class="kw-desc">本异象无法受到敌方策略影响。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">game.py::is_immune</span><span class="kw-func-tag">player.py::card_can_play</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="藤蔓">
+        <div class="kw-name">藤蔓</div>
+        <div class="kw-desc">本异象必须部署在友方异象上。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::is_valid_deploy</span><span class="kw-func-tag">board.py::place_minion</span><span class="kw-func-tag">board.py::remove_minion</span><span class="kw-func-tag">cards.py::minion_death</span><span class="kw-func-tag">cards.py::take_damage</span><span class="kw-func-tag">deal_damage_to_minion</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="视野">
+        <div class="kw-name">视野</div>
+        <div class="kw-desc">具有本词条的异象需要在出牌阶段由玩家手动指向目标。本异象可以攻击本列及相邻X列的异象。（只有在场上没有敌方异象时，才能指向对手）</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::action_phase</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span><span class="kw-func-tag">game.py::set_vision_target</span><span class="kw-func-tag">targeting.py::get_attack_target_candidates</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="迅捷">
+        <div class="kw-name">迅捷</div>
+        <div class="kw-desc">在部署本异象的回合的结算阶段即可攻击。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">cards.py::can_attack_this_turn</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="部署">
+        <div class="kw-name">部署</div>
+        <div class="kw-desc">部署本异象时，触发相应效果。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">_init_event_name_map</span><span class="kw-func-tag">add_deploy_restriction</span><span class="kw-func-tag">board.py::is_valid_deploy</span><span class="kw-func-tag">board.py::place_minion</span><span class="kw-func-tag">board.py::remove_minion</span><span class="kw-func-tag">cards.py::can_attack_this_turn</span><span class="kw-func-tag">cards.py::clear_deploy_hook</span><span class="kw-func-tag">cards.py::minion_death</span><span class="kw-func-tag">+12 more</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="防空">
+        <div class="kw-name">防空</div>
+        <div class="kw-desc">本异象将优先被具有空袭和视野X的异象指向。在场时，所有敌方异象失去串击和穿刺。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+
+      <div class="kw-card" data-kw="高频">
+        <div class="kw-name">高频</div>
+        <div class="kw-desc">本异象在结算阶段可以攻击X次。每攻击一次，先攻等级-1直到结算阶段结束。</div>
+        <div class="kw-funcs">
+          <strong>相关函数：</strong>
+          <span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-function filter() {
-  const search = document.getElementById('search').value.toLowerCase();
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+function filterFunc() {
+  const search = document.getElementById('searchFunc').value.toLowerCase();
   const usage = document.getElementById('usageFilter').value;
   const pack = document.getElementById('packFilter').value;
   const hideCompat = document.getElementById('hideCompat').checked;
@@ -2706,7 +3031,27 @@ function filter() {
     if (show) visible++;
   });
 
-  document.getElementById('stats').textContent = '显示 ' + visible + ' / ' + cards.length;
+  document.getElementById('funcStats').textContent = '显示 ' + visible + ' / ' + cards.length;
+}
+
+function filterKw() {
+  const search = document.getElementById('searchKw').value.toLowerCase();
+  const cards = document.querySelectorAll('.kw-card');
+  let visible = 0;
+
+  cards.forEach(card => {
+    const name = card.dataset.kw.toLowerCase();
+    const desc = card.querySelector('.kw-desc').textContent.toLowerCase();
+    const funcs = card.querySelector('.kw-funcs').textContent.toLowerCase();
+
+    let show = true;
+    if (search && !name.includes(search) && !desc.includes(search) && !funcs.includes(search)) show = false;
+
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+
+  document.getElementById('kwStats').textContent = '显示 ' + visible + ' / ' + cards.length;
 }
 
 document.querySelectorAll('.func-card').forEach(card => {
@@ -2717,7 +3062,8 @@ document.querySelectorAll('.func-card').forEach(card => {
   });
 });
 
-filter();
+filterFunc();
+filterKw();
 </script>
 </body>
 </html>
