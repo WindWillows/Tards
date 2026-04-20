@@ -85,6 +85,7 @@
   .func-card.unused { border-left: 4px solid #f56565; }
   .func-card.used { border-left: 4px solid #48bb78; }
   .func-card.many { border-left: 4px solid #4299e1; }
+  .func-card.compat { background: #fffaf0; border-left: 4px solid #ed8936; }
   .func-header {
     display: flex;
     justify-content: space-between;
@@ -123,7 +124,6 @@
   .badge-used { background: #c6f6d5; color: #276749; }
   .badge-many { background: #bee3f8; color: #2c5282; }
   .badge-compat { background: #feebc8; color: #c05621; }
-  .func-card.compat { background: #fffaf0; border-left: 4px solid #ed8936; }
   .caller-list {
     margin-top: 10px;
     padding-top: 10px;
@@ -177,7 +177,7 @@
 
 <div class="header">
   <h1>🔧 Tards 效果工具库 - 函数查询</h1>
-  <p>共 133 个通用函数 | 点击卡片查看调用详情</p>
+  <p>共 133 个通用函数（含 28 个兼容层） | 点击卡片查看调用详情</p>
 </div>
 
 <div class="toolbar">
@@ -205,8 +205,8 @@
 </div>
 
 <div class="container">
-<div class="category" data-category="基础伤害与治疗">
-<div class="category-title">基础伤害与治疗</div>
+<div class="category" data-category="伤害与治疗">
+<div class="category-title">伤害与治疗 (14)</div>
 <div class="func-grid">
 
   <div class="func-card many" data-name="deal_damage_to_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shike_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_baomao_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xueqiu_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanfen_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_erdi_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_tnt_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhenceqi_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_cunzhuangyingxiong_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_turn_start"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_deploy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_attack"}]'>
@@ -249,26 +249,6 @@
     </div>
   </div>
 
-  <div class="func-card unused" data-name="lose_hp_to_player" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">lose_hp_to_player(target, amount)</span>
-      <span class="func-line">行 70</span>
-    </div>
-    <div class="func-brief">使玩家【流失生命值】。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-lose_hp_to_player">
-      <strong>完整文档：</strong>
-      <pre>使玩家【流失生命值】。
-
-不受坚韧/伤害替换影响，不触发'受到伤害时'效果（如血契2级）。
-用于疲劳惩罚、血契1级沉浸度、以及卡牌中的'失去X点HP'效果。</pre>
-    </div>
-  </div>
-
   <div class="func-card used" data-name="heal_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xiao_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_before_attack"}]'>
     <div class="func-header">
       <span class="func-name">heal_minion(minion, amount)</span>
@@ -303,6 +283,185 @@
     </div>
   </div>
 
+  <div class="func-card many" data-name="destroy_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_naogui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liudu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_yanjiangting_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zuanshibiao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jielue_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_baiyou_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_combat_damage"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_suicide_after_attack"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_dr"}]'>
+    <div class="func-header">
+      <span class="func-name">destroy_minion(minion, game)</span>
+      <span class="func-line">行 154</span>
+    </div>
+    <div class="func-brief">【消灭】异象：将其生命值设为 0 并触发死亡流程（亡语等）。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">11 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (11)</summary><div class="caller-item"><span class="caller-type">⚡</span>_naogui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_liudu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_yanjiangting_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zuanshibiao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jielue_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baiyou_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_combat_damage<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_suicide_after_attack<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dr<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-destroy_minion">
+      <strong>完整文档：</strong>
+      <pre>【消灭】异象：将其生命值设为 0 并触发死亡流程（亡语等）。
+
+与 remove_minion 不同：destroy 会正常触发所有死亡相关效果。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used compat" data-name="on_before_damage" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_moyiren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_tiekuilei_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huli_special"}]'>
+    <div class="func-header">
+      <span class="func-name">on_before_damage(minion, game, callback, priority)</span>
+      <span class="func-line">行 936</span>
+    </div>
+    <div class="func-brief">【兼容】注册 before_damage 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">3 处调用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_moyiren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tiekuilei_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huli_special<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-on_before_damage">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 before_damage 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used compat" data-name="on_damaged" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shujia_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_dishuizhuichui_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_tianlairenou_special"}]'>
+    <div class="func-header">
+      <span class="func-name">on_damaged(minion, game, callback, priority)</span>
+      <span class="func-line">行 942</span>
+    </div>
+    <div class="func-brief">【兼容】注册 damaged 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">3 处调用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_shujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dishuizhuichui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianlairenou_special<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-on_damaged">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 damaged 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many compat" data-name="on_after_damage" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_haigui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_rongyuan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshi_special"}]'>
+    <div class="func-header">
+      <span class="func-name">on_after_damage(minion, game, callback, priority)</span>
+      <span class="func-line">行 948</span>
+    </div>
+    <div class="func-brief">【兼容】注册 after_damage 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">4 处调用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_haigui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_rongyuan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshi_special<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-on_after_damage">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 after_damage 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_before_damage_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_before_damage_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1268</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局 before_damage 事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_before_damage_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局 before_damage 事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_damaged_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_damaged_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1274</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局 damaged 事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_damaged_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局 damaged 事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="damage_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">damage_all_enemies(game, player, amount, source)</span>
+      <span class="func-line">行 1284</span>
+    </div>
+    <div class="func-brief">对所有存活敌方异象造成伤害。返回实际造成的总伤害。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-damage_all_enemies">
+      <strong>完整文档：</strong>
+      <pre>对所有存活敌方异象造成伤害。返回实际造成的总伤害。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="damage_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">damage_all_friendly(game, player, amount, source)</span>
+      <span class="func-line">行 1299</span>
+    </div>
+    <div class="func-brief">对所有存活友方异象造成伤害。返回实际造成的总伤害。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-damage_all_friendly">
+      <strong>完整文档：</strong>
+      <pre>对所有存活友方异象造成伤害。返回实际造成的总伤害。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="heal_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">heal_all_friendly(game, player, amount)</span>
+      <span class="func-line">行 1314</span>
+    </div>
+    <div class="func-brief">治疗所有存活友方异象。返回实际治疗的总生命值。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-heal_all_friendly">
+      <strong>完整文档：</strong>
+      <pre>治疗所有存活友方异象。返回实际治疗的总生命值。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="redirect_damage" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">redirect_damage(minion, when, to, reason)</span>
+      <span class="func-line">行 2023</span>
+    </div>
+    <div class="func-brief">通用伤害重定向/替换。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-redirect_damage">
+      <strong>完整文档：</strong>
+      <pre>通用伤害重定向/替换。
+
+when: (damage, source) -> bool，返回 True 时触发替换
+to: 替换后的伤害值（int 或 callable），默认 0 表示取消伤害</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="召唤与回响">
+<div class="category-title">召唤与回响 (3)</div>
+<div class="func-grid">
+
   <div class="func-card used" data-name="summon_token" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xuewulou_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_songshuqiu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_damage"}]'>
     <div class="func-header">
       <span class="func-name">summon_token(game, name, owner, position, attack, health, keywords, summon_turn)</span>
@@ -323,24 +482,49 @@
     </div>
   </div>
 
-  <div class="func-card many" data-name="destroy_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_naogui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liudu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_yanjiangting_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zuanshibiao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jielue_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_baiyou_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_combat_damage"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_suicide_after_attack"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_dr"}]'>
+  <div class="func-card used" data-name="copy_card_to_hand" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_panqukuandao_strategy"}]'>
     <div class="func-header">
-      <span class="func-name">destroy_minion(minion, game)</span>
-      <span class="func-line">行 154</span>
+      <span class="func-name">copy_card_to_hand(source_card, owner, game, cost_modifier)</span>
+      <span class="func-line">行 445</span>
     </div>
-    <div class="func-brief">【消灭】异象：将其生命值设为 0 并触发死亡流程（亡语等）。</div>
+    <div class="func-brief">将一张卡的复制加入指定玩家的手牌。</div>
     <div class="func-meta">
-      <span class="badge badge-many">11 处调用</span>
+      <span class="badge badge-used">1 处调用</span>
       
     </div>
-    <details class="caller-list"><summary>调用详情 (11)</summary><div class="caller-item"><span class="caller-type">⚡</span>_naogui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_liudu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_yanjiangting_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zuanshibiao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jielue_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baiyou_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_combat_damage<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_suicide_after_attack<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dr<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-destroy_minion">
+    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">⚡</span>_panqukuandao_strategy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-copy_card_to_hand">
       <strong>完整文档：</strong>
-      <pre>【消灭】异象：将其生命值设为 0 并触发死亡流程（亡语等）。
+      <pre>将一张卡的复制加入指定玩家的手牌。
 
-与 remove_minion 不同：destroy 会正常触发所有死亡相关效果。</pre>
+cost_modifier 可选，是一个接收 Cost 对象并修改它的函数。
+手牌满则弃置到弃牌堆。
+返回 True 表示成功加入手牌，False 表示因手牌满被弃置。</pre>
     </div>
   </div>
+
+  <div class="func-card unused" data-name="create_echo_card" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">create_echo_card(source_card, echo_level)</span>
+      <span class="func-line">行 480</span>
+    </div>
+    <div class="func-brief">根据源卡创建回响版本（花费2T，1/1，回响等级-1）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-create_echo_card">
+      <strong>完整文档：</strong>
+      <pre>根据源卡创建回响版本（花费2T，1/1，回响等级-1）。
+
+回响卡部署后不会触发特殊效果（special=None），关键词继承原卡。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="手牌与牌库">
+<div class="category-title">手牌与牌库 (22)</div>
+<div class="func-grid">
 
   <div class="func-card many" data-name="return_minion_to_hand" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_rongyuan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_bounce"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xinge_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_end"}, {"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
     <div class="func-header">
@@ -359,190 +543,6 @@
 
 手牌满则弃置到弃牌堆。自动清理战场占位。
 返回 True 表示成功返回手牌，False 表示因手牌满而被弃置。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="transform_minion_to" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">transform_minion_to(minion, target_name, game)</span>
-      <span class="func-line">行 198</span>
-    </div>
-    <div class="func-brief">将场上异象变形为指定名称的新异象。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-transform_minion_to">
-      <strong>完整文档：</strong>
-      <pre>将场上异象变形为指定名称的新异象。
-
-保持位置不变，不触发亡语。新异象的 summon_turn 继承旧异象。</pre>
-    </div>
-  </div>
-</div></div>
-<div class="category" data-category="召唤与召唤物">
-<div class="category-title">召唤与召唤物</div>
-<div class="func-grid">
-
-  <div class="func-card many" data-name="move" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_songshuqiu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_damage"}, {"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
-    <div class="func-header">
-      <span class="func-name">move(minion, to, game, allow_cross_side)</span>
-      <span class="func-line">行 218</span>
-    </div>
-    <div class="func-brief">将异象移动到指定坐标。底层会发射 before_move / moved 事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">5 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (5)</summary><div class="caller-item"><span class="caller-type">⚡</span>_songshuqiu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianniu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_damage<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
-    <div class="detail-panel" id="detail-move">
-      <strong>完整文档：</strong>
-      <pre>将异象移动到指定坐标。底层会发射 before_move / moved 事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="shift" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">shift(minion, delta, game, allow_cross_side)</span>
-      <span class="func-line">行 229</span>
-    </div>
-    <div class="func-brief">按偏移量移动异象。新位置 = 旧位置 + delta。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-shift">
-      <strong>完整文档：</strong>
-      <pre>按偏移量移动异象。新位置 = 旧位置 + delta。
-
-自动处理边界检查。若新位置越界或被占用，移动失败。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used" data-name="swap" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_moyiren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_teleport"}, {"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
-    <div class="func-header">
-      <span class="func-name">swap(a, b, game)</span>
-      <span class="func-line">行 246</span>
-    </div>
-    <div class="func-brief">交换两个异象的位置。不改变阵营。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">3 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_moyiren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_teleport<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
-    <div class="detail-panel" id="detail-swap">
-      <strong>完整文档：</strong>
-      <pre>交换两个异象的位置。不改变阵营。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used" data-name="empty_positions" data-usage="used" data-compat="false" data-callers='[{"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
-    <div class="func-header">
-      <span class="func-name">empty_positions(player, board)</span>
-      <span class="func-line">行 260</span>
-    </div>
-    <div class="func-brief">返回玩家友方区域内的所有空位坐标列表。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">1 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
-    <div class="detail-panel" id="detail-empty_positions">
-      <strong>完整文档：</strong>
-      <pre>返回玩家友方区域内的所有空位坐标列表。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="silence_minion" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">silence_minion(minion)</span>
-      <span class="func-line">行 276</span>
-    </div>
-    <div class="func-brief">沉默异象：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-silence_minion">
-      <strong>完整文档：</strong>
-      <pre>沉默异象：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。
-
-保留卡牌定义时的基础攻击力、生命值和最大生命值。
-种族/类型标签（tags）不受影响。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many" data-name="buff_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_beijixiong_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_haigui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_rongyuan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhuyan_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guaiwulieren_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jinpingguo_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_weaken"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_bounce"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_baoweizhe_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_on_player_damage"}]'>
-    <div class="func-header">
-      <span class="func-name">buff_minion(minion, atk_delta, hp_delta, permanent)</span>
-      <span class="func-line">行 320</span>
-    </div>
-    <div class="func-brief">为异象提供攻击/生命 buff（或 debuff，传入负值即可）。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">11 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (11)</summary><div class="caller-item"><span class="caller-type">⚡</span>_beijixiong_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_haigui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_rongyuan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhizhuyan_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guaiwulieren_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jinpingguo_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_weaken<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bounce<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baoweizhe_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_player_damage<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-buff_minion">
-      <strong>完整文档：</strong>
-      <pre>为异象提供攻击/生命 buff（或 debuff，传入负值即可）。
-
-hp_delta 作用于最大生命值（current_max_health），当前生命值不自动增加，
-但降低时会截断。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many" data-name="gain_keyword" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liudu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xueqiu_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_hongshifen_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jinrenshu_strategy"}]'>
-    <div class="func-header">
-      <span class="func-name">gain_keyword(minion, keyword, value, permanent)</span>
-      <span class="func-line">行 345</span>
-    </div>
-    <div class="func-brief">为异象赋予关键词。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">4 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_liudu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xueqiu_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_hongshifen_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jinrenshu_strategy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-gain_keyword">
-      <strong>完整文档：</strong>
-      <pre>为异象赋予关键词。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used" data-name="remove_keyword" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhenceqi_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_deploy"}]'>
-    <div class="func-header">
-      <span class="func-name">remove_keyword(minion, keyword)</span>
-      <span class="func-line">行 359</span>
-    </div>
-    <div class="func-brief">为异象移除关键词。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">3 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhenceqi_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_deploy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-remove_keyword">
-      <strong>完整文档：</strong>
-      <pre>为异象移除关键词。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used" data-name="set_alias" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_mingmingpai_strategy"}]'>
-    <div class="func-header">
-      <span class="func-name">set_alias(minion, name)</span>
-      <span class="func-line">行 368</span>
-    </div>
-    <div class="func-brief">使异象"也算作是"指定名称的异象（命名牌效果）。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">1 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">⚡</span>_mingmingpai_strategy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-set_alias">
-      <strong>完整文档：</strong>
-      <pre>使异象"也算作是"指定名称的异象（命名牌效果）。</pre>
     </div>
   </div>
 
@@ -581,10 +581,6 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
 返回 True 表示成功弃置，False 表示该卡不在手牌中。</pre>
     </div>
   </div>
-</div></div>
-<div class="category" data-category="手牌与牌库操作">
-<div class="category-title">手牌与牌库操作</div>
-<div class="func-grid">
 
   <div class="func-card unused" data-name="mill_cards" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
@@ -639,45 +635,300 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
     </div>
   </div>
 
-  <div class="func-card used" data-name="copy_card_to_hand" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_panqukuandao_strategy"}]'>
+  <div class="func-card unused" data-name="set_draw_trigger" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">copy_card_to_hand(source_card, owner, game, cost_modifier)</span>
-      <span class="func-line">行 445</span>
+      <span class="func-name">set_draw_trigger(card, callback)</span>
+      <span class="func-line">行 699</span>
     </div>
-    <div class="func-brief">将一张卡的复制加入指定玩家的手牌。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">1 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">⚡</span>_panqukuandao_strategy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-copy_card_to_hand">
-      <strong>完整文档：</strong>
-      <pre>将一张卡的复制加入指定玩家的手牌。
-
-cost_modifier 可选，是一个接收 Cost 对象并修改它的函数。
-手牌满则弃置到弃牌堆。
-返回 True 表示成功加入手牌，False 表示因手牌满被弃置。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="create_echo_card" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">create_echo_card(source_card, echo_level)</span>
-      <span class="func-line">行 480</span>
-    </div>
-    <div class="func-brief">根据源卡创建回响版本（花费2T，1/1，回响等级-1）。</div>
+    <div class="func-brief">为一张卡牌设置"抽取"触发效果。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-create_echo_card">
+    <div class="detail-panel" id="detail-set_draw_trigger">
       <strong>完整文档：</strong>
-      <pre>根据源卡创建回响版本（花费2T，1/1，回响等级-1）。
+      <pre>为一张卡牌设置"抽取"触发效果。
 
-回响卡部署后不会触发特殊效果（special=None），关键词继承原卡。</pre>
+当该卡从牌库被抽入手牌时，callback 会被自动调用。
+callback 签名: (game, event_data, card) -> None，
+其中 event_data 包含 {player, card}。
+
+实现方式：设置 card.on_drawn 属性，由 _trigger_auto_effects 在 EVENT_DRAW 时统一调度。</pre>
     </div>
   </div>
+
+  <div class="func-card unused" data-name="remove_draw_trigger" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">remove_draw_trigger(card)</span>
+      <span class="func-line">行 712</span>
+    </div>
+    <div class="func-brief">移除卡牌的"抽取"效果。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-remove_draw_trigger">
+      <strong>完整文档：</strong>
+      <pre>移除卡牌的"抽取"效果。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many" data-name="add_card_to_hand_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ganzhe_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shujia_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xuewulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huoyao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_tansuo_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_damaged"}]'>
+    <div class="func-header">
+      <span class="func-name">add_card_to_hand_by_name(name, owner, game)</span>
+      <span class="func-line">行 745</span>
+    </div>
+    <div class="func-brief">将指定名称的卡牌创建并加入玩家手牌。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">8 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (8)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ganzhe_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_shujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xuewulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huoyao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tansuo_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_damaged<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-add_card_to_hand_by_name">
+      <strong>完整文档：</strong>
+      <pre>将指定名称的卡牌创建并加入玩家手牌。
+
+手牌满则弃置到弃牌堆。返回 True 表示成功加入手牌。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_draw_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_draw_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1244</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局抽牌事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_draw_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局抽牌事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="reveal_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">reveal_top_of_deck(player, amount)</span>
+      <span class="func-line">行 1712</span>
+    </div>
+    <div class="func-brief">揭示牌库顶的 amount 张牌（只读，不修改牌库）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-reveal_top_of_deck">
+      <strong>完整文档：</strong>
+      <pre>揭示牌库顶的 amount 张牌（只读，不修改牌库）。
+
+返回卡牌列表（从顶到底）。牌库不足时返回实际能揭示的张数。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="put_on_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">put_on_top_of_deck(player, card)</span>
+      <span class="func-line">行 1731</span>
+    </div>
+    <div class="func-brief">将一张牌放到牌库顶（列表末尾）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-put_on_top_of_deck">
+      <strong>完整文档：</strong>
+      <pre>将一张牌放到牌库顶（列表末尾）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="put_on_bottom_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">put_on_bottom_of_deck(player, card)</span>
+      <span class="func-line">行 1740</span>
+    </div>
+    <div class="func-brief">将一张牌放到牌库底（列表开头）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-put_on_bottom_of_deck">
+      <strong>完整文档：</strong>
+      <pre>将一张牌放到牌库底（列表开头）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="search_deck" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">search_deck(player, predicate)</span>
+      <span class="func-line">行 1749</span>
+    </div>
+    <div class="func-brief">搜索牌库中满足条件的所有牌。返回列表（从顶到底）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-search_deck">
+      <strong>完整文档：</strong>
+      <pre>搜索牌库中满足条件的所有牌。返回列表（从顶到底）。
+
+不修改牌库顺序。仅用于读取/检查。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_discarded" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_discarded(minion, game, callback, priority)</span>
+      <span class="func-line">行 1794</span>
+    </div>
+    <div class="func-brief">【兼容】注册 discarded 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_discarded">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 discarded 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_milled" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_milled(minion, game, callback, priority)</span>
+      <span class="func-line">行 1800</span>
+    </div>
+    <div class="func-brief">【兼容】注册 milled 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_milled">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 milled 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="peek_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">peek_deck_top(player, n)</span>
+      <span class="func-line">行 1903</span>
+    </div>
+    <div class="func-brief">查看卡组顶 n 张牌（不移除）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-peek_deck_top">
+      <strong>完整文档：</strong>
+      <pre>查看卡组顶 n 张牌（不移除）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="place_at_deck_bottom" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">place_at_deck_bottom(player, cards)</span>
+      <span class="func-line">行 1908</span>
+    </div>
+    <div class="func-brief">将若干张牌放置到卡组底部。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-place_at_deck_bottom">
+      <strong>完整文档：</strong>
+      <pre>将若干张牌放置到卡组底部。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="place_at_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">place_at_deck_top(player, cards)</span>
+      <span class="func-line">行 1914</span>
+    </div>
+    <div class="func-brief">将若干张牌放置到卡组顶部。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-place_at_deck_top">
+      <strong>完整文档：</strong>
+      <pre>将若干张牌放置到卡组顶部。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="shuffle_deck" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">shuffle_deck(player)</span>
+      <span class="func-line">行 1920</span>
+    </div>
+    <div class="func-brief">洗切玩家的牌堆。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-shuffle_deck">
+      <strong>完整文档：</strong>
+      <pre>洗切玩家的牌堆。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="discover_from_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">discover_from_deck_top(player, n, game, title)</span>
+      <span class="func-line">行 1927</span>
+    </div>
+    <div class="func-brief">展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-discover_from_deck_top">
+      <strong>完整文档：</strong>
+      <pre>展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。
+
+利用 game.request_choice 实现跨 GUI/CLI/网络 的通用选择。
+返回被选中的 Card，若无则返回 None。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used" data-name="draw_cards_of_type" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_conglin_shendian_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shamo_shendian_strategy"}]'>
+    <div class="func-header">
+      <span class="func-name">draw_cards_of_type(player, amount, card_type, game)</span>
+      <span class="func-line">行 1976</span>
+    </div>
+    <div class="func-brief">从牌库中抽取指定类型的牌。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">2 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (2)</summary><div class="caller-item"><span class="caller-type">⚡</span>_conglin_shendian_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_shamo_shendian_strategy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-draw_cards_of_type">
+      <strong>完整文档：</strong>
+      <pre>从牌库中抽取指定类型的牌。
+
+从牌库顶部开始按顺序搜索，遇到指定类型的牌即抽入手牌。
+若牌库中该类型不足 amount 张，抽多少算多少。
+返回实际抽到的牌列表。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="异象查询与选择">
+<div class="category-title">异象查询与选择 (15)</div>
+<div class="func-grid">
 
   <div class="func-card unused" data-name="get_minions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
@@ -846,10 +1097,6 @@ Returns:
 对 Minion 会回退检查其 source_card 的标签。</pre>
     </div>
   </div>
-</div></div>
-<div class="category" data-category="状态与增益">
-<div class="category-title">状态与增益</div>
-<div class="func-grid">
 
   <div class="func-card unused" data-name="get_card_defs_by_tag" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
@@ -906,171 +1153,149 @@ Returns:
     </div>
   </div>
 
-  <div class="func-card unused" data-name="gain_resource" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card many" data-name="get_all_minions" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_erdi_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_peng_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_bishop_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_dr"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "on_turn_end"}]'>
     <div class="func-header">
-      <span class="func-name">gain_resource(player, resource, amount)</span>
-      <span class="func-line">行 639</span>
+      <span class="func-name">get_all_minions(game)</span>
+      <span class="func-line">行 811</span>
     </div>
-    <div class="func-brief">增加玩家资源。resource 可为 't'/'c'/'b'/'s'（大小写不敏感）。</div>
+    <div class="func-brief">返回场上所有存活异象列表（不分敌我）。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">6 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (6)</summary><div class="caller-item"><span class="caller-type">⚡</span>_erdi_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_peng_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bishop_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dr<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-get_all_minions">
+      <strong>完整文档：</strong>
+      <pre>返回场上所有存活异象列表（不分敌我）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="buff_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">buff_all_friendly(game, player, atk_delta, hp_delta, permanent)</span>
+      <span class="func-line">行 1330</span>
+    </div>
+    <div class="func-brief">为所有存活友方异象提供 buff。返回被 buff 的异象数。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-gain_resource">
+    <div class="detail-panel" id="detail-buff_all_friendly">
       <strong>完整文档：</strong>
-      <pre>增加玩家资源。resource 可为 't'/'c'/'b'/'s'（大小写不敏感）。
-
-注意：鲜血(B)在回合结束时会自动清空，此处仅做临时增加。</pre>
+      <pre>为所有存活友方异象提供 buff。返回被 buff 的异象数。</pre>
     </div>
   </div>
 
-  <div class="func-card unused" data-name="lose_resource" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card unused" data-name="get_minions_by_cost" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">lose_resource(player, resource, amount)</span>
-      <span class="func-line">行 665</span>
+      <span class="func-name">get_minions_by_cost(game, player, cost_type, max_cost, friendly)</span>
+      <span class="func-line">行 1835</span>
     </div>
-    <div class="func-brief">减少玩家资源。amount 为正数。</div>
+    <div class="func-brief">按费用筛选场上异象（基于 source_card 的费用）。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-lose_resource">
+    <div class="detail-panel" id="detail-get_minions_by_cost">
       <strong>完整文档：</strong>
-      <pre>减少玩家资源。amount 为正数。</pre>
+      <pre>按费用筛选场上异象（基于 source_card 的费用）。
+
+cost_type: 't' 或 'c'。
+max_cost: 最大费用上限（含），None 表示不限。
+friendly: True 只选友方，False 只选敌方。</pre>
     </div>
   </div>
+</div></div>
+<div class="category" data-category="移动与位置">
+<div class="category-title">移动与位置 (7)</div>
+<div class="func-grid">
 
-  <div class="func-card used" data-name="is_enemy" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhanlipin_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}]'>
+  <div class="func-card many" data-name="move" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_songshuqiu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_damage"}, {"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
     <div class="func-header">
-      <span class="func-name">is_enemy(m1, m2)</span>
-      <span class="func-line">行 676</span>
+      <span class="func-name">move(minion, to, game, allow_cross_side)</span>
+      <span class="func-line">行 218</span>
     </div>
-    <div class="func-brief">判断两个对象（异象或玩家）是否为敌对关系。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">2 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (2)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhanlipin_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-is_enemy">
-      <strong>完整文档：</strong>
-      <pre>判断两个对象（异象或玩家）是否为敌对关系。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many" data-name="add_deathrattle" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_kuangche_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ganzhe_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guiyu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xuewulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ehan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_diaolingkulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_kuijiujia_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_zhuyan_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xigua_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_datuanzhuyan_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_ruolang_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_huanderxixi_special"}]'>
-    <div class="func-header">
-      <span class="func-name">add_deathrattle(minion, deathrattle_fn)</span>
-      <span class="func-line">行 681</span>
-    </div>
-    <div class="func-brief">为一个异象动态添加亡语效果。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">16 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (16)</summary><div class="caller-item"><span class="caller-type">⚡</span>_kuangche_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ganzhe_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guiyu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xuewulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ehan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_diaolingkulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_kuijiujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuyan_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xigua_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_datuanzhuyan_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ruolang_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huanderxixi_special<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-add_deathrattle">
-      <strong>完整文档：</strong>
-      <pre>为一个异象动态添加亡语效果。
-
-deathrattle_fn 的签名为 (minion, player, board) -> None。
-如果异象已有亡语，新亡语会覆盖旧的（暂不支持多亡语叠加）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="set_draw_trigger" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">set_draw_trigger(card, callback)</span>
-      <span class="func-line">行 699</span>
-    </div>
-    <div class="func-brief">为一张卡牌设置"抽取"触发效果。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-set_draw_trigger">
-      <strong>完整文档：</strong>
-      <pre>为一张卡牌设置"抽取"触发效果。
-
-当该卡从牌库被抽入手牌时，callback 会被自动调用。
-callback 签名: (game, event_data, card) -> None，
-其中 event_data 包含 {player, card}。
-
-实现方式：设置 card.on_drawn 属性，由 _trigger_auto_effects 在 EVENT_DRAW 时统一调度。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="remove_draw_trigger" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">remove_draw_trigger(card)</span>
-      <span class="func-line">行 712</span>
-    </div>
-    <div class="func-brief">移除卡牌的"抽取"效果。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-remove_draw_trigger">
-      <strong>完整文档：</strong>
-      <pre>移除卡牌的"抽取"效果。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="get_card_definition" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">get_card_definition(name)</span>
-      <span class="func-line">行 723</span>
-    </div>
-    <div class="func-brief">从全局注册表查询卡牌定义。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-get_card_definition">
-      <strong>完整文档：</strong>
-      <pre>从全局注册表查询卡牌定义。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many" data-name="create_card_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_gaoshan_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_baoweiyaosai_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_chongshishitou_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_panqukuandao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_cunzhuangyingxiong_strategy"}]'>
-    <div class="func-header">
-      <span class="func-name">create_card_by_name(name, owner)</span>
-      <span class="func-line">行 729</span>
-    </div>
-    <div class="func-brief">根据卡牌名称从注册表创建一张对战用 Card 对象。</div>
+    <div class="func-brief">将异象移动到指定坐标。底层会发射 before_move / moved 事件。</div>
     <div class="func-meta">
       <span class="badge badge-many">5 处调用</span>
       
     </div>
-    <details class="caller-list"><summary>调用详情 (5)</summary><div class="caller-item"><span class="caller-type">⚡</span>_gaoshan_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baoweiyaosai_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_chongshishitou_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_panqukuandao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_cunzhuangyingxiong_strategy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-create_card_by_name">
+    <details class="caller-list"><summary>调用详情 (5)</summary><div class="caller-item"><span class="caller-type">⚡</span>_songshuqiu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianniu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_damage<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
+    <div class="detail-panel" id="detail-move">
       <strong>完整文档：</strong>
-      <pre>根据卡牌名称从注册表创建一张对战用 Card 对象。
-
-找不到定义或创建失败时返回 None。</pre>
+      <pre>将异象移动到指定坐标。底层会发射 before_move / moved 事件。</pre>
     </div>
   </div>
 
-  <div class="func-card many" data-name="add_card_to_hand_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ganzhe_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shujia_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xuewulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huoyao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_tansuo_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_damaged"}]'>
+  <div class="func-card unused" data-name="shift" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">add_card_to_hand_by_name(name, owner, game)</span>
-      <span class="func-line">行 745</span>
+      <span class="func-name">shift(minion, delta, game, allow_cross_side)</span>
+      <span class="func-line">行 229</span>
     </div>
-    <div class="func-brief">将指定名称的卡牌创建并加入玩家手牌。</div>
+    <div class="func-brief">按偏移量移动异象。新位置 = 旧位置 + delta。</div>
     <div class="func-meta">
-      <span class="badge badge-many">8 处调用</span>
+      <span class="badge badge-unused">未使用</span>
       
     </div>
-    <details class="caller-list"><summary>调用详情 (8)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ganzhe_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_shujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xuewulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huoyao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tansuo_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_damaged<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-add_card_to_hand_by_name">
+    
+    <div class="detail-panel" id="detail-shift">
       <strong>完整文档：</strong>
-      <pre>将指定名称的卡牌创建并加入玩家手牌。
+      <pre>按偏移量移动异象。新位置 = 旧位置 + delta。
 
-手牌满则弃置到弃牌堆。返回 True 表示成功加入手牌。</pre>
+自动处理边界检查。若新位置越界或被占用，移动失败。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used" data-name="swap" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_moyiren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_teleport"}, {"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
+    <div class="func-header">
+      <span class="func-name">swap(a, b, game)</span>
+      <span class="func-line">行 246</span>
+    </div>
+    <div class="func-brief">交换两个异象的位置。不改变阵营。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">3 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_moyiren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_teleport<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
+    <div class="detail-panel" id="detail-swap">
+      <strong>完整文档：</strong>
+      <pre>交换两个异象的位置。不改变阵营。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used" data-name="empty_positions" data-usage="used" data-compat="false" data-callers='[{"type": "auto_effects", "pack": "auto_effects.py", "name": "auto_effects.py"}]'>
+    <div class="func-header">
+      <span class="func-name">empty_positions(player, board)</span>
+      <span class="func-line">行 260</span>
+    </div>
+    <div class="func-brief">返回玩家友方区域内的所有空位坐标列表。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">1 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">🔧</span>auto_effects.py<span class="caller-pack">(auto_effects.py)</span></div></details>
+    <div class="detail-panel" id="detail-empty_positions">
+      <strong>完整文档：</strong>
+      <pre>返回玩家友方区域内的所有空位坐标列表。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used" data-name="remove_keyword" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhenceqi_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_on_deploy"}]'>
+    <div class="func-header">
+      <span class="func-name">remove_keyword(minion, keyword)</span>
+      <span class="func-line">行 359</span>
+    </div>
+    <div class="func-brief">为异象移除关键词。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">3 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhenceqi_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_deploy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-remove_keyword">
+      <strong>完整文档：</strong>
+      <pre>为异象移除关键词。</pre>
     </div>
   </div>
 
@@ -1093,6 +1318,84 @@ callback 签名: (game, event_data, card) -> None，
     </div>
   </div>
 
+  <div class="func-card unused" data-name="remove_event_listener" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">remove_event_listener(game, event_type, callback)</span>
+      <span class="func-line">行 832</span>
+    </div>
+    <div class="func-brief">注销单个事件监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-remove_event_listener">
+      <strong>完整文档：</strong>
+      <pre>注销单个事件监听器。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="状态与增益">
+<div class="category-title">状态与增益 (9)</div>
+<div class="func-grid">
+
+  <div class="func-card unused" data-name="silence_minion" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">silence_minion(minion)</span>
+      <span class="func-line">行 276</span>
+    </div>
+    <div class="func-brief">沉默异象：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-silence_minion">
+      <strong>完整文档：</strong>
+      <pre>沉默异象：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。
+
+保留卡牌定义时的基础攻击力、生命值和最大生命值。
+种族/类型标签（tags）不受影响。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many" data-name="buff_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_beijixiong_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_haigui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_rongyuan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhuyan_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guaiwulieren_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jinpingguo_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_weaken"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_bounce"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_baoweizhe_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_on_player_damage"}]'>
+    <div class="func-header">
+      <span class="func-name">buff_minion(minion, atk_delta, hp_delta, permanent)</span>
+      <span class="func-line">行 320</span>
+    </div>
+    <div class="func-brief">为异象提供攻击/生命 buff（或 debuff，传入负值即可）。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">11 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (11)</summary><div class="caller-item"><span class="caller-type">⚡</span>_beijixiong_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_haigui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_rongyuan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhizhuyan_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guaiwulieren_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jinpingguo_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_weaken<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bounce<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baoweizhe_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_player_damage<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-buff_minion">
+      <strong>完整文档：</strong>
+      <pre>为异象提供攻击/生命 buff（或 debuff，传入负值即可）。
+
+hp_delta 作用于最大生命值（current_max_health），当前生命值不自动增加，
+但降低时会截断。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many" data-name="gain_keyword" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liudu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xueqiu_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_hongshifen_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jinrenshu_strategy"}]'>
+    <div class="func-header">
+      <span class="func-name">gain_keyword(minion, keyword, value, permanent)</span>
+      <span class="func-line">行 345</span>
+    </div>
+    <div class="func-brief">为异象赋予关键词。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">4 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_liudu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xueqiu_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_hongshifen_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jinrenshu_strategy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-gain_keyword">
+      <strong>完整文档：</strong>
+      <pre>为异象赋予关键词。</pre>
+    </div>
+  </div>
+
   <div class="func-card used" data-name="modify_keyword_number" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_weidaoshi_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guanglingjian_strategy"}]'>
     <div class="func-header">
       <span class="func-name">modify_keyword_number(minion, keyword, delta)</span>
@@ -1111,27 +1414,188 @@ callback 签名: (game, event_data, card) -> None，
 若修改后数值不大于 0，则直接删除该关键词。</pre>
     </div>
   </div>
-</div></div>
-<div class="category" data-category="资源与费用">
-<div class="category-title">资源与费用</div>
-<div class="func-grid">
 
-  <div class="func-card many" data-name="get_all_minions" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_erdi_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_peng_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_bishop_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_dr"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "on_turn_end"}]'>
+  <div class="func-card unused" data-name="silence_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">get_all_minions(game)</span>
-      <span class="func-line">行 811</span>
+      <span class="func-name">silence_all_enemies(game, player)</span>
+      <span class="func-line">行 1357</span>
     </div>
-    <div class="func-brief">返回场上所有存活异象列表（不分敌我）。</div>
+    <div class="func-brief">沉默所有存活敌方异象。返回沉默的异象数。</div>
     <div class="func-meta">
-      <span class="badge badge-many">6 处调用</span>
+      <span class="badge badge-unused">未使用</span>
       
     </div>
-    <details class="caller-list"><summary>调用详情 (6)</summary><div class="caller-item"><span class="caller-type">⚡</span>_erdi_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_peng_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bishop_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dr<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-get_all_minions">
+    
+    <div class="detail-panel" id="detail-silence_all_enemies">
       <strong>完整文档：</strong>
-      <pre>返回场上所有存活异象列表（不分敌我）。</pre>
+      <pre>沉默所有存活敌方异象。返回沉默的异象数。</pre>
     </div>
   </div>
+
+  <div class="func-card unused" data-name="give_temp_keyword_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">give_temp_keyword_until_turn_end(minion, keyword, value)</span>
+      <span class="func-line">行 1655</span>
+    </div>
+    <div class="func-brief">为异象赋予一个临时关键词，当前回合结束时自动清除。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-give_temp_keyword_until_turn_end">
+      <strong>完整文档：</strong>
+      <pre>为异象赋予一个临时关键词，当前回合结束时自动清除。
+
+通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="give_temp_buff_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">give_temp_buff_until_turn_end(minion, atk_delta, hp_delta)</span>
+      <span class="func-line">行 1667</span>
+    </div>
+    <div class="func-brief">为异象提供临时 buff，当前回合结束时自动清除。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-give_temp_buff_until_turn_end">
+      <strong>完整文档：</strong>
+      <pre>为异象提供临时 buff，当前回合结束时自动清除。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="count_keyword_on_board" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">count_keyword_on_board(game, keyword, player)</span>
+      <span class="func-line">行 1810</span>
+    </div>
+    <div class="func-brief">统计场上具有指定关键词的存活异象数量。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-count_keyword_on_board">
+      <strong>完整文档：</strong>
+      <pre>统计场上具有指定关键词的存活异象数量。
+
+player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="has_keyword" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">has_keyword(minion, keyword)</span>
+      <span class="func-line">行 1825</span>
+    </div>
+    <div class="func-brief">检查异象是否拥有指定关键词（含临时和基础）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-has_keyword">
+      <strong>完整文档：</strong>
+      <pre>检查异象是否拥有指定关键词（含临时和基础）。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="战斗伤害">
+<div class="category-title">战斗伤害 (1)</div>
+<div class="func-grid">
+
+  <div class="func-card many" data-name="initiate_combat" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guaiwulieren_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xiao_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_before_attack"}]'>
+    <div class="func-header">
+      <span class="func-name">initiate_combat(a, b, game)</span>
+      <span class="func-line">行 1196</span>
+    </div>
+    <div class="func-brief">使两个指定异象互相攻击一次（对战）。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">4 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guaiwulieren_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiao_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_before_attack<span class="caller-pack">(冥刻效果)</span></div></details>
+    <div class="detail-panel" id="detail-initiate_combat">
+      <strong>完整文档：</strong>
+      <pre>使两个指定异象互相攻击一次（对战）。
+
+双方各攻击一次，走完整的 attack_target 事件链。
+若任一方已死亡，则直接返回。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="群体效果">
+<div class="category-title">群体效果 (1)</div>
+<div class="func-grid">
+
+  <div class="func-card unused" data-name="destroy_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">destroy_all_enemies(game, player)</span>
+      <span class="func-line">行 1345</span>
+    </div>
+    <div class="func-brief">消灭所有存活敌方异象。返回消灭的异象数。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-destroy_all_enemies">
+      <strong>完整文档：</strong>
+      <pre>消灭所有存活敌方异象。返回消灭的异象数。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="目标选择">
+<div class="category-title">目标选择 (1)</div>
+<div class="func-grid">
+
+  <div class="func-card unused" data-name="is_untargetable_by_minions" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">is_untargetable_by_minions(minion)</span>
+      <span class="func-line">行 2066</span>
+    </div>
+    <div class="func-brief">检查异象是否设置了"无法被异象选中"。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-is_untargetable_by_minions">
+      <strong>完整文档：</strong>
+      <pre>检查异象是否设置了"无法被异象选中"。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="资源管理">
+<div class="category-title">资源管理 (1)</div>
+<div class="func-grid">
+
+  <div class="func-card unused" data-name="gain_resource" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">gain_resource(player, resource, amount)</span>
+      <span class="func-line">行 639</span>
+    </div>
+    <div class="func-brief">增加玩家资源。resource 可为 't'/'c'/'b'/'s'（大小写不敏感）。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-gain_resource">
+      <strong>完整文档：</strong>
+      <pre>增加玩家资源。resource 可为 't'/'c'/'b'/'s'（大小写不敏感）。
+
+注意：鲜血(B)在回合结束时会自动清空，此处仅做临时增加。</pre>
+    </div>
+  </div>
+</div></div>
+<div class="category" data-category="事件监听">
+<div class="category-title">事件监听 (18)</div>
+<div class="func-grid">
 
   <div class="func-card many" data-name="add_event_listener" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_yingshi_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xinbiao_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huoba_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_baoweizhe_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_wuduwawa_special"}]'>
     <div class="func-header">
@@ -1149,23 +1613,6 @@ callback 签名: (game, event_data, card) -> None，
       <pre>为一个异象注册事件监听器，并返回 owner_id。
 
 异象死亡时，所有以此 owner_id 注册的监听器会自动注销。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="remove_event_listener" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">remove_event_listener(game, event_type, callback)</span>
-      <span class="func-line">行 832</span>
-    </div>
-    <div class="func-brief">注销单个事件监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-remove_event_listener">
-      <strong>完整文档：</strong>
-      <pre>注销单个事件监听器。</pre>
     </div>
   </div>
 
@@ -1200,86 +1647,6 @@ callback 签名: (game, event_data, card) -> None，
     <div class="detail-panel" id="detail-_init_event_name_map">
       <strong>完整文档：</strong>
       <pre>延迟初始化事件名映射表，避免循环导入。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="on" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on(period, callback, game, minion, priority)</span>
-      <span class="func-line">行 906</span>
-    </div>
-    <div class="func-brief">注册一个事件监听器。period 支持中英文事件名。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-on">
-      <strong>完整文档：</strong>
-      <pre>注册一个事件监听器。period 支持中英文事件名。
-
-常用 period：
-  "before_damage"/"伤害前", "damaged"/"受伤后", "after_damage",
-  "before_attack"/"攻击前", "attacked"/"攻击后", "after_attack",
-  "before_deploy"/"部署前", "deployed"/"部署后", "after_deploy",
-  "before_destroy"/"消灭前", "destroyed",
-  "turn_start"/"回合开始", "turn_end"/"回合结束",
-  "phase_start"/"阶段开始", "phase_end"/"阶段结束",
-  "sacrifice"/"献祭", "draw"/"抽牌", "discarded"/"弃置", "milled"/"磨牌",
-  "card_played"/"卡牌打出", "bell"/"鸣钟", "death"/"死亡"
-
-minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used compat" data-name="on_before_damage" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_moyiren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_tiekuilei_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huli_special"}]'>
-    <div class="func-header">
-      <span class="func-name">on_before_damage(minion, game, callback, priority)</span>
-      <span class="func-line">行 936</span>
-    </div>
-    <div class="func-brief">【兼容】注册 before_damage 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">3 处调用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_moyiren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tiekuilei_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huli_special<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-on_before_damage">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 before_damage 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used compat" data-name="on_damaged" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shujia_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_dishuizhuichui_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_tianlairenou_special"}]'>
-    <div class="func-header">
-      <span class="func-name">on_damaged(minion, game, callback, priority)</span>
-      <span class="func-line">行 942</span>
-    </div>
-    <div class="func-brief">【兼容】注册 damaged 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">3 处调用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_shujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_dishuizhuichui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianlairenou_special<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-on_damaged">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 damaged 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many compat" data-name="on_after_damage" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_haigui_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_rongyuan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshi_special"}]'>
-    <div class="func-header">
-      <span class="func-name">on_after_damage(minion, game, callback, priority)</span>
-      <span class="func-line">行 948</span>
-    </div>
-    <div class="func-brief">【兼容】注册 after_damage 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">4 处调用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_haigui_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_rongyuan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshi_special<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-on_after_damage">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 after_damage 监听器。</pre>
     </div>
   </div>
 
@@ -1334,42 +1701,219 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
     </div>
   </div>
 
-  <div class="func-card used" data-name="give_card_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ehan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_diaolingkulou_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}]'>
+  <div class="func-card unused" data-name="track_event_per_turn" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">give_card_by_name(player, name, reason)</span>
-      <span class="func-line">行 976</span>
+      <span class="func-name">track_event_per_turn(minion, game, key, event_type, filter_fn)</span>
+      <span class="func-line">行 1152</span>
     </div>
-    <div class="func-brief">将指定名称的卡牌定义加入玩家手牌（或弃牌堆）。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">3 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_ehan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_diaolingkulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-give_card_by_name">
-      <strong>完整文档：</strong>
-      <pre>将指定名称的卡牌定义加入玩家手牌（或弃牌堆）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="deploy_card_copy" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">deploy_card_copy(player, game, card, target_pos)</span>
-      <span class="func-line">行 992</span>
-    </div>
-    <div class="func-brief">复制一张异象卡并部署到战场。若未指定目标位置，自动寻找空位。</div>
+    <div class="func-brief">自动追踪某事件每回合的发生次数，并在回合结束时清零。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-deploy_card_copy">
+    <div class="detail-panel" id="detail-track_event_per_turn">
       <strong>完整文档：</strong>
-      <pre>复制一张异象卡并部署到战场。若未指定目标位置，自动寻找空位。</pre>
+      <pre>自动追踪某事件每回合的发生次数，并在回合结束时清零。
+
+注册一个 event_type 的全局监听器，满足 filter_fn 时计数 +1。
+返回 owner_id（可用于手动注销）。
+
+使用示例：
+    track_event_per_turn(minion, game, "turn_deploys", EVENT_DEPLOYED,
+                   lambda e: e.data.get("minion", {}).owner == minion.owner)</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_deploy_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_deploy_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1232</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局部署事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_deploy_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局部署事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_sacrifice_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_sacrifice_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1238</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局献祭事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_sacrifice_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局献祭事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_card_played_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_card_played_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1250</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局卡牌打出事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_card_played_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局卡牌打出事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_turn_start_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_turn_start_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1256</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局回合开始事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_turn_start_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局回合开始事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_turn_end_global" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_turn_end_global(minion, game, callback, priority)</span>
+      <span class="func-line">行 1262</span>
+    </div>
+    <div class="func-brief">【兼容】监听全局回合结束事件。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_turn_end_global">
+      <strong>完整文档：</strong>
+      <pre>【兼容】监听全局回合结束事件。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_after_deploy" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_after_deploy(minion, game, callback, priority)</span>
+      <span class="func-line">行 1764</span>
+    </div>
+    <div class="func-brief">【兼容】注册 after_deploy 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_after_deploy">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 after_deploy 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_card_played" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_card_played(minion, game, callback, priority)</span>
+      <span class="func-line">行 1770</span>
+    </div>
+    <div class="func-brief">【兼容】注册 played 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_card_played">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 played 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused compat" data-name="on_sacrifice" data-usage="unused" data-compat="true" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on_sacrifice(minion, game, callback, priority)</span>
+      <span class="func-line">行 1776</span>
+    </div>
+    <div class="func-brief">【兼容】注册 sacrifice 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    
+    <div class="detail-panel" id="detail-on_sacrifice">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 sacrifice 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many compat" data-name="on_turn_start" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liulangshangren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "on_turn_start"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_start"}]'>
+    <div class="func-header">
+      <span class="func-name">on_turn_start(minion, game, callback, priority)</span>
+      <span class="func-line">行 1782</span>
+    </div>
+    <div class="func-brief">【兼容】注册 turn_start 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">4 处调用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_liulangshangren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_start<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_start<span class="caller-pack">(冥刻效果)</span></div></details>
+    <div class="detail-panel" id="detail-on_turn_start">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 turn_start 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many compat" data-name="on_turn_end" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xinge_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_end"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_bishop_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "on_turn_end"}]'>
+    <div class="func-header">
+      <span class="func-name">on_turn_end(minion, game, callback, priority)</span>
+      <span class="func-line">行 1788</span>
+    </div>
+    <div class="func-brief">【兼容】注册 turn_end 监听器。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">6 处调用</span>
+      <span class="badge badge-compat">兼容层</span>
+    </div>
+    <details class="caller-list"><summary>调用详情 (6)</summary><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianniu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xinge_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bishop_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-on_turn_end">
+      <strong>完整文档：</strong>
+      <pre>【兼容】注册 turn_end 监听器。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="can_minion_attack" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">can_minion_attack(minion, game)</span>
+      <span class="func-line">行 2081</span>
+    </div>
+    <div class="func-brief">检查异象是否被全局攻击限制禁止攻击。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-can_minion_attack">
+      <strong>完整文档：</strong>
+      <pre>检查异象是否被全局攻击限制禁止攻击。</pre>
     </div>
   </div>
 </div></div>
-<div class="category" data-category="事件与监听">
-<div class="category-title">事件与监听</div>
+<div class="category" data-category="延迟与条件">
+<div class="category-title">延迟与条件 (10)</div>
 <div class="func-grid">
 
   <div class="func-card unused" data-name="delay_to_next_turn" data-usage="unused" data-compat="false" data-callers='[]'>
@@ -1532,289 +2076,278 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
     </div>
   </div>
 
-  <div class="func-card unused" data-name="track_event_per_turn" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card unused" data-name="if_possible_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">track_event_per_turn(minion, game, key, event_type, filter_fn)</span>
-      <span class="func-line">行 1152</span>
+      <span class="func-name">if_possible_then(condition_fn, then_fn)</span>
+      <span class="func-line">行 1480</span>
     </div>
-    <div class="func-brief">自动追踪某事件每回合的发生次数，并在回合结束时清零。</div>
+    <div class="func-brief">如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-track_event_per_turn">
+    <div class="detail-panel" id="detail-if_possible_then">
       <strong>完整文档：</strong>
-      <pre>自动追踪某事件每回合的发生次数，并在回合结束时清零。
+      <pre>如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。
 
-注册一个 event_type 的全局监听器，满足 filter_fn 时计数 +1。
-返回 owner_id（可用于手动注销）。
+返回 True 表示条件满足并已执行，False 表示条件不满足、效果未执行。
+用于"如可能，..."类效果（如"如可能，消耗1S，对对手造成2点伤害"）。
 
-使用示例：
-    track_event_per_turn(minion, game, "turn_deploys", EVENT_DEPLOYED,
-                   lambda e: e.data.get("minion", {}).owner == minion.owner)</pre>
-    </div>
-  </div>
-
-  <div class="func-card many" data-name="initiate_combat" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guaiwulieren_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xiao_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_before_attack"}]'>
-    <div class="func-header">
-      <span class="func-name">initiate_combat(a, b, game)</span>
-      <span class="func-line">行 1196</span>
-    </div>
-    <div class="func-brief">使两个指定异象互相攻击一次（对战）。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">4 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guaiwulieren_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiao_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_on_before_attack<span class="caller-pack">(冥刻效果)</span></div></details>
-    <div class="detail-panel" id="detail-initiate_combat">
-      <strong>完整文档：</strong>
-      <pre>使两个指定异象互相攻击一次（对战）。
-
-双方各攻击一次，走完整的 attack_target 事件链。
-若任一方已死亡，则直接返回。</pre>
+与 conditional_effect 的区别：
+  - if_possible_then 强调"前提条件不满足则效果完全失效"；
+  - conditional_effect 是通用的 if/else 分支。</pre>
     </div>
   </div>
 </div></div>
-<div class="category" data-category="查询与选择">
-<div class="category-title">查询与选择</div>
+<div class="category" data-category="战场实用">
+<div class="category-title">战场实用 (2)</div>
 <div class="func-grid">
 
-  <div class="func-card unused compat" data-name="on_deploy_global" data-usage="unused" data-compat="true" data-callers='[]'>
+  <div class="func-card unused" data-name="get_terrain_at" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">on_deploy_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1232</span>
+      <span class="func-name">get_terrain_at(game, position, default)</span>
+      <span class="func-line">行 2052</span>
     </div>
-    <div class="func-brief">【兼容】监听全局部署事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_deploy_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局部署事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_sacrifice_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_sacrifice_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1238</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局献祭事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_sacrifice_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局献祭事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_draw_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_draw_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1244</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局抽牌事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_draw_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局抽牌事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_card_played_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_card_played_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1250</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局卡牌打出事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_card_played_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局卡牌打出事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_turn_start_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_turn_start_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1256</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局回合开始事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_turn_start_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局回合开始事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_turn_end_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_turn_end_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1262</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局回合结束事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_turn_end_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局回合结束事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_before_damage_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_before_damage_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1268</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局 before_damage 事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_before_damage_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局 before_damage 事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_damaged_global" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_damaged_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1274</span>
-    </div>
-    <div class="func-brief">【兼容】监听全局 damaged 事件。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_damaged_global">
-      <strong>完整文档：</strong>
-      <pre>【兼容】监听全局 damaged 事件。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="damage_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">damage_all_enemies(game, player, amount, source)</span>
-      <span class="func-line">行 1284</span>
-    </div>
-    <div class="func-brief">对所有存活敌方异象造成伤害。返回实际造成的总伤害。</div>
+    <div class="func-brief">获取指定格子的当前地形类型，优先返回覆盖值。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-damage_all_enemies">
+    <div class="detail-panel" id="detail-get_terrain_at">
       <strong>完整文档：</strong>
-      <pre>对所有存活敌方异象造成伤害。返回实际造成的总伤害。</pre>
+      <pre>获取指定格子的当前地形类型，优先返回覆盖值。</pre>
     </div>
   </div>
 
-  <div class="func-card unused" data-name="damage_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card unused" data-name="clear_attack_restrictions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">damage_all_friendly(game, player, amount, source)</span>
-      <span class="func-line">行 1299</span>
+      <span class="func-name">clear_attack_restrictions(game)</span>
+      <span class="func-line">行 2075</span>
     </div>
-    <div class="func-brief">对所有存活友方异象造成伤害。返回实际造成的总伤害。</div>
+    <div class="func-brief">清除所有全局攻击限制。应在回合结束时调用。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-damage_all_friendly">
+    <div class="detail-panel" id="detail-clear_attack_restrictions">
       <strong>完整文档：</strong>
-      <pre>对所有存活友方异象造成伤害。返回实际造成的总伤害。</pre>
+      <pre>清除所有全局攻击限制。应在回合结束时调用。</pre>
     </div>
   </div>
+</div></div>
+<div class="category" data-category="其他">
+<div class="category-title">其他 (29)</div>
+<div class="func-grid">
 
-  <div class="func-card unused" data-name="heal_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card unused" data-name="lose_hp_to_player" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">heal_all_friendly(game, player, amount)</span>
-      <span class="func-line">行 1314</span>
+      <span class="func-name">lose_hp_to_player(target, amount)</span>
+      <span class="func-line">行 70</span>
     </div>
-    <div class="func-brief">治疗所有存活友方异象。返回实际治疗的总生命值。</div>
+    <div class="func-brief">使玩家【流失生命值】。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-heal_all_friendly">
+    <div class="detail-panel" id="detail-lose_hp_to_player">
       <strong>完整文档：</strong>
-      <pre>治疗所有存活友方异象。返回实际治疗的总生命值。</pre>
+      <pre>使玩家【流失生命值】。
+
+不受坚韧/伤害替换影响，不触发'受到伤害时'效果（如血契2级）。
+用于疲劳惩罚、血契1级沉浸度、以及卡牌中的'失去X点HP'效果。</pre>
     </div>
   </div>
 
-  <div class="func-card unused" data-name="buff_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card unused" data-name="transform_minion_to" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
-      <span class="func-name">buff_all_friendly(game, player, atk_delta, hp_delta, permanent)</span>
-      <span class="func-line">行 1330</span>
+      <span class="func-name">transform_minion_to(minion, target_name, game)</span>
+      <span class="func-line">行 198</span>
     </div>
-    <div class="func-brief">为所有存活友方异象提供 buff。返回被 buff 的异象数。</div>
+    <div class="func-brief">将场上异象变形为指定名称的新异象。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-buff_all_friendly">
+    <div class="detail-panel" id="detail-transform_minion_to">
       <strong>完整文档：</strong>
-      <pre>为所有存活友方异象提供 buff。返回被 buff 的异象数。</pre>
+      <pre>将场上异象变形为指定名称的新异象。
+
+保持位置不变，不触发亡语。新异象的 summon_turn 继承旧异象。</pre>
     </div>
   </div>
 
-  <div class="func-card unused" data-name="destroy_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card used" data-name="set_alias" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_mingmingpai_strategy"}]'>
     <div class="func-header">
-      <span class="func-name">destroy_all_enemies(game, player)</span>
-      <span class="func-line">行 1345</span>
+      <span class="func-name">set_alias(minion, name)</span>
+      <span class="func-line">行 368</span>
     </div>
-    <div class="func-brief">消灭所有存活敌方异象。返回消灭的异象数。</div>
+    <div class="func-brief">使异象"也算作是"指定名称的异象（命名牌效果）。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">1 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (1)</summary><div class="caller-item"><span class="caller-type">⚡</span>_mingmingpai_strategy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-set_alias">
+      <strong>完整文档：</strong>
+      <pre>使异象"也算作是"指定名称的异象（命名牌效果）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="lose_resource" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">lose_resource(player, resource, amount)</span>
+      <span class="func-line">行 665</span>
+    </div>
+    <div class="func-brief">减少玩家资源。amount 为正数。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-destroy_all_enemies">
+    <div class="detail-panel" id="detail-lose_resource">
       <strong>完整文档：</strong>
-      <pre>消灭所有存活敌方异象。返回消灭的异象数。</pre>
+      <pre>减少玩家资源。amount 为正数。</pre>
     </div>
   </div>
 
-  <div class="func-card unused" data-name="silence_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
+  <div class="func-card used" data-name="is_enemy" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhanlipin_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}]'>
     <div class="func-header">
-      <span class="func-name">silence_all_enemies(game, player)</span>
-      <span class="func-line">行 1357</span>
+      <span class="func-name">is_enemy(m1, m2)</span>
+      <span class="func-line">行 676</span>
     </div>
-    <div class="func-brief">沉默所有存活敌方异象。返回沉默的异象数。</div>
+    <div class="func-brief">判断两个对象（异象或玩家）是否为敌对关系。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">2 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (2)</summary><div class="caller-item"><span class="caller-type">⚡</span>_zhanlipin_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jiangshizhuren_special<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-is_enemy">
+      <strong>完整文档：</strong>
+      <pre>判断两个对象（异象或玩家）是否为敌对关系。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many" data-name="add_deathrattle" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_kuangche_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhizhu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ganzhe_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_lieyanren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guiyu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_xuewulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ehan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_diaolingkulou_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_kuijiujia_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_zhuyan_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xigua_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_datuanzhuyan_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_ruolang_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_zhuxin_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_huanderxixi_special"}]'>
+    <div class="func-header">
+      <span class="func-name">add_deathrattle(minion, deathrattle_fn)</span>
+      <span class="func-line">行 681</span>
+    </div>
+    <div class="func-brief">为一个异象动态添加亡语效果。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">16 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (16)</summary><div class="caller-item"><span class="caller-type">⚡</span>_kuangche_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhizhu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ganzhe_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_lieyanren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_guiyu_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xuewulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ehan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_diaolingkulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_kuijiujia_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuyan_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xigua_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_datuanzhuyan_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_ruolang_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_zhuxin_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_huanderxixi_special<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-add_deathrattle">
+      <strong>完整文档：</strong>
+      <pre>为一个异象动态添加亡语效果。
+
+deathrattle_fn 的签名为 (minion, player, board) -> None。
+如果异象已有亡语，新亡语会覆盖旧的（暂不支持多亡语叠加）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="get_card_definition" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">get_card_definition(name)</span>
+      <span class="func-line">行 723</span>
+    </div>
+    <div class="func-brief">从全局注册表查询卡牌定义。</div>
     <div class="func-meta">
       <span class="badge badge-unused">未使用</span>
       
     </div>
     
-    <div class="detail-panel" id="detail-silence_all_enemies">
+    <div class="detail-panel" id="detail-get_card_definition">
       <strong>完整文档：</strong>
-      <pre>沉默所有存活敌方异象。返回沉默的异象数。</pre>
+      <pre>从全局注册表查询卡牌定义。</pre>
+    </div>
+  </div>
+
+  <div class="func-card many" data-name="create_card_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_gaoshan_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_baoweiyaosai_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_chongshishitou_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_panqukuandao_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_cunzhuangyingxiong_strategy"}]'>
+    <div class="func-header">
+      <span class="func-name">create_card_by_name(name, owner)</span>
+      <span class="func-line">行 729</span>
+    </div>
+    <div class="func-brief">根据卡牌名称从注册表创建一张对战用 Card 对象。</div>
+    <div class="func-meta">
+      <span class="badge badge-many">5 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (5)</summary><div class="caller-item"><span class="caller-type">⚡</span>_gaoshan_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_baoweiyaosai_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_chongshishitou_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_panqukuandao_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_cunzhuangyingxiong_strategy<span class="caller-pack">(离散效果)</span></div></details>
+    <div class="detail-panel" id="detail-create_card_by_name">
+      <strong>完整文档：</strong>
+      <pre>根据卡牌名称从注册表创建一张对战用 Card 对象。
+
+找不到定义或创建失败时返回 None。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="on" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">on(period, callback, game, minion, priority)</span>
+      <span class="func-line">行 906</span>
+    </div>
+    <div class="func-brief">注册一个事件监听器。period 支持中英文事件名。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-on">
+      <strong>完整文档：</strong>
+      <pre>注册一个事件监听器。period 支持中英文事件名。
+
+常用 period：
+  "before_damage"/"伤害前", "damaged"/"受伤后", "after_damage",
+  "before_attack"/"攻击前", "attacked"/"攻击后", "after_attack",
+  "before_deploy"/"部署前", "deployed"/"部署后", "after_deploy",
+  "before_destroy"/"消灭前", "destroyed",
+  "turn_start"/"回合开始", "turn_end"/"回合结束",
+  "phase_start"/"阶段开始", "phase_end"/"阶段结束",
+  "sacrifice"/"献祭", "draw"/"抽牌", "discarded"/"弃置", "milled"/"磨牌",
+  "card_played"/"卡牌打出", "bell"/"鸣钟", "death"/"死亡"
+
+minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
+    </div>
+  </div>
+
+  <div class="func-card used" data-name="give_card_by_name" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_ehan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_diaolingkulou_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_xiuhuayin_special"}]'>
+    <div class="func-header">
+      <span class="func-name">give_card_by_name(player, name, reason)</span>
+      <span class="func-line">行 976</span>
+    </div>
+    <div class="func-brief">将指定名称的卡牌定义加入玩家手牌（或弃牌堆）。</div>
+    <div class="func-meta">
+      <span class="badge badge-used">3 处调用</span>
+      
+    </div>
+    <details class="caller-list"><summary>调用详情 (3)</summary><div class="caller-item"><span class="caller-type">⚡</span>_ehan_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_diaolingkulou_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xiuhuayin_special<span class="caller-pack">(血契效果)</span></div></details>
+    <div class="detail-panel" id="detail-give_card_by_name">
+      <strong>完整文档：</strong>
+      <pre>将指定名称的卡牌定义加入玩家手牌（或弃牌堆）。</pre>
+    </div>
+  </div>
+
+  <div class="func-card unused" data-name="deploy_card_copy" data-usage="unused" data-compat="false" data-callers='[]'>
+    <div class="func-header">
+      <span class="func-name">deploy_card_copy(player, game, card, target_pos)</span>
+      <span class="func-line">行 992</span>
+    </div>
+    <div class="func-brief">复制一张异象卡并部署到战场。若未指定目标位置，自动寻找空位。</div>
+    <div class="func-meta">
+      <span class="badge badge-unused">未使用</span>
+      
+    </div>
+    
+    <div class="detail-panel" id="detail-deploy_card_copy">
+      <strong>完整文档：</strong>
+      <pre>复制一张异象卡并部署到战场。若未指定目标位置，自动寻找空位。</pre>
     </div>
   </div>
 
@@ -1868,10 +2401,6 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
       <pre>返回指定列中的所有存活敌方异象。</pre>
     </div>
   </div>
-</div></div>
-<div class="category" data-category="移动与位置">
-<div class="category-title">移动与位置</div>
-<div class="func-grid">
 
   <div class="func-card unused" data-name="adjacent_friendly_minions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
@@ -1941,30 +2470,6 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
 
 condition_fn: 无参函数，返回 bool。
 then_fn / else_fn: 无参函数，条件满足/不满足时执行。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="if_possible_then" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">if_possible_then(condition_fn, then_fn)</span>
-      <span class="func-line">行 1480</span>
-    </div>
-    <div class="func-brief">如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-if_possible_then">
-      <strong>完整文档：</strong>
-      <pre>如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。
-
-返回 True 表示条件满足并已执行，False 表示条件不满足、效果未执行。
-用于"如可能，..."类效果（如"如可能，消耗1S，对对手造成2点伤害"）。
-
-与 conditional_effect 的区别：
-  - if_possible_then 强调"前提条件不满足则效果完全失效"；
-  - conditional_effect 是通用的 if/else 分支。</pre>
     </div>
   </div>
 
@@ -2042,10 +2547,6 @@ amount: 需要消耗的正数
       <pre>如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。</pre>
     </div>
   </div>
-</div></div>
-<div class="category" data-category="控制流与条件">
-<div class="category-title">控制流与条件</div>
-<div class="func-grid">
 
   <div class="func-card unused" data-name="chain_effects" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
@@ -2085,42 +2586,6 @@ amount: 需要消耗的正数
     </div>
   </div>
 
-  <div class="func-card unused" data-name="give_temp_keyword_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">give_temp_keyword_until_turn_end(minion, keyword, value)</span>
-      <span class="func-line">行 1655</span>
-    </div>
-    <div class="func-brief">为异象赋予一个临时关键词，当前回合结束时自动清除。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-give_temp_keyword_until_turn_end">
-      <strong>完整文档：</strong>
-      <pre>为异象赋予一个临时关键词，当前回合结束时自动清除。
-
-通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="give_temp_buff_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">give_temp_buff_until_turn_end(minion, atk_delta, hp_delta)</span>
-      <span class="func-line">行 1667</span>
-    </div>
-    <div class="func-brief">为异象提供临时 buff，当前回合结束时自动清除。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-give_temp_buff_until_turn_end">
-      <strong>完整文档：</strong>
-      <pre>为异象提供临时 buff，当前回合结束时自动清除。</pre>
-    </div>
-  </div>
-
   <div class="func-card unused" data-name="inject_temporary_deathrattle" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">inject_temporary_deathrattle(minion, game, deathrattle_fn)</span>
@@ -2141,237 +2606,6 @@ amount: 需要消耗的正数
     </div>
   </div>
 
-  <div class="func-card unused" data-name="reveal_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">reveal_top_of_deck(player, amount)</span>
-      <span class="func-line">行 1712</span>
-    </div>
-    <div class="func-brief">揭示牌库顶的 amount 张牌（只读，不修改牌库）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-reveal_top_of_deck">
-      <strong>完整文档：</strong>
-      <pre>揭示牌库顶的 amount 张牌（只读，不修改牌库）。
-
-返回卡牌列表（从顶到底）。牌库不足时返回实际能揭示的张数。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="put_on_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">put_on_top_of_deck(player, card)</span>
-      <span class="func-line">行 1731</span>
-    </div>
-    <div class="func-brief">将一张牌放到牌库顶（列表末尾）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-put_on_top_of_deck">
-      <strong>完整文档：</strong>
-      <pre>将一张牌放到牌库顶（列表末尾）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="put_on_bottom_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">put_on_bottom_of_deck(player, card)</span>
-      <span class="func-line">行 1740</span>
-    </div>
-    <div class="func-brief">将一张牌放到牌库底（列表开头）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-put_on_bottom_of_deck">
-      <strong>完整文档：</strong>
-      <pre>将一张牌放到牌库底（列表开头）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="search_deck" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">search_deck(player, predicate)</span>
-      <span class="func-line">行 1749</span>
-    </div>
-    <div class="func-brief">搜索牌库中满足条件的所有牌。返回列表（从顶到底）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-search_deck">
-      <strong>完整文档：</strong>
-      <pre>搜索牌库中满足条件的所有牌。返回列表（从顶到底）。
-
-不修改牌库顺序。仅用于读取/检查。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_after_deploy" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_after_deploy(minion, game, callback, priority)</span>
-      <span class="func-line">行 1764</span>
-    </div>
-    <div class="func-brief">【兼容】注册 after_deploy 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_after_deploy">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 after_deploy 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_card_played" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_card_played(minion, game, callback, priority)</span>
-      <span class="func-line">行 1770</span>
-    </div>
-    <div class="func-brief">【兼容】注册 played 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_card_played">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 played 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_sacrifice" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_sacrifice(minion, game, callback, priority)</span>
-      <span class="func-line">行 1776</span>
-    </div>
-    <div class="func-brief">【兼容】注册 sacrifice 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_sacrifice">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 sacrifice 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many compat" data-name="on_turn_start" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liulangshangren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "on_turn_start"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_start"}]'>
-    <div class="func-header">
-      <span class="func-name">on_turn_start(minion, game, callback, priority)</span>
-      <span class="func-line">行 1782</span>
-    </div>
-    <div class="func-brief">【兼容】注册 turn_start 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">4 处调用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    <details class="caller-list"><summary>调用详情 (4)</summary><div class="caller-item"><span class="caller-type">⚡</span>_liulangshangren_special<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_start<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_start<span class="caller-pack">(冥刻效果)</span></div></details>
-    <div class="detail-panel" id="detail-on_turn_start">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 turn_start 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card many compat" data-name="on_turn_end" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xinge_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_end"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_bishop_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "on_turn_end"}]'>
-    <div class="func-header">
-      <span class="func-name">on_turn_end(minion, game, callback, priority)</span>
-      <span class="func-line">行 1788</span>
-    </div>
-    <div class="func-brief">【兼容】注册 turn_end 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-many">6 处调用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    <details class="caller-list"><summary>调用详情 (6)</summary><div class="caller-item"><span class="caller-type">⚡</span>_jijuxie_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_tianniu_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_xinge_special<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(冥刻效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_bishop_special<span class="caller-pack">(血契效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>on_turn_end<span class="caller-pack">(血契效果)</span></div></details>
-    <div class="detail-panel" id="detail-on_turn_end">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 turn_end 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused compat" data-name="on_discarded" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_discarded(minion, game, callback, priority)</span>
-      <span class="func-line">行 1794</span>
-    </div>
-    <div class="func-brief">【兼容】注册 discarded 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_discarded">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 discarded 监听器。</pre>
-    </div>
-  </div>
-</div></div>
-<div class="category" data-category="地形与特殊机制">
-<div class="category-title">地形与特殊机制</div>
-<div class="func-grid">
-
-  <div class="func-card unused compat" data-name="on_milled" data-usage="unused" data-compat="true" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">on_milled(minion, game, callback, priority)</span>
-      <span class="func-line">行 1800</span>
-    </div>
-    <div class="func-brief">【兼容】注册 milled 监听器。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      <span class="badge badge-compat">兼容层</span>
-    </div>
-    
-    <div class="detail-panel" id="detail-on_milled">
-      <strong>完整文档：</strong>
-      <pre>【兼容】注册 milled 监听器。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="count_keyword_on_board" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">count_keyword_on_board(game, keyword, player)</span>
-      <span class="func-line">行 1810</span>
-    </div>
-    <div class="func-brief">统计场上具有指定关键词的存活异象数量。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-count_keyword_on_board">
-      <strong>完整文档：</strong>
-      <pre>统计场上具有指定关键词的存活异象数量。
-
-player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="has_keyword" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">has_keyword(minion, keyword)</span>
-      <span class="func-line">行 1825</span>
-    </div>
-    <div class="func-brief">检查异象是否拥有指定关键词（含临时和基础）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-has_keyword">
-      <strong>完整文档：</strong>
-      <pre>检查异象是否拥有指定关键词（含临时和基础）。</pre>
-    </div>
-  </div>
-
   <div class="func-card unused" data-name="get_opponent" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_opponent(game, player)</span>
@@ -2386,27 +2620,6 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
     <div class="detail-panel" id="detail-get_opponent">
       <strong>完整文档：</strong>
       <pre>返回指定玩家的对手。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="get_minions_by_cost" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">get_minions_by_cost(game, player, cost_type, max_cost, friendly)</span>
-      <span class="func-line">行 1835</span>
-    </div>
-    <div class="func-brief">按费用筛选场上异象（基于 source_card 的费用）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-get_minions_by_cost">
-      <strong>完整文档：</strong>
-      <pre>按费用筛选场上异象（基于 source_card 的费用）。
-
-cost_type: 't' 或 'c'。
-max_cost: 最大费用上限（含），None 表示不限。
-friendly: True 只选友方，False 只选敌方。</pre>
     </div>
   </div>
 
@@ -2458,207 +2671,6 @@ friendly: True 只选友方，False 只选敌方。</pre>
     <div class="detail-panel" id="detail-add_deploy_restriction">
       <strong>完整文档：</strong>
       <pre>添加一个全局部署限制条件。fn 返回 False 则阻止部署。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="peek_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">peek_deck_top(player, n)</span>
-      <span class="func-line">行 1903</span>
-    </div>
-    <div class="func-brief">查看卡组顶 n 张牌（不移除）。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-peek_deck_top">
-      <strong>完整文档：</strong>
-      <pre>查看卡组顶 n 张牌（不移除）。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="place_at_deck_bottom" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">place_at_deck_bottom(player, cards)</span>
-      <span class="func-line">行 1908</span>
-    </div>
-    <div class="func-brief">将若干张牌放置到卡组底部。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-place_at_deck_bottom">
-      <strong>完整文档：</strong>
-      <pre>将若干张牌放置到卡组底部。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="place_at_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">place_at_deck_top(player, cards)</span>
-      <span class="func-line">行 1914</span>
-    </div>
-    <div class="func-brief">将若干张牌放置到卡组顶部。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-place_at_deck_top">
-      <strong>完整文档：</strong>
-      <pre>将若干张牌放置到卡组顶部。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="shuffle_deck" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">shuffle_deck(player)</span>
-      <span class="func-line">行 1920</span>
-    </div>
-    <div class="func-brief">洗切玩家的牌堆。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-shuffle_deck">
-      <strong>完整文档：</strong>
-      <pre>洗切玩家的牌堆。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="discover_from_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">discover_from_deck_top(player, n, game, title)</span>
-      <span class="func-line">行 1927</span>
-    </div>
-    <div class="func-brief">展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-discover_from_deck_top">
-      <strong>完整文档：</strong>
-      <pre>展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。
-
-利用 game.request_choice 实现跨 GUI/CLI/网络 的通用选择。
-返回被选中的 Card，若无则返回 None。</pre>
-    </div>
-  </div>
-
-  <div class="func-card used" data-name="draw_cards_of_type" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_conglin_shendian_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shamo_shendian_strategy"}]'>
-    <div class="func-header">
-      <span class="func-name">draw_cards_of_type(player, amount, card_type, game)</span>
-      <span class="func-line">行 1976</span>
-    </div>
-    <div class="func-brief">从牌库中抽取指定类型的牌。</div>
-    <div class="func-meta">
-      <span class="badge badge-used">2 处调用</span>
-      
-    </div>
-    <details class="caller-list"><summary>调用详情 (2)</summary><div class="caller-item"><span class="caller-type">⚡</span>_conglin_shendian_strategy<span class="caller-pack">(离散效果)</span></div><div class="caller-item"><span class="caller-type">⚡</span>_shamo_shendian_strategy<span class="caller-pack">(离散效果)</span></div></details>
-    <div class="detail-panel" id="detail-draw_cards_of_type">
-      <strong>完整文档：</strong>
-      <pre>从牌库中抽取指定类型的牌。
-
-从牌库顶部开始按顺序搜索，遇到指定类型的牌即抽入手牌。
-若牌库中该类型不足 amount 张，抽多少算多少。
-返回实际抽到的牌列表。</pre>
-    </div>
-  </div>
-</div></div>
-<div class="category" data-category="其他">
-<div class="category-title">其他</div>
-<div class="func-grid">
-
-  <div class="func-card unused" data-name="redirect_damage" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">redirect_damage(minion, when, to, reason)</span>
-      <span class="func-line">行 2023</span>
-    </div>
-    <div class="func-brief">通用伤害重定向/替换。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-redirect_damage">
-      <strong>完整文档：</strong>
-      <pre>通用伤害重定向/替换。
-
-when: (damage, source) -> bool，返回 True 时触发替换
-to: 替换后的伤害值（int 或 callable），默认 0 表示取消伤害</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="get_terrain_at" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">get_terrain_at(game, position, default)</span>
-      <span class="func-line">行 2052</span>
-    </div>
-    <div class="func-brief">获取指定格子的当前地形类型，优先返回覆盖值。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-get_terrain_at">
-      <strong>完整文档：</strong>
-      <pre>获取指定格子的当前地形类型，优先返回覆盖值。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="is_untargetable_by_minions" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">is_untargetable_by_minions(minion)</span>
-      <span class="func-line">行 2066</span>
-    </div>
-    <div class="func-brief">检查异象是否设置了"无法被异象选中"。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-is_untargetable_by_minions">
-      <strong>完整文档：</strong>
-      <pre>检查异象是否设置了"无法被异象选中"。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="clear_attack_restrictions" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">clear_attack_restrictions(game)</span>
-      <span class="func-line">行 2075</span>
-    </div>
-    <div class="func-brief">清除所有全局攻击限制。应在回合结束时调用。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-clear_attack_restrictions">
-      <strong>完整文档：</strong>
-      <pre>清除所有全局攻击限制。应在回合结束时调用。</pre>
-    </div>
-  </div>
-
-  <div class="func-card unused" data-name="can_minion_attack" data-usage="unused" data-compat="false" data-callers='[]'>
-    <div class="func-header">
-      <span class="func-name">can_minion_attack(minion, game)</span>
-      <span class="func-line">行 2081</span>
-    </div>
-    <div class="func-brief">检查异象是否被全局攻击限制禁止攻击。</div>
-    <div class="func-meta">
-      <span class="badge badge-unused">未使用</span>
-      
-    </div>
-    
-    <div class="detail-panel" id="detail-can_minion_attack">
-      <strong>完整文档：</strong>
-      <pre>检查异象是否被全局攻击限制禁止攻击。</pre>
     </div>
   </div>
 </div></div>

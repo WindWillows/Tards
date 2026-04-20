@@ -1,12 +1,35 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 """构建 effect_utils 可视化查询页面。"""
 
 import re
 import ast
 import os
 from pathlib import Path
+import json
 
 ROOT = Path("c:/Users/34773/Desktop/tards开发库")
+
+# Semantic categories based on function name keywords
+# Each tuple: (category_name, [regex_patterns_for_func_name], priority)
+# Higher priority = checked first
+SEMANTIC_CATEGORIES = [
+    ("伤害与治疗", [r"damage|heal|hurt|destroy_minion|kill"], 100),
+    ("召唤与回响", [r"summon|echo|token|copy_card|copy_minion|summon_copy"], 95),
+    ("手牌与牌库", [r"draw|discard|mill|deck|hand|shuffle|search_deck|reveal|put_on_top|put_on_bottom|peek|place_at|discover|draw_cards_of"], 90),
+    ("异象查询与选择", [r"get_minions|all_enemy|all_friendly|random_minion|random_enemy|random_friendly|frontmost|by_tag|has_tag|get_enemy|get_friendly|get_all|get_frontmost|get_adjacent|get_card_defs"], 85),
+    ("移动与位置", [r"move|shift|swap|empty_positions|get_adjacent"], 80),
+    ("状态与增益", [r"buff|debuff|keyword|add_keyword|remove_keyword|silence|override_keywords|set_stat|modify_stat|augment|replace_combat"], 75),
+    ("资源管理", [r"gain_resource|t_point|c_point|b_point|s_point"], 70),
+    ("事件监听", [r"on_before|on_after|on_turn|on_damage|on_attack|on_deploy|on_destroy|on_discard|on_mill|on_sacrifice|on_draw|on_card_played|on_event|event|listener|add_event_listener|remove_event_listener|clear_event"], 65),
+    ("延迟与条件", [r"delay|if_possible|track_stat|get_stat|increment_stat|track_per_turn|get_per_turn"], 60),
+    ("群体效果", [r"aoe|all_enemies|all_friendly|damage_all|heal_all|buff_all|destroy_all"], 55),
+    ("目标选择", [r"target|get_attack_target|get_front_minion|get_frontmost|can_minion_attack|is_untargetable"], 50),
+    ("战场实用", [r"board|place_minion|remove_minion|get_terrain|clear_attack|can_attack|is_valid|target_check"], 45),
+    ("战斗伤害", [r"combat|swing|attack_target|replace_combat|augment_combat"], 40),
+    ("计数与追踪", [r"track|stat|count|deployed|damage_dealt|remember_target|get_remembered|clear_remembered|get_last_damage"], 35),
+    ("地形与特殊机制", [r"terrain|override_terrain|clear_terrain"], 30),
+]
+
 
 def parse_effect_utils():
     """解析 effect_utils.py 中的所有函数定义。"""
@@ -16,17 +39,14 @@ def parse_effect_utils():
 
     tree = ast.parse(content)
     functions = []
-    # Only collect top-level function definitions (ignore nested/closures)
     for node in tree.body:
         if isinstance(node, ast.FunctionDef):
             docstring = ast.get_docstring(node) or ""
             brief = docstring.split("\n")[0] if docstring else ""
-            # Get argument names
             args = []
             for arg in node.args.args:
                 if arg.arg not in ("self", "cls"):
                     args.append(arg.arg)
-            # Get return annotation hint if available
             returns = ""
             if node.returns and isinstance(node.returns, ast.Constant):
                 returns = str(node.returns.value)
@@ -43,6 +63,16 @@ def parse_effect_utils():
     return functions
 
 
+def classify_function(func_name: str) -> str:
+    """基于函数名语义自动分类。"""
+    name_lower = func_name.lower()
+    for cat_name, patterns, priority in SEMANTIC_CATEGORIES:
+        for pat in patterns:
+            if re.search(pat, name_lower):
+                return cat_name
+    return "其他"
+
+
 def scan_calls_in_file(filepath, target_functions):
     """扫描单个文件中调用了哪些 target_functions。"""
     if not filepath.exists():
@@ -51,9 +81,7 @@ def scan_calls_in_file(filepath, target_functions):
         content = f.read()
 
     called = set()
-    # Simple regex to find function calls: func_name(
     for func in target_functions:
-        # Match word boundary to avoid partial matches
         pattern = r'\b' + re.escape(func["name"]) + r'\s*\('
         if re.search(pattern, content):
             called.add(func["name"])
@@ -62,7 +90,6 @@ def scan_calls_in_file(filepath, target_functions):
 
 def get_card_name_from_line(line):
     """从卡包文件的行中提取卡牌名称。"""
-    # Look for register_card(name="...")
     m = re.search(r'register_card\(\s*name\s*=\s*"([^"]+)"', line)
     if m:
         return m.group(1)
@@ -80,7 +107,6 @@ def scan_pack_file(filepath, target_functions):
     current_card = None
 
     for i, line in enumerate(lines):
-        # Detect card registration
         card_name = get_card_name_from_line(line)
         if card_name:
             current_card = card_name
@@ -92,7 +118,6 @@ def scan_pack_file(filepath, target_functions):
                 if re.search(pattern, line):
                     result[current_card].add(func["name"])
 
-    # Convert sets to sorted lists, filter empty
     return {k: sorted(v) for k, v in result.items() if v}
 
 
@@ -109,7 +134,6 @@ def scan_effects_file(filepath, target_functions):
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             func_name = node.name
-            # Get source range
             start = node.lineno - 1
             end = node.end_lineno
             func_source = "\n".join(content.split("\n")[start:end])
@@ -130,14 +154,12 @@ def build_data():
     functions = parse_effect_utils()
     func_names = [f["name"] for f in functions]
 
-    # Scan pack files (generated card definitions)
     packs = {
         "离散卡包": ROOT / "card_pools" / "discrete.py",
         "冥刻卡包": ROOT / "card_pools" / "underworld.py",
         "血契卡包": ROOT / "card_pools" / "blood.py",
     }
 
-    # Scan effects files
     effects = {
         "离散效果": ROOT / "card_pools" / "discrete_effects.py",
         "冥刻效果": ROOT / "card_pools" / "underworld_effects.py",
@@ -152,11 +174,9 @@ def build_data():
     for effect_name, filepath in effects.items():
         effects_usage[effect_name] = scan_effects_file(filepath, functions)
 
-    # Also scan auto_effects.py and translate_packs.py
     auto_usage = scan_calls_in_file(ROOT / "tards" / "auto_effects.py", functions)
     translate_usage = scan_calls_in_file(ROOT / "translate_packs.py", functions)
 
-    # Build reverse mapping: function -> callers
     func_callers = {f["name"]: [] for f in functions}
 
     for pack_name, cards in pack_usage.items():
@@ -195,6 +215,10 @@ def build_data():
                 "name": "translate_packs.py",
             })
 
+    # Add classification
+    for func in functions:
+        func["category"] = classify_function(func["name"])
+
     return {
         "functions": functions,
         "pack_usage": pack_usage,
@@ -206,36 +230,45 @@ def build_data():
 def generate_html(data):
     functions = data["functions"]
     func_callers = data["func_callers"]
-    pack_usage = data["pack_usage"]
-    effects_usage = data["effects_usage"]
 
-    # Group functions by category based on line ranges
-    categories = []
-    cat_ranges = [
-        (1, 200, "基础伤害与治疗"),
-        (200, 400, "召唤与召唤物"),
-        (400, 600, "手牌与牌库操作"),
-        (600, 800, "状态与增益"),
-        (800, 1000, "资源与费用"),
-        (1000, 1200, "事件与监听"),
-        (1200, 1400, "查询与选择"),
-        (1400, 1600, "移动与位置"),
-        (1600, 1800, "控制流与条件"),
-        (1800, 2000, "地形与特殊机制"),
-        (2000, 9999, "其他"),
+    # Group by category
+    categories = {}
+    for func in functions:
+        cat = func["category"]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(func)
+
+    # Define category display order
+    category_order = [
+        "伤害与治疗",
+        "召唤与回响",
+        "手牌与牌库",
+        "异象查询与选择",
+        "移动与位置",
+        "状态与增益",
+        "战斗伤害",
+        "群体效果",
+        "目标选择",
+        "资源管理",
+        "事件监听",
+        "延迟与条件",
+        "计数与追踪",
+        "战场实用",
+        "地形与特殊机制",
+        "其他",
     ]
 
-    for f in functions:
-        assigned = False
-        for start, end, cat_name in cat_ranges:
-            if start <= f["line"] < end:
-                categories.append((cat_name, f))
-                assigned = True
-                break
-        if not assigned:
-            categories.append(("其他", f))
+    # Sort categories by defined order
+    ordered_categories = []
+    for cat_name in category_order:
+        if cat_name in categories and categories[cat_name]:
+            ordered_categories.append((cat_name, categories[cat_name]))
+    # Add any remaining categories not in the order list
+    for cat_name, funcs in categories.items():
+        if cat_name not in category_order and funcs:
+            ordered_categories.append((cat_name, funcs))
 
-    # Build HTML
     html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -323,6 +356,7 @@ def generate_html(data):
   .func-card.unused { border-left: 4px solid #f56565; }
   .func-card.used { border-left: 4px solid #48bb78; }
   .func-card.many { border-left: 4px solid #4299e1; }
+  .func-card.compat { background: #fffaf0; border-left: 4px solid #ed8936; }
   .func-header {
     display: flex;
     justify-content: space-between;
@@ -361,7 +395,6 @@ def generate_html(data):
   .badge-used { background: #c6f6d5; color: #276749; }
   .badge-many { background: #bee3f8; color: #2c5282; }
   .badge-compat { background: #feebc8; color: #c05621; }
-  .func-card.compat { background: #fffaf0; border-left: 4px solid #ed8936; }
   .caller-list {
     margin-top: 10px;
     padding-top: 10px;
@@ -414,10 +447,13 @@ def generate_html(data):
 <body>
 """
 
+    total_funcs = len(functions)
+    total_compat = sum(1 for f in functions if f["is_compat"])
+
     html += f"""
 <div class="header">
   <h1>🔧 Tards 效果工具库 - 函数查询</h1>
-  <p>共 {len(functions)} 个通用函数 | 点击卡片查看调用详情</p>
+  <p>共 {total_funcs} 个通用函数（含 {total_compat} 个兼容层） | 点击卡片查看调用详情</p>
 </div>
 
 <div class="toolbar">
@@ -447,44 +483,38 @@ def generate_html(data):
 <div class="container">
 """
 
-    current_cat = None
-    for cat_name, func in categories:
-        if cat_name != current_cat:
-            if current_cat is not None:
-                html += "</div></div>\n"
-            html += f'<div class="category" data-category="{cat_name}">\n'
-            html += f'<div class="category-title">{cat_name}</div>\n'
-            html += '<div class="func-grid">\n'
-            current_cat = cat_name
+    for cat_name, funcs in ordered_categories:
+        html += f'<div class="category" data-category="{cat_name}">\n'
+        html += f'<div class="category-title">{cat_name} ({len(funcs)})</div>\n'
+        html += '<div class="func-grid">\n'
 
-        callers = func_callers.get(func["name"], [])
-        caller_count = len(callers)
-        if caller_count == 0:
-            usage_class = "unused"
-            badge_class = "badge-unused"
-            badge_text = "未使用"
-        elif caller_count <= 3:
-            usage_class = "used"
-            badge_class = "badge-used"
-            badge_text = f"{caller_count} 处调用"
-        else:
-            usage_class = "many"
-            badge_class = "badge-many"
-            badge_text = f"{caller_count} 处调用"
+        for func in funcs:
+            callers = func_callers.get(func["name"], [])
+            caller_count = len(callers)
+            if caller_count == 0:
+                usage_class = "unused"
+                badge_class = "badge-unused"
+                badge_text = "未使用"
+            elif caller_count <= 3:
+                usage_class = "used"
+                badge_class = "badge-used"
+                badge_text = f"{caller_count} 处调用"
+            else:
+                usage_class = "many"
+                badge_class = "badge-many"
+                badge_text = f"{caller_count} 处调用"
 
-        # Build caller HTML
-        caller_html = ""
-        if callers:
-            caller_items = ""
-            for c in callers:
-                icon = {"card": "🃏", "effect": "⚡", "auto_effects": "🔧", "translate": "📜"}.get(c["type"], "•")
-                caller_items += f'<div class="caller-item"><span class="caller-type">{icon}</span>{c["name"]}<span class="caller-pack">({c["pack"]})</span></div>'
-            caller_html = f'<details class="caller-list"><summary>调用详情 ({caller_count})</summary>{caller_items}</details>'
+            caller_html = ""
+            if callers:
+                caller_items = ""
+                for c in callers:
+                    icon = {"card": "🃏", "effect": "⚡", "auto_effects": "🔧", "translate": "📜"}.get(c["type"], "•")
+                    caller_items += f'<div class="caller-item"><span class="caller-type">{icon}</span>{c["name"]}<span class="caller-pack">({c["pack"]})</span></div>'
+                caller_html = f'<details class="caller-list"><summary>调用详情 ({caller_count})</summary>{caller_items}</details>'
 
-        # Args display
-        args_str = ", ".join(func["args"]) if func["args"] else ""
+            args_str = ", ".join(func["args"]) if func["args"] else ""
 
-        html += f"""
+            html += f"""
   <div class="func-card {usage_class}{' compat' if func['is_compat'] else ''}" data-name="{func['name']}" data-usage="{'used' if caller_count > 0 else 'unused'}" data-compat="{'true' if func['is_compat'] else 'false'}" data-callers='{json.dumps(callers)}'>
     <div class="func-header">
       <span class="func-name">{func['name']}({args_str})</span>
@@ -503,10 +533,8 @@ def generate_html(data):
   </div>
 """
 
-    if current_cat is not None:
         html += "</div></div>\n"
 
-    # Add JavaScript
     html += """
 </div>
 
@@ -559,8 +587,6 @@ filter();
     return html
 
 
-import json
-
 if __name__ == "__main__":
     print("Building tool library page...")
     data = build_data()
@@ -573,16 +599,13 @@ if __name__ == "__main__":
     print(f"Generated: {output_path}")
     print(f"  Functions: {len(data['functions'])}")
 
-    # Print usage stats
     used = sum(1 for f in data["functions"] if data["func_callers"][f["name"]])
     unused = len(data["functions"]) - used
     print(f"  Used: {used}, Unused: {unused}")
 
-    # Print top used functions
-    top = sorted(data["func_callers"].items(), key=lambda x: len(x[1]), reverse=True)[:10]
-    print("  Top used functions:")
-    for name, callers in top:
-        if callers:
-            print(f"    {name}: {len(callers)} callers")
-
-# Auto-regenerate hook configured
+    # Print category breakdown
+    from collections import Counter
+    cats = Counter(f["category"] for f in data["functions"])
+    print("  Categories:")
+    for cat, count in cats.most_common():
+        print(f"    {cat}: {count}")
