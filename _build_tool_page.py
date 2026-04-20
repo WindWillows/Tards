@@ -573,3 +573,5 @@ if __name__ == "__main__":
     for name, callers in top:
         if callers:
             print(f"    {name}: {len(callers)} callers")
+
+# Auto-regenerate hook configured
