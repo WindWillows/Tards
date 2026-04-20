@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 """构建 effect_utils 可视化查询页面。"""
 
 import re
@@ -16,7 +16,8 @@ def parse_effect_utils():
 
     tree = ast.parse(content)
     functions = []
-    for node in ast.walk(tree):
+    # Only collect top-level function definitions (ignore nested/closures)
+    for node in tree.body:
         if isinstance(node, ast.FunctionDef):
             docstring = ast.get_docstring(node) or ""
             brief = docstring.split("\n")[0] if docstring else ""

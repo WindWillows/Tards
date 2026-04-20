@@ -556,20 +556,15 @@ def has_tag(obj: Any, tag: str) -> bool:
     return tag in tags if tags else False
 
 
-def get_minions_by_tag(game: "Game", player: "Player", tag: str) -> List["Minion"]:
-    """获取某玩家场上所有带某标签的存活单位。"""
-    return [m for m in game.board.get_minions_of_player(player) if m.is_alive() and has_tag(m, tag)]
-
-
 def get_enemy_minions_by_tag(game: "Game", player: "Player", tag: str) -> List["Minion"]:
     """获取敌方场上所有带某标签的存活单位。"""
     enemy = game.p2 if player == game.p1 else game.p1
-    return get_minions_by_tag(game, enemy, tag)
+    return get_minions_by_tag(game, tag, player=enemy, friendly_only=True)
 
 
 def get_all_minions_by_tag(game: "Game", tag: str) -> List["Minion"]:
     """获取场上所有带某标签的存活单位（双方）。"""
-    return [m for m in game.board.minion_place.values() if m.is_alive() and has_tag(m, tag)]
+    return get_minions_by_tag(game, tag)
 
 
 def get_card_defs_by_tag(tag: str) -> List[Any]:
