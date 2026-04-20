@@ -39,6 +39,30 @@ description: |
 - 策略卡主目标由 `targets_fn` 返回合法列表。
 - 多阶段指向通过 `extra_targeting_stages=[(stage_fn, count, allow_repeat)]` 实现。
 - 手牌目标：使用 `target_hand_minions`，GUI 会自动弹出手牌选择。
+- **指向玩家**：自定义 `targets_fn` 返回异象列表 + `[game.p1, game.p2]`（如金牙齿策略）。
+
+## 献祭流程速查（2026-04-19 重构后）
+
+```
+Game.action_phase() 处理 play 动作时：
+  1. 筛选 valid_sacs（存活且 _sacrifice_remaining > 0）
+  2. active.b_point += sum(m.keywords.get("丰饶", 1) for m in valid_sacs)  [永久预加]
+  3. active.sacrifice_chooser = lambda req, v=valid_sacs: v  [临时注入]
+  4. try: active.card_can_play() → active.play_card() → cost.pay()
+  5. finally: active.sacrifice_chooser = old_chooser  [恢复选择器]
+
+MinionCard.effect() 内部：
+  - request_sacrifice(cost.b) → 消灭目标 → emit EVENT_SACRIFICE
+  - 不再操作 b_point！
+```
+
+**关键注意**：`card_can_play()` 现在返回 `tuple[bool, str]`，调用时务必取 `[0]` 或解包。
+
+## 测试卡组模式
+
+- `Deck.is_test_deck = True` → `validate()` 跳过所有构筑限制。
+- 仅本地可用，联机大厅禁止加载。
+- GUI 构筑界面有复选框，save/load 持久化。
 
 ## 参考文件导航
 

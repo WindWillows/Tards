@@ -47,13 +47,27 @@
 - 钻石(D)：兑换价 5CT，堆叠上限 1，打出获得 4T
 - CT 规则：`XCT` 表示 X 点费用，每点可以是 1C 或 1T。支付时优先消耗 C，再消耗 T。
 
-### 鲜血与献祭
+### 鲜血与献祭（2026-04-19 重构后）
 
 - 部署带 B 费用的异象时必须献祭友方异象。
 - 被献祭异象根据**丰饶等级**产血（默认丰饶 1）。
 - 剩余鲜血保留到回合结束，之后清空。
 - **献祭属于"消灭"**，会触发亡语；移除、返回手牌、洗入卡组均不触发。
 - 冥刻异象默认具有**献祭 1、丰饶 1**。
+
+**新流程：**
+```
+Game.action_phase()
+  ├─ 筛选 valid_sacs（存活且 _sacrifice_remaining > 0）
+  ├─ active.b_point += sum(丰饶)           [永久预加，不再回滚]
+  ├─ active.sacrifice_chooser = lambda: valid_sacs
+  ├─ card_can_play() → play_card() → cost.pay()  [统一扣除]
+  └─ finally: 恢复 sacrifice_chooser
+
+MinionCard.effect()
+  └─ request_sacrifice(cost.b) → 消灭目标 → emit EVENT_SACRIFICE
+       （effect() 不再操作 b_point）
+```
 
 ## 流失生命值 vs 受到伤害
 

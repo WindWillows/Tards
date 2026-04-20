@@ -20,7 +20,7 @@
   - `net_game.py` — `NetworkDuel`：Host/Client 握手、行动同步、Discover 同步
   - `net_protocol.py` — `GameConnection`、消息序列化/反序列化
   - `card_db.py` — `CardDefinition`、`CardRegistry`、`Pack` 枚举、`CardType`、`Rarity`
-  - `deck.py` / `deck_io.py` — `Deck` 类、卡组保存/读取（JSON 格式）
+  - `deck.py` / `deck_io.py` — `Deck` 类、卡组保存/读取（JSON 格式）、**测试卡组模式**
   - `cost.py` — `Cost` 类：T/C/B/S/CT/矿物费用解析与支付
   - `targets.py` — 预设目标选择器（`target_friendly_positions`、`target_none`、`target_any_minion` 等）
   - `constants.py` — 事件类型常量、`GENERAL_KEYWORDS` 列表
@@ -121,13 +121,30 @@
 - 支付逻辑：`Cost.pay()` 优先消耗 C，再消耗 T。
 - **兑换前提**：玩家必须有**离散 1 级沉浸度**。
 
-### 3.2 鲜血（B）与献祭
+### 3.2 鲜血（B）与献祭（已重构）
 - 当你部署一个带有 **B 费用**的异象时，必须**指定若干友方异象进行献祭**。
 - 被献祭异象根据其**丰饶等级**产生鲜血（默认丰饶为 1）。
 - 支付完部署费用后，**剩余鲜血保留到回合结束**，之后清空。
 - **只能在部署需要鲜血的异象时进行献祭**。
 - 默认规则：冥刻异象默认具有 **献祭1、丰饶1**。
 - **献祭属于"消灭"**，会触发亡语；移除、返回手牌、洗入卡组均不触发。
+
+**献祭流程（重构后，2026-04-19）：**
+```
+Game.action_phase()
+  ├─ 筛选 valid_sacs（存活且 _sacrifice_remaining > 0）
+  ├─ 临时增加 active.b_point += sum(丰饶)
+  ├─ 注入 sacrifice_chooser = lambda: valid_sacs
+  ├─ 调用 card_can_play() → play_card() → cost.pay()
+  └─ finally: 恢复 sacrifice_chooser（b_point 不回滚，由 cost.pay() 扣除）
+       ↓
+MinionCard.effect()
+  └─ request_sacrifice(cost.b) → 消灭目标 → emit EVENT_SACRIFICE
+       （effect() 不再操作 b_point，只负责消灭献祭目标）
+```
+- 旧的"临时鲜血 + 失败回滚"模型已废除，改为**永久预加 + cost.pay 统一扣除**。
+- 献祭次数限制：每个异象每回合 `_sacrifice_remaining` 次（默认 1）。
+- 献祭免疫：`minion._immune_to_sacrifice = True` 可阻止被选为祭品。
 
 ---
 
@@ -258,8 +275,10 @@ effect_fn(player, target, game, extras=None)
 - 进化逻辑：`Minion.evolve()` → `Game.transform_minion()`。
 
 ### 6.4 献祭（Sacrifice）
-- GUI：`SacrificeDialog`。
-- 引擎：`Game.action_phase()` 处理 sacrifices，临时预加鲜血。
+- GUI：`SacrificeDialog`。注意：**先 `destroy()` 弹窗，再执行 `on_confirm` 回调**，避免 Tkinter 事件循环阻塞导致窗口关不掉。
+- 引擎：`Game.action_phase()` 处理 sacrifices，**永久预加鲜血**，`finally` 中恢复 `sacrifice_chooser`。
+- 消灭逻辑：`cards.py` 的 `MinionCard.effect()` 只负责消灭献祭目标，不再操作 `b_point`。
+- 费用扣除：`Cost.pay()` 统一从 `player.b_point` 中扣除鲜血。
 
 ### 6.5 阴谋（Conspiracy）与 Bluff
 - 激活流程：`BluffDialog` → 目标选择 → `active_conspiracies`。
@@ -420,7 +439,12 @@ effect_fn(player, target, game, extras=None)
 - 支持多阶段嵌套：部署位置 → 额外目标 → 确认。
 - 支持多选和重复选择（通过 `count` 和 `allow_repeat` 控制）。
 
-### 9.4 AI（本地测试）
+### 9.4 测试卡组模式（Test Deck）
+- `Deck.is_test_deck = True` 时，`validate()` **跳过所有构筑限制**（40张、沉浸度、卡包数量、稀有度）。
+- 仅用于**本地测试**，联机大厅禁止加载测试卡组（会弹窗阻止）。
+- GUI 构筑界面增加 `test_deck` 复选框；`save_deck`/`load_deck` 持久化该标志。
+
+### 9.5 AI（本地测试）
 - `LocalDuel._ai_action()` 是简单随机 AI。
 - 优先献祭丰饶值低的友方异象。
 
@@ -511,6 +535,10 @@ def _xxx_special(minion, player, game, extras=None):
 
 | # | Bug 描述 | 根因 | 修复位置 |
 |---|----------|------|----------|
+| 16 | **非法出牌提示太模糊** | `card_can_play` 只返回 `bool`，调用者无法区分是 T点不足、鲜血不足还是目标无效 | `cost.py` 新增 `can_afford_detail()` 返回 `(bool, str)`；`player.py` `card_can_play()` 改为返回 `tuple[bool, str]`；所有调用者同步更新 |
+| 17 | **献祭弹窗关不掉** | `SacrificeDialog._confirm()` 先执行回调（含网络阻塞等待），后 `destroy()`，GUI 更新阻塞 Tkinter 主事件循环 | 改为**先 `destroy()` 弹窗，再执行 `on_confirm` 回调**；所有弹窗类补充 `grab_release()` |
+| 18 | **献祭流程职责混乱** | `cards.py` `effect()` 既消灭目标又修改 `b_point`，与 `game.py` 的临时鲜血注入冲突，导致重复扣血或回滚错误 | **重构献祭流程**：`game.py` 永久预加鲜血；`cards.py` 只负责消灭目标；`cost.pay()` 统一扣除 |
+| 19 | **部署第二个 B 费用异象失败** | 旧流程中临时鲜血在 `finally` 回滚，导致 `card_can_play` 检查时 B 点不足 | 随献祭重构一并解决：预加鲜血不再回滚 |
 | 1 | **献祭弹窗死锁** | 在 tkinter 回调里调用 `Event().wait()` 阻塞主线程 | 将献祭选择提前到 `_on_hand_card_click()`，用模态 `SacrificeDialog` + 回调传值 |
 | 2 | **B 费用异象无法出牌** | `card_can_play` 在 `request_sacrifice` 之前检查费用 | 临时预加鲜血，出牌后回滚 |
 | 3 | **冰冻/眩晕层数不减** | 直接修改 `self.keywords`，但 `recalculate()` 会覆盖 | 改为从源头字典递减后 `recalculate()` |
@@ -527,6 +555,8 @@ def _xxx_special(minion, player, game, extras=None):
 | 14 | **attack_target 中 event 为 None 崩溃** | `game.emit_event(EVENT_BEFORE_ATTACK)` 在 `game_over=True` 时返回 `None`，后续直接 `event.get(...)` | `cards.py:attack_target()` 添加 `if event is None: return` 防护 |
 | 15 | **underworld_effects.py 变量/参数错误** | 多处 `MinionCard(cost=0, targets="none")` 传错类型；`Minion(card=...)` 参数名错误；`player.minions_on_board` 属性不存在 | 统一改用 `summon_token()` 和 `Cost()`；补充缺失的 `effect_utils` 导入 |
 
+**注意**：Bug #2（B费用异象无法出牌）和 Bug #11（献祭后鲜血未正确扣除）已在**献祭重构**（Bug #18）中被新的架构取代，旧问题不再存在。
+
 ---
 
 ## 十三、待实现 / TODO 汇总
@@ -539,14 +569,14 @@ def _xxx_special(minion, player, game, extras=None):
 - [ ] **效果来源追踪**：区分"被策略效果消灭" vs "被战斗消灭"（亡语判断需要）。
 - [ ] **英雄技能系统**：完全缺失。
 - [ ] **牌库抽空疲劳**：`draw_fail` 计数器已存在，但需确认逻辑完整性。
-- [ ] **`Player.minions_on_board` 属性缺失**：`auto_effects.py`（`move_enemy_to_friendly`）和 `underworld_effects.py` 都假设该属性存在，但 `Player.__init__` 从未初始化它。需要补充 `self.minions_on_board = []` 并在异象部署/死亡/移动时同步维护。
+- [x] **`Player.minions_on_board` 属性**：~~旧代码假设它是列表属性，但 `Player.__init__` 从未初始化。~~ **已修复**：现在通过 `@property` 动态计算（遍历 `board_ref.minion_place` 筛选 `owner == self`），无需手动同步。
 
 ### 13.2 卡牌效果层（高优先级）
 - `translate_packs.py` 生成的 416 张卡牌中，绝大多数 `special_fn=None` 或 `effect_fn=None`。
 - 当前人工实现进度（详见 `COMPLEX_CARDS_INDEX.md`）：
-  - 离散包：~20 张已实现（矿车、北极熊、恼鬼、流髑、尸壳、卫道士、蜘蛛、蠹虫、橡树苗、岩浆艇、马、炽足兽、潮涌核心、活塞飞艇等），~90 张 TODO
-  - 血契包：5 张已实现（保卫者、巫毒娃娃、天籁人偶、溴化银、亡灵），~55 张 TODO
-  - 冥刻包：5 张已实现（烛烟、大团烛烟、猫、白鼬、弱狼），~150 张 TODO
+  - 离散包：~50 张已实现，~90 张 TODO
+  - 血契包：~5 张已实现（保卫者、巫毒娃娃、天籁人偶、溴化银、亡灵），~55 张 TODO
+  - 冥刻包：~10 张已实现（烛烟、大团烛烟、猫、白鼬、弱狼、臭虫、林鼠、狐、金牙齿、扇子），~70 张 TODO
 - 需要人工实现的典型效果：消灭、沉默、变形、复制、取消、弃置、洗入牌库、从牌库移除顶牌、召唤/加入战场、抉择、随机选择、即时对战、buff/debuff、额外资源槽、回响升级、免疫消灭、恐惧清除、动态亡语附着……
 - **建议**：复杂效果集中到 `card_pools/xxx_effects.py` 手动实现，通过 `SPECIAL_MAP` 映射到生成的 `xxx.py` 中。
 
@@ -573,9 +603,44 @@ def _xxx_special(minion, player, game, extras=None):
 
 ---
 
-## 十五、本轮对话（2026-04-17）核心交付
+## 十六、本轮对话（2026-04-19）核心交付
 
-### 15.1 架构/引擎改动
+### 16.1 架构/引擎改动
+1. **献祭机制重构**：
+   - 废除旧的"临时鲜血 + 失败回滚"模型。
+   - 新模型：`game.py` 在 `play_card` 前**永久预加鲜血**到 `active.b_point`；`cards.py` 的 `MinionCard.effect()` **只负责消灭献祭目标**，不再操作 `b_point`；鲜血扣除由 `Cost.pay()` 统一处理。
+   - 解决了部署多个 B 费用异象时鲜血计算错误的问题。
+2. **非法出牌原因细化**：
+   - `cost.py` 新增 `can_afford_detail(player) -> tuple[bool, str]`，返回具体失败原因（T点不足/鲜血不足/血契不足/CT不足/矿物不足）。
+   - `player.py` 的 `card_can_play()` 返回类型从 `bool` 改为 `tuple[bool, str]`。
+   - 所有调用者（`game.py`、`gui_client.py`、`demo.py`、`demo_deckbuild.py`、`tards.py`、`tests/test_minecart.py`）同步更新。
+   - 日志输出从"非法出牌请求，跳过"变为"非法出牌请求：T点不足（需要2T，当前1T）"。
+3. **测试卡组模式**：
+   - `Deck` 新增 `is_test_deck` 标志；`validate()` 跳过所有构筑限制。
+   - `save_deck`/`load_deck` 持久化该标志。
+   - GUI 构筑界面增加复选框；联机大厅禁止加载测试卡组。
+4. **弹窗关闭修复**：
+   - `SacrificeDialog._confirm()` 改为**先 `destroy()` 弹窗，再执行 `on_confirm` 回调**。
+   - 所有弹窗类（`BluffDialog`、`DiscoverDialog`、`ChoiceDialog`、`MessageDialog`）增加 `grab_release()`。
+
+### 16.2 新实现卡牌（冥刻包 5 张）
+- **臭虫（铁）**：`provide_aura_attack` 光环，给同列敌方异象 -1 攻击力。
+- **林鼠（铁）**：抉择：抽 1 张策略卡，或 0T 部署 1 只松鼠。
+- **狐（铁）**：`redirect_damage` 免疫偶数伤害；`on("after_attack")` 永久 +1 攻击力。
+- **金牙齿（金）**：策略：对 1 个异象或敌方玩家造成 1 点伤害；若消灭目标则获得 1B 并抽 1 张牌。使用自定义 `targets_fn` 支持指向玩家。
+- **扇子（铁）**：策略：使 1 个异象获得临时空袭；抽 1 张牌。
+
+### 16.3 已知遗留问题
+- `Player.minions_on_board` 属性已在 `Player.__init__` 中通过 `@property` 实现（动态计算），但部分旧代码可能仍假设它是列表属性。
+- Tag 系统缺失（friendly/hostile/neutral/creature/nonliving/hell/fairy）。
+- 状态追踪框架的基础工具已提供，但尚未与 engine 深度集成。
+- 延迟效果工具基于 EventBus 实现，尚未验证跨多回合的复杂链式延迟。
+
+---
+
+## 十七、上一轮对话（2026-04-17）核心交付
+
+### 17.1 架构/引擎改动
 1. **Rule 3 强化**：`game.py` / `player.py` 中所有卡牌名字硬编码（信标、流浪商人、附魔台、耕殖）已全部移除，迁移为 event-driven 实现。
 2. **`_trigger_auto_effects` 扩展**：支持 `_EVENT_SPECIFIC_TARGET`，使 `EVENT_DRAW` 等事件可精确命中特定目标，而非遍历全部候选。
 3. **献祭流程完善**：
@@ -585,7 +650,7 @@ def _xxx_special(minion, player, game, extras=None):
    - 冥刻异象注册时自动注入 `"献祭":1`、`"丰饶":1`
 4. **恐惧机制**：`board.get_front_minion` 过滤 `_fear_active` 异象。
 
-### 15.2 effect_utils.py 扩展（新增 ~70 函数，11 个分区）
+### 17.2 effect_utils.py 扩展（新增 ~70 函数，11 个分区）
 - **延迟效果**：`delay_to_next_turn`、`delay_to_phase_start`、`delay_to_turn_end`
 - **状态追踪**：`track_stat`、`increment_stat`、`get_stat`、`track_per_turn`
 - **战斗伤害增强/替换**：`augment_combat_damage`、`replace_combat_damage`
@@ -598,18 +663,12 @@ def _xxx_special(minion, player, game, extras=None):
 - **高级事件包装**：`on_after_deploy`、`on_card_played`、`on_sacrifice`、`on_turn_start`、`on_turn_end`、`on_discarded`、`on_milled`
 - **"如可能"条件执行**：`if_possible_then`、`if_resource_then`、`if_has_cards_then`、`if_has_friendly_minions_then`、`if_has_enemy_minions_then`
 
-### 15.3 新实现卡牌
+### 17.3 新实现卡牌
 - **blood_effects.py**：保卫者、巫毒娃娃、天籁人偶、溴化银、亡灵（5张）
 - **underworld_effects.py**：烛烟、大团烛烟、猫(铁)、白鼬(铁)、弱狼(铁)（5张）+ 雕像座首效果
 
-### 15.4 新文档
+### 17.4 新文档
 - `COMPLEX_CARDS_INDEX.md`：~90 离散、~60 血契、~75 冥刻 TODO 卡，按 11 类困难度分类，标注阻塞架构缺口。
-
-### 15.5 已知遗留问题
-- `Player.minions_on_board` 属性未在 `Player.__init__` 中初始化，但 `auto_effects.py` 和 `underworld_effects.py` 都有依赖。
-- Tag 系统缺失（friendly/hostile/neutral/creature/nonliving/hell/fairy）。
-- 状态追踪框架的基础工具已提供，但尚未与 engine 深度集成（如自动每回合清零）。
-- 延迟效果工具基于 EventBus 实现，尚未验证跨多回合的复杂链式延迟。
 
 ---
 
@@ -669,11 +728,12 @@ def _xxx_special(minion, player, game, extras=None):
 | `card_pools/effect_utils.py` | **标准效果工具库**（人工编写必须使用） |
 | `card_pools/effect_decorator.py` | **格式校验装饰器 `@special`** |
 | `decks/*.json` | 玩家保存的卡组定义 |
+| `test_effect_queue.py` | 效果队列测试脚本（本地运行） |
 | `TARDS_GAME_REFERENCE.md` | 本文档 |
 | `Tards规则书1.0.docx` | 原始规则书 |
 | `血契卡包.txt` / `离散卡包.txt` / `冥刻卡包.txt` | 卡包源文本（翻译器输入） |
 
 ---
 
-*文档版本：2026-04-17*  
-*涵盖规则书 v1.0 + 离散卡包 + 冥刻卡包 v1.0 + 血契卡包 + 程序实现全状态 + 统一指向模块 + 轻量取消机制 + 人工效果协作规范*
+*文档版本：2026-04-20*  
+*涵盖规则书 v1.0 + 离散卡包 + 冥刻卡包 v1.0 + 血契卡包 + 程序实现全状态 + 统一指向模块 + 轻量取消机制 + 人工效果协作规范 + 献祭重构 + 测试卡组模式*

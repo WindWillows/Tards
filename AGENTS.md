@@ -61,3 +61,23 @@ When implementing complex card effects, **if you find the existing APIs in `effe
 **Rule of thumb:** If a pattern is needed by more than one card, or if the implementation feels "forced" with current tools, stop and ask: *"Should this be a generic utility?"*
 
 The tool library (`effect_utils.py`, `targeting.py`, etc.) is the correct place for reusable combat, damage, movement, and state-tracking primitives. Keep card-specific files thin.
+
+---
+
+## Recent Architecture Changes (2026-04-19)
+
+### Sacrifice Mechanism Refactored
+- **Old model**: `game.py` temporarily injected blood, then rolled it back in `finally`. `cards.py` both killed sacrifices *and* modified `b_point`. This caused double-counting and rollback bugs when playing multiple B-cost minions.
+- **New model**: `game.py` **permanently** adds blood to `active.b_point` before `card_can_play`. `cards.py` `MinionCard.effect()` **only kills sacrifices** (via `request_sacrifice` → `minion_death`). Blood deduction is handled uniformly by `Cost.pay()`.
+- See `TARDS_GAME_REFERENCE.md` §3.2 / §6.4 for full flow.
+
+### `card_can_play` Returns Detailed Reason
+- `player.py` `card_can_play(serial, target)` now returns `tuple[bool, str]` instead of `bool`.
+- `cost.py` added `can_afford_detail(player) -> tuple[bool, str]`.
+- All callers updated: `game.py`, `gui_client.py`, `demo.py`, `demo_deckbuild.py`, `tards.py`, `tests/test_minecart.py`.
+- **When writing new code that calls `card_can_play`, always unpack or index `[0]`.**
+
+### Test Deck Mode
+- `Deck.is_test_deck` flag bypasses all construction restrictions (40-card count, immersion points, pack limits, rarity limits).
+- Test decks are only allowed in local play; the lobby blocks loading them.
+- GUI deck builder has a checkbox; the flag is persisted in JSON save/load.
