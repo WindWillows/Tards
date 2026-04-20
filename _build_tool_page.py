@@ -497,6 +497,25 @@ def generate_html(data):
     word-break: break-word;
     color: #4a5568;
   }
+  .code-block {
+    background: #1a202c;
+    color: #e2e8f0;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .code-block .line-num {
+    color: #718096;
+    display: inline-block;
+    width: 32px;
+    text-align: right;
+    margin-right: 8px;
+    user-select: none;
+  }
   .legend {
     display: flex;
     gap: 16px;
@@ -645,6 +664,8 @@ def generate_html(data):
     <div class="detail-panel" id="detail-{func['name']}">
       <strong>完整文档：</strong>
       <pre>{func['docstring'] or '无'}</pre>
+      <strong style="display:block;margin-top:10px;">源代码：</strong>
+      <div class="code-block">{"".join(f'<span class="line-num">{func["line"]+i}</span>{line.replace("<","&lt;").replace(">","&gt;")}<br>' for i,line in enumerate(func['source']))}</div>
     </div>
   </div>
 """
