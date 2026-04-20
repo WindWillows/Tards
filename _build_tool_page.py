@@ -37,6 +37,7 @@ def parse_effect_utils():
                 "docstring": docstring,
                 "args": args,
                 "returns": returns,
+                "is_compat": "【兼容】" in docstring,
             })
     functions.sort(key=lambda x: x["line"])
     return functions
@@ -359,6 +360,8 @@ def generate_html(data):
   .badge-unused { background: #fed7d7; color: #c53030; }
   .badge-used { background: #c6f6d5; color: #276749; }
   .badge-many { background: #bee3f8; color: #2c5282; }
+  .badge-compat { background: #feebc8; color: #c05621; }
+  .func-card.compat { background: #fffaf0; border-left: 4px solid #ed8936; }
   .caller-list {
     margin-top: 10px;
     padding-top: 10px;
@@ -430,6 +433,9 @@ def generate_html(data):
     <option value="冥刻卡包">冥刻卡包</option>
     <option value="血契卡包">血契卡包</option>
   </select>
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#4a5568;">
+    <input type="checkbox" id="hideCompat" onchange="filter()"> 隐藏兼容层
+  </label>
   <div class="legend">
     <div class="legend-item"><div class="legend-box" style="background:#f56565;"></div>未使用</div>
     <div class="legend-item"><div class="legend-box" style="background:#48bb78;"></div>已使用（≤3处）</div>
@@ -479,7 +485,7 @@ def generate_html(data):
         args_str = ", ".join(func["args"]) if func["args"] else ""
 
         html += f"""
-  <div class="func-card {usage_class}" data-name="{func['name']}" data-usage="{'used' if caller_count > 0 else 'unused'}" data-callers='{json.dumps(callers)}'>
+  <div class="func-card {usage_class}{' compat' if func['is_compat'] else ''}" data-name="{func['name']}" data-usage="{'used' if caller_count > 0 else 'unused'}" data-compat="{'true' if func['is_compat'] else 'false'}" data-callers='{json.dumps(callers)}'>
     <div class="func-header">
       <span class="func-name">{func['name']}({args_str})</span>
       <span class="func-line">行 {func['line']}</span>
@@ -487,6 +493,7 @@ def generate_html(data):
     <div class="func-brief">{func['brief'] or '无描述'}</div>
     <div class="func-meta">
       <span class="badge {badge_class}">{badge_text}</span>
+      {'<span class="badge badge-compat">兼容层</span>' if func['is_compat'] else ''}
     </div>
     {caller_html}
     <div class="detail-panel" id="detail-{func['name']}">
@@ -508,6 +515,7 @@ function filter() {
   const search = document.getElementById('search').value.toLowerCase();
   const usage = document.getElementById('usageFilter').value;
   const pack = document.getElementById('packFilter').value;
+  const hideCompat = document.getElementById('hideCompat').checked;
   const cards = document.querySelectorAll('.func-card');
   let visible = 0;
 
@@ -516,6 +524,7 @@ function filter() {
     const brief = card.querySelector('.func-brief').textContent.toLowerCase();
     const cardUsage = card.dataset.usage;
     const callers = JSON.parse(card.dataset.callers || '[]');
+    const isCompat = card.dataset.compat === 'true';
 
     let show = true;
     if (search && !name.includes(search) && !brief.includes(search)) show = false;
@@ -524,6 +533,7 @@ function filter() {
       const inPack = callers.some(c => c.pack === pack);
       if (!inPack) show = false;
     }
+    if (hideCompat && isCompat) show = false;
 
     card.classList.toggle('hidden', !show);
     if (show) visible++;
