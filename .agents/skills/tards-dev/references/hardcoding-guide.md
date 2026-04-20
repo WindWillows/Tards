@@ -84,7 +84,7 @@ def _gengzhi_strategy(player, target, game, extras=None):
 
 > 注意：在**卡牌自己的 effect_fn 中**检查 `card.name` 是允许的。禁止的是在**核心引擎**中检查。
 
-### 案例 4：通用事件中检查特定单位
+### 案例 4：通用事件中检查特定异象
 
 ❌ **错误**：
 ```python

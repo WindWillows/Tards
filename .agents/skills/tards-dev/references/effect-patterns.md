@@ -3,7 +3,7 @@
 ## 标准函数签名
 
 ```python
-# 单位部署效果
+# 异象部署效果
 @special
 def _xxx_special(minion, player, game, extras=None):
     """文档字符串：描述卡牌效果。"""
@@ -23,11 +23,11 @@ def _xxx_strategy(player, target, game, extras=None):
 
 **运行时自动行为：**
 - 检查 `minion.is_alive()`，死亡时跳过
-- 打印 `[效果触发] 函数名 (单位名)` 日志
+- 打印 `[效果触发] 函数名 (异象名)` 日志
 
 ## 模板 1：部署指向效果
 
-单位部署时指向 1 个场上目标：
+异象部署时指向 1 个场上目标：
 
 ```python
 # discrete.py 中注册
@@ -44,7 +44,7 @@ register_card(
 # xxx_effects.py 中实现
 @special
 def _moyiren_special(minion, player, game, extras=None):
-    """部署：对1个单位造成1点伤害。"""
+    """部署：对1个异象造成1点伤害。"""
     if not extras:
         return
     target = extras[0]
@@ -69,7 +69,7 @@ def _ehan_special(minion, player, game, extras=None):
 ```python
 @special
 def _liudu_special(minion, player, game, extras=None):
-    """流髑：回合开始：随机冰冻1个敌方单位。"""
+    """流髑：回合开始：随机冰冻1个敌方异象。"""
     def on_turn_start(g, event_data, source):
         if not minion.is_alive():
             return
@@ -102,7 +102,7 @@ from card_pools.effect_utils import add_turn_end_effect
 
 @special
 def _xxx_special(minion, player, game, extras=None):
-    """部署：本回合结束时，本单位获得+1/+1。"""
+    """部署：本回合结束时，本异象获得+1/+1。"""
     def on_turn_end(g, event_data, source):
         if minion.is_alive():
             buff_minion(minion, 1, 1)
@@ -131,15 +131,15 @@ register_card(
     name="命名牌",
     cost_str="1T",
     card_type=CardType.STRATEGY,
-    targets_fn=target_hand_minions,                # 第一阶段：选手牌中的单位
-    extra_targeting_stages=[(target_any_minion, 1, False)],  # 第二阶段：选场上单位
+    targets_fn=target_hand_minions,                # 第一阶段：选手牌中的异象
+    extra_targeting_stages=[(target_any_minion, 1, False)],  # 第二阶段：选场上异象
     effect_fn=_mingmingpai_strategy,
 )
 
 # xxx_effects.py 中实现
 @strategy
 def _mingmingpai_strategy(player, target, game, extras=None):
-    """选择1张手牌中的单位，使场上的1个单位获得'也算作是本单位'。抽1张牌。"""
+    """选择1张手牌中的异象，使场上的1个异象获得'也算作是本异象'。抽1张牌。"""
     if not target or not hasattr(target, "name"):
         return False
     if not extras or len(extras) < 1:
@@ -159,7 +159,7 @@ from card_pools.effect_utils import give_temp_buff_until_turn_end
 
 @strategy
 def _xxx_strategy(player, target, game, extras=None):
-    """使1个单位获得+2攻击力直到回合结束。"""
+    """使1个异象获得+2攻击力直到回合结束。"""
     if not target or not target.is_alive():
         return False
     give_temp_buff_until_turn_end(target, atk_delta=2, hp_delta=0)
@@ -173,7 +173,7 @@ from card_pools.effect_utils import add_deploy_restriction
 
 @special
 def _wuzhu_special(minion, player, game, extras=None):
-    """疣猪：双方无法部署花费不大于4T的单位。"""
+    """疣猪：双方无法部署花费不大于4T的异象。"""
     def restriction(p, card):
         from tards.cards import MinionCard
         if isinstance(card, MinionCard) and card.cost.t <= 4:
@@ -188,7 +188,7 @@ def _wuzhu_special(minion, player, game, extras=None):
 |------|------|
 | `deal_damage_to_minion(target, damage, source, game)` | 标准伤害（含坚韧/替换/事件） |
 | `deal_damage_to_player(player, damage, source, game)` | 对玩家造成伤害 |
-| `destroy_minion(minion, game)` | 消灭单位（触发亡语） |
+| `destroy_minion(minion, game)` | 消灭异象（触发亡语） |
 | `summon_token(game, name, owner, position, ...)` | 召唤 token |
 | `buff_minion(minion, atk_delta, hp_delta, permanent=True)` | 修改攻击力/生命值 |
 | `gain_keyword(minion, keyword, value, permanent=True)` | 赋予关键词 |
@@ -204,24 +204,24 @@ def _wuzhu_special(minion, player, game, extras=None):
 | `place_at_deck_top(card, player)` | 置牌库顶 |
 | `place_at_deck_bottom(card, player)` | 置牌库底 |
 | `initiate_combat(attacker, defender, game)` | 发起对战 |
-| `move_minion(minion, new_pos, game)` | 移动单位 |
+| `move_minion(minion, new_pos, game)` | 移动异象 |
 | `swap_minions(m1, m2, game)` | 交换位置 |
-| `transform_minion_to(minion, target_name, game)` | 变形为指定单位 |
+| `transform_minion_to(minion, target_name, game)` | 变形为指定异象 |
 | `add_event_listener(game, event_type, fn)` | 注册事件监听 |
 | `add_turn_start_effect(game, minion, fn)` | 注入回合开始效果 |
 | `add_turn_end_effect(game, minion, fn)` | 注入回合结束效果 |
 | `delay_to_turn_end(game, fn)` | 延迟到回合结束 |
 | `delay_to_next_turn(game, fn)` | 延迟到下一回合 |
 | `add_deploy_restriction(game, fn)` | 全局部署限制 |
-| `set_alias(minion, name)` | 使单位"也算作是"某名字 |
+| `set_alias(minion, name)` | 使异象"也算作是"某名字 |
 | `conditional_effect(condition, effect_fn)` | 条件执行 |
-| `all_friendly_minions(game, player)` | 所有友方存活单位 |
-| `all_enemy_minions(game, player)` | 所有敌方存活单位 |
+| `all_friendly_minions(game, player)` | 所有友方存活异象 |
+| `all_enemy_minions(game, player)` | 所有敌方存活异象 |
 | `get_adjacent_positions(pos, board)` | 相邻位置 |
-| `get_frontmost_enemy(col, owner, board, attacker)` | 指定列最前敌方单位 |
+| `get_frontmost_enemy(col, owner, board, attacker)` | 指定列最前敌方异象 |
 | `is_enemy(m1, m2)` | 判断敌对关系 |
-| `silence_minion(minion)` | 沉默单位 |
-| `heal_minion(minion, amount)` | 治疗单位 |
+| `silence_minion(minion)` | 沉默异象 |
+| `heal_minion(minion, amount)` | 治疗异象 |
 | `heal_player(player, amount)` | 治疗玩家 |
 | `discard_card(player, card)` | 弃置手牌 |
 | `remove_top_of_deck(player, amount)` | 移除牌库顶牌 |
@@ -277,7 +277,7 @@ from card_pools.effect_utils import (
 
 @special
 def _tiaozhu_special(minion, player, game, extras=None):
-    """跳蛛：结算阶段开始时，若本回合只部署了本单位，获得迅捷。"""
+    """跳蛛：结算阶段开始时，若本回合只部署了本异象，获得迅捷。"""
     def on_phase_start(g, event_data, source):
         if event_data.get("phase") != g.PHASE_RESOLVE:
             return
@@ -290,7 +290,7 @@ def _tiaozhu_special(minion, player, game, extras=None):
 
 @special
 def _wujing_special(minion, player, game, extras=None):
-    """鼯鼱：必须是本轮部署的第一个单位。"""
+    """鼯鼱：必须是本轮部署的第一个异象。"""
     # 部署限制在部署时检查
     # 若本回合已有部署，special_fn 中可返回提示（但实际限制应在 condition_fn 中）
     pass
@@ -327,12 +327,12 @@ from card_pools.effect_utils import (
 
 @special
 def _shelang_special(minion, player, game, extras=None):
-    """猞猁：相邻单位受到伤害时，改为由本单位承受。"""
+    """猞猁：相邻异象受到伤害时，改为由本异象承受。"""
     redirect_adjacent_damage_to_self(minion)
 
 @special
 def _chaodong_special(minion, player, game, extras=None):
-    """嘲鸫：友方单位受到致命伤害前，先获得+1HP。"""
+    """嘲鸫：友方异象受到致命伤害前，先获得+1HP。"""
     add_pre_fatal_damage_heal(minion, heal_amount=1)
 ```
 
@@ -349,7 +349,7 @@ from card_pools.effect_utils import (
 
 @special
 def _zhuiliezhe_special(minion, player, game, extras=None):
-    """追猎者：部署指向一个不处于本列的单位。亡语：将其消灭。"""
+    """追猎者：部署指向一个不处于本列的异象。亡语：将其消灭。"""
     if not extras:
         return
     target = extras[0]
@@ -364,11 +364,11 @@ def _zhuiliezhe_special(minion, player, game, extras=None):
 
 @special
 def _ankang_special(minion, player, game, extras=None):
-    """鮟鱇：回合结束指向一个单位。回合开始消灭指向单位。"""
+    """鮟鱇：回合结束指向一个异象。回合开始消灭指向异象。"""
     def on_turn_end(g, event_data, source):
         if not minion.is_alive():
             return
-        # 需要玩家手动选择目标——这里简化，随机选敌方单位
+        # 需要玩家手动选择目标——这里简化，随机选敌方异象
         enemies = all_enemy_minions(g, player)
         if enemies:
             target = random.choice(enemies)
@@ -386,7 +386,7 @@ def _ankang_special(minion, player, game, extras=None):
     minion.on_turn_start = on_turn_start
 ```
 
-## 模板 15：复制单位召唤
+## 模板 15：复制异象召唤
 
 ```python
 from card_pools.effect_utils import summon_copy_of
@@ -432,11 +432,11 @@ from card_pools.effect_utils import add_excitement
 
 @special
 def _zongxiong_special(minion, player, game, extras=None):
-    """棕熊：具有兴奋——攻击消灭单位后再攻击一次。"""
+    """棕熊：具有兴奋——攻击消灭异象后再攻击一次。"""
     add_excitement(minion)
 ```
 
-> "兴奋"定义：若因攻击消灭了一个单位，则再攻击一次。`add_excitement` 通过监听 `AFTER_DAMAGE` 事件实现。
+> "兴奋"定义：若因攻击消灭了一个异象，则再攻击一次。`add_excitement` 通过监听 `AFTER_DAMAGE` 事件实现。
 
 ## 模板 18：全局地形覆盖
 
@@ -455,18 +455,18 @@ def _kun_special(minion, player, game, extras=None):
 
 > `board.py` 的 `is_valid_deploy` 和 `move_minion` 已集成 `_is_water_at()`，优先查询地形覆盖。
 
-## 模板 19：无法被单位选中
+## 模板 19：无法被异象选中
 
 ```python
 from card_pools.effect_utils import set_untargetable_by_minions
 
 @special
 def _13haohaizi_special(minion, player, game, extras=None):
-    """13号孩子：无法被单位选中（策略仍可以）。"""
+    """13号孩子：无法被异象选中（策略仍可以）。"""
     set_untargetable_by_minions(minion, active=True)
 ```
 
-> `resolve_phase` 中攻击目标选择时会自动过滤 `_untargetable_by_minions` 单位，攻击落空转打英雄。
+> `resolve_phase` 中攻击目标选择时会自动过滤 `_untargetable_by_minions` 异象，攻击落空转打英雄。
 
 ## 模板 20：全局攻击禁止
 
@@ -475,7 +475,7 @@ from card_pools.effect_utils import add_attack_restriction
 
 @special
 def _cilu_special(minion, player, game, extras=None):
-    """雌鹿：攻击力最高的敌方单位无法攻击。"""
+    """雌鹿：攻击力最高的敌方异象无法攻击。"""
     def restriction(m):
         if m.owner == player:
             return False
@@ -515,14 +515,14 @@ def _haozhu_special(minion, player, game, extras=None):
 
 @special
 def _shuishiyan_special(minion, player, game, extras=None):
-    """水螅岩：亡语：若是由于单位效果被消灭，改为在回合结束时成长。"""
+    """水螅岩：亡语：若是由于异象效果被消灭，改为在回合结束时成长。"""
     def _dr(m, p, b):
         source_type = get_last_damage_type(m)
         if source_type == "effect":
-            print(f"  水螅岩因单位效果被消灭，改为在回合结束时成长")
+            print(f"  水螅岩因异象效果被消灭，改为在回合结束时成长")
             # 注册延迟成长...
         else:
-            print(f"  水螅岩非单位效果消灭，正常死亡")
+            print(f"  水螅岩非异象效果消灭，正常死亡")
     add_deathrattle(minion, _dr)
 ```
 
@@ -543,7 +543,7 @@ def _shuishiyan_special(minion, player, game, extras=None):
 | `get_deployed_this_turn(game, player)` | 本回合已部署列表（按顺序） |
 | `get_deploy_count_this_turn(game, player)` | 本回合部署数量 |
 | `is_first_deploy_this_turn(game, player)` | 是否尚未部署 |
-| `is_only_deploy_this_turn(game, player, minion)` | 某单位是否是唯一部署 |
+| `is_only_deploy_this_turn(game, player, minion)` | 某异象是否是唯一部署 |
 
 ### 伤害累计
 | 函数 | 用途 |
@@ -566,7 +566,7 @@ def _shuishiyan_special(minion, player, game, extras=None):
 ### 复制召唤
 | 函数 | 用途 |
 |------|------|
-| `summon_copy_of(minion, position, game, modifiers)` | 复制指定单位到指定位置 |
+| `summon_copy_of(minion, position, game, modifiers)` | 复制指定异象到指定位置 |
 
 ### 事件监听扩展
 | 函数 | 用途 |
@@ -581,7 +581,7 @@ def _shuishiyan_special(minion, player, game, extras=None):
 | `override_terrain(game, position, terrain_type)` | 覆盖格子地形 |
 | `clear_terrain_override(game, position)` | 清除地形覆盖 |
 | `get_terrain_at(game, position)` | 查询当前地形 |
-| `set_untargetable_by_minions(minion, active)` | 无法被单位选中 |
+| `set_untargetable_by_minions(minion, active)` | 无法被异象选中 |
 | `is_untargetable_by_minions(minion)` | 查询无法被选中状态 |
 | `add_attack_restriction(game, condition_fn)` | 全局攻击限制 |
 | `clear_attack_restrictions(game)` | 清除攻击限制 |
@@ -590,7 +590,7 @@ def _shuishiyan_special(minion, player, game, extras=None):
 ### 伤害来源追踪
 | 函数 | 用途 |
 |------|------|
-| `get_last_damage_source(minion)` | 最近一次伤害来源单位 |
+| `get_last_damage_source(minion)` | 最近一次伤害来源异象 |
 | `get_last_damage_type(minion)` | 伤害类型（combat/strategy/effect） |
 | `get_last_damage_amount(minion)` | 实际伤害数值 |
 | `clear_last_damage_source(minion)` | 清除记录 |

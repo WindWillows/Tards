@@ -37,7 +37,7 @@ DESCRIPTION_VERBS = {
 }
 
 REGION_MAP = {
-    "单位：": "minion",
+    "异象：": "minion",
     "矿物：": "mineral",
     "策略：": "strategy",
     "阴谋：": "conspiracy",
@@ -303,7 +303,7 @@ def process_file(filepath: str) -> List[Dict[str, Any]]:
             if current_card:
                 cards.append(current_card)
             current_card = parsed
-            # 建立退格（成长）关系（仅对单位卡在同区域内）
+            # 建立退格（成长）关系（仅对异象卡在同区域内）
             if parsed.get("card_type") == "minion":
                 while minion_stack and minion_stack[-1][0] >= indent:
                     minion_stack.pop()
@@ -320,7 +320,7 @@ def process_file(filepath: str) -> List[Dict[str, Any]]:
     if current_card:
         cards.append(current_card)
 
-    # 二次提取：从描述中检测亡语等机制关键词（仅对单位卡）
+    # 二次提取：从描述中检测亡语等机制关键词（仅对异象卡）
     for card in cards:
         if card.get("card_type") != "minion":
             continue
@@ -359,7 +359,7 @@ def try_generate_develop_effect(description: str) -> Optional[str]:
     simple_patterns = [
         (r'开发([一二两三四五六七八九十\d]+)张卡组中的牌', 'deck'),
         (r'开发[1一]张[“"]([^”"]+)[”"]\s*。?\s*$', 'named'),
-        (r'开发[1一]张(离散|冥刻|血契|通用)?(金卡|银卡|铜卡|铁卡)?(单位|策略|阴谋|矿物)?\s*。?\s*$', 'filtered'),
+        (r'开发[1一]张(离散|冥刻|血契|通用)?(金卡|银卡|铜卡|铁卡)?(异象|策略|阴谋|矿物)?\s*。?\s*$', 'filtered'),
     ]
     for pat, kind in simple_patterns:
         m = re.search(pat, description)
@@ -387,7 +387,7 @@ def try_generate_develop_effect(description: str) -> Optional[str]:
                     rmap = {"金卡":"Rarity.GOLD","银卡":"Rarity.SILVER","铜卡":"Rarity.BRONZE","铁卡":"Rarity.IRON"}
                     conds.append(f"c.rarity == {rmap[rarity_name]}")
                 if type_name:
-                    tmap = {"单位":"CardType.MINION","策略":"CardType.STRATEGY","阴谋":"CardType.CONSPIRACY","矿物":"CardType.MINERAL"}
+                    tmap = {"异象":"CardType.MINION","策略":"CardType.STRATEGY","阴谋":"CardType.CONSPIRACY","矿物":"CardType.MINERAL"}
                     conds.append(f"c.card_type == {tmap[type_name]}")
                 pool = f"[c for c in DEFAULT_REGISTRY.all_cards() if {' and '.join(conds)}]" if conds else "DEFAULT_REGISTRY.all_cards()"
                 return f'lambda p, t, g, extras=None: g.develop_card(p, {pool})'
@@ -433,7 +433,7 @@ def try_generate_lose_hp_effect(description: str) -> Optional[str]:
     if re.search(r'(?:若|每当|受到|改为|死亡|消灭|回合开始|回合结束)', description):
         return None
     # 使/令 [目标] 失去 [数字] 点 HP/生命值
-    m = re.search(r'(?:使|令)(?:对手|敌方主角|1个单位|一个单位|目标)失去([一二两三四五六七八九十\d]+)点?(?:HP|hp|生命)', description)
+    m = re.search(r'(?:使|令)(?:对手|敌方主角|1个异象|一个异象|目标)失去([一二两三四五六七八九十\d]+)点?(?:HP|hp|生命)', description)
     if m:
         dmg = _parse_count(m.group(1))
         return f'lambda p, t, g, extras=None: (t.lose_hp({dmg}) or True) if hasattr(t, "lose_hp") else False'
@@ -450,17 +450,17 @@ def try_generate_damage_effect(description: str) -> Optional[str]:
     import re
     if re.search(r'(?:若|每当|受到|死亡|消灭|回合开始|回合结束)', description):
         return None
-    # 对1个单位/对手/敌方主角/全体敌方目标/所有单位 造成伤害
-    m = re.search(r'对(?:([一二两三四五六七八九十\d]?)个?单位|对手|敌方主角|全体敌方目标|所有单位)造成([一二两三四五六七八九十\d]+)点伤害', description)
+    # 对1个异象/对手/敌方主角/全体敌方目标/所有异象 造成伤害
+    m = re.search(r'对(?:([一二两三四五六七八九十\d]?)个?异象|对手|敌方主角|全体敌方目标|所有异象)造成([一二两三四五六七八九十\d]+)点伤害', description)
     if m:
         dmg = _parse_count(m.group(2))
         target = m.group(1)
         if target and target in ('', '1', '一'):
-            # 对1个单位造成伤害 -> 默认 t 是目标
+            # 对1个异象造成伤害 -> 默认 t 是目标
             return f'lambda p, t, g, extras=None: (t.health_change(-{dmg}) if hasattr(t, "health_change") else (t.take_damage({dmg}) if hasattr(t, "take_damage") else False) or True)'
         if target in ('对手', '敌方主角'):
             return f'lambda p, t, g, extras=None: ((g.p2 if p == g.p1 else g.p1).health_change(-{dmg}) or True)'
-        if target in ('全体敌方目标', '所有单位'):
+        if target in ('全体敌方目标', '所有异象'):
             return f'lambda p, t, g, extras=None: ([(m.health_change(-{dmg}) if hasattr(m, "health_change") else m.take_damage({dmg})) for m in g.board.minion_place.values() if m.is_alive() and not g.is_immune(m, p)] or True)'
     return None
 
@@ -470,8 +470,8 @@ def try_generate_keyword_effect(description: str) -> Optional[str]:
     import re
     if re.search(r'(?:若|每当|受到|死亡|消灭|回合开始|回合结束)', description):
         return None
-    # 匹配：使一个单位获得恐惧/冰冻/眩晕/先攻1/迅捷/坚韧1 等
-    m = re.search(r'使(?:[1一]个?单位|目标)获得([\u4e00-\u9fa5]+)([一二两三四五六七八九十\d]*)', description)
+    # 匹配：使一个异象获得恐惧/冰冻/眩晕/先攻1/迅捷/坚韧1 等
+    m = re.search(r'使(?:[1一]个?异象|目标)获得([\u4e00-\u9fa5]+)([一二两三四五六七八九十\d]*)', description)
     if m:
         kw = m.group(1)
         val_str = m.group(2)
@@ -496,31 +496,31 @@ def try_generate_targets_fn(description: str, card_type: str) -> Optional[tuple]
     desc = description.strip()
 
     # AOE / 全体效果：不需要指向
-    if any(x in desc for x in ["全体敌方目标", "所有单位", "所有敌方单位", "所有友方单位", "对手所有单位"]):
+    if any(x in desc for x in ["全体敌方目标", "所有异象", "所有敌方异象", "所有友方异象", "对手所有异象"]):
         return ("target_none", 1, False)
 
     # 指向敌方玩家（对手/敌方主角）
     if re.search(r'对(?:对手|敌方主角)', desc):
         return ("target_enemy_player", 1, False)
 
-    # 回复HP类，且未提及"单位"时：通常指向自己
-    if re.search(r'回复\d+点HP|恢复\d+点生命', desc) and "单位" not in desc:
+    # 回复HP类，且未提及"异象"时：通常指向自己
+    if re.search(r'回复\d+点HP|恢复\d+点生命', desc) and "异象" not in desc:
         return ("target_self", 1, False)
 
     # 识别数量词
-    count_match = re.search(r'([一二两三四五六七八九十\d]+)个(?:友方)?单位', desc)
+    count_match = re.search(r'([一二两三四五六七八九十\d]+)个(?:友方)?异象', desc)
     count = _parse_count(count_match.group(1)) if count_match else 1
 
-    # 指向友方单位
-    if re.search(r'(?:对|使|消灭|将)友方(?:生物)?单位|友方一个单位|[1一]个友方(?:生物)?单位', desc):
+    # 指向友方异象
+    if re.search(r'(?:对|使|消灭|将)友方(?:生物)?异象|友方一个异象|[1一]个友方(?:生物)?异象', desc):
         return ("target_friendly_minions", count, False)
 
-    # 指向一个单位（包含"使一个单位获得XXX"、"对1个单位造成伤害"、"消灭一个单位"、"交换一个单位"、"将一个单位移动"）
-    if re.search(r'(?:对|使|消灭|交换|将)(?:[1一]个?单位|一个单位|目标单位)', desc):
+    # 指向一个异象（包含"使一个异象获得XXX"、"对1个异象造成伤害"、"消灭一个异象"、"交换一个异象"、"将一个异象移动"）
+    if re.search(r'(?:对|使|消灭|交换|将)(?:[1一]个?异象|一个异象|目标异象)', desc):
         return ("target_any_minion", count, False)
 
-    # 明确指向敌方单位（包含"将一个敌方单位移动"）
-    if re.search(r'(?:对|交换|将)(?:敌方单位|敌方一个单位|1个敌方单位|[1一]个敌方单位|敌人)', desc):
+    # 明确指向敌方异象（包含"将一个敌方异象移动"）
+    if re.search(r'(?:对|交换|将)(?:敌方异象|敌方一个异象|1个敌方异象|[1一]个敌方异象|敌人)', desc):
         return ("target_enemy_minions", count, False)
 
     return None
@@ -538,7 +538,7 @@ def try_generate_minion_extra_stages(deploy_desc: str) -> Optional[str]:
     desc = deploy_desc.strip()
 
     # AOE / 全体效果：不需要额外指向
-    if any(x in desc for x in ["全体敌方目标", "所有单位", "所有敌方单位", "所有友方单位", "对手所有单位"]):
+    if any(x in desc for x in ["全体敌方目标", "所有异象", "所有敌方异象", "所有友方异象", "对手所有异象"]):
         return None
 
     # 指向敌方玩家（对手/敌方主角）
@@ -546,23 +546,23 @@ def try_generate_minion_extra_stages(deploy_desc: str) -> Optional[str]:
         return "[(target_enemy_player, 1, False)]"
 
     # 识别数量词
-    count_match = re.search(r'([一二两三四五六七八九十\d]+)个(?:友方)?单位', desc)
+    count_match = re.search(r'([一二两三四五六七八九十\d]+)个(?:友方)?异象', desc)
     count = _parse_count(count_match.group(1)) if count_match else 1
 
-    # 指向友方单位
-    if re.search(r'(?:对|使|消灭|将)友方单位|友方一个单位|[1一]个友方单位', desc):
+    # 指向友方异象
+    if re.search(r'(?:对|使|消灭|将)友方异象|友方一个异象|[1一]个友方异象', desc):
         return f"[(target_friendly_minions, {count}, False)]"
 
-    # 指向一个单位（包含"使一个单位获得XXX"、"对1个单位造成伤害"、"消灭一个单位"、"交换一个单位"、"将一个单位移动"）
-    if re.search(r'(?:对|使|消灭|交换|将)(?:[1一]个?单位|一个单位|目标单位)', desc):
+    # 指向一个异象（包含"使一个异象获得XXX"、"对1个异象造成伤害"、"消灭一个异象"、"交换一个异象"、"将一个异象移动"）
+    if re.search(r'(?:对|使|消灭|交换|将)(?:[1一]个?异象|一个异象|目标异象)', desc):
         return f"[(target_any_minion, {count}, False)]"
 
-    # 明确指向敌方单位（包含"将一个敌方单位移动"）
-    if re.search(r'(?:对|交换|将)(?:敌方单位|敌方一个单位|1个敌方单位|[1一]个敌方单位|敌人)', desc):
+    # 明确指向敌方异象（包含"将一个敌方异象移动"）
+    if re.search(r'(?:对|交换|将)(?:敌方异象|敌方一个异象|1个敌方异象|[1一]个敌方异象|敌人)', desc):
         return f"[(target_enemy_minions, {count}, False)]"
 
-    # 对战效果：与敌方单位对战
-    if re.search(r'与(?:敌方单位|敌人|[1一]个敌方单位)对战', desc):
+    # 对战效果：与敌方异象对战
+    if re.search(r'与(?:敌方异象|敌人|[1一]个敌方异象)对战', desc):
         return f"[(target_enemy_minions, {count}, False)]"
 
     return None
@@ -576,8 +576,8 @@ def try_generate_extra_targeting_stages(desc: str) -> Optional[str]:
     import re
     if not desc:
         return None
-    # 使友方...然后与敌方单位对战
-    if re.search(r'然后与.*敌方单位对战', desc):
+    # 使友方...然后与敌方异象对战
+    if re.search(r'然后与.*敌方异象对战', desc):
         return "[(target_enemy_minions, 1, False)]"
     return None
 
@@ -595,16 +595,16 @@ def try_generate_sacrifice_transform_effect(description: str) -> Optional[str]:
 def try_generate_move_effect(description: str) -> Optional[str]:
     """尝试生成移动/交换/遣返类效果。"""
     desc = description.strip()
-    # 将一个敌方单位移动到友方区域
+    # 将一个敌方异象移动到友方区域
     if re.search(r'将.*?敌方.*?移动.*?友方区域', desc):
         return 'lambda p, t, g, extras=None: move_enemy_to_friendly(p, t, g)'
-    # 将两个友方单位交换位置
-    if re.search(r'交换两个友方单位', desc):
+    # 将两个友方异象交换位置
+    if re.search(r'交换两个友方异象', desc):
         return 'lambda p, t, g, extras=None: swap_units(t, extras, g)'
-    # 将两个敌方单位交换位置
-    if re.search(r'交换两个敌方单位', desc):
+    # 将两个敌方异象交换位置
+    if re.search(r'交换两个敌方异象', desc):
         return 'lambda p, t, g, extras=None: swap_units(t, extras, g)'
-    # 将一个单位返回手牌
+    # 将一个异象返回手牌
     if re.search(r'返回手牌', desc):
         return 'lambda p, t, g, extras=None: return_to_hand(t, g, p)'
     return None
@@ -727,7 +727,7 @@ def generate_card_code(card: Dict[str, Any], pack_enum: str, special_map: Option
 
     if not chosen_effect and "获得恐惧" in desc and desc.count("获得恐惧") == 1:
         import re
-        m = re.match(r'^(?:部署：)?使(?:1个|一个)单位获得恐惧。?$', desc)
+        m = re.match(r'^(?:部署：)?使(?:1个|一个)异象获得恐惧。?$', desc)
         if m:
             chosen_effect = 'lambda p, t, g, extras=None: (t.apply_fear() or True) if hasattr(t, "apply_fear") else False'
 

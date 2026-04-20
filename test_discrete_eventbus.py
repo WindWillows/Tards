@@ -14,7 +14,7 @@ from tards.board import Board
 
 
 def make_test_deck(owner, name, atk, hp, keywords=None):
-    """创建测试用单位卡。"""
+    """创建测试用异象卡。"""
     return [
         MinionCard(
             name=name,
@@ -122,7 +122,7 @@ def test_zombie_leech():
 
 
 def test_skeleton_retarget():
-    """骷髅：攻击前，改为对HP最低的敌方单位造成等量伤害。"""
+    """骷髅：攻击前，改为对HP最低的敌方异象造成等量伤害。"""
     print("\n=== 测试：骷髅 ===")
     p1 = Player(side=0, name="P1", diver="测试", card_deck=[])
     p2 = Player(side=1, name="P2", diver="测试", card_deck=[])
@@ -138,7 +138,7 @@ def test_skeleton_retarget():
     skeleton = game.board.get_minion_at((3, 0))
     assert skeleton, "骷髅部署失败"
 
-    # 部署两个敌方单位：一个满血，一个残血
+    # 部署两个敌方异象：一个满血，一个残血
     p2_card1 = MinionCard(name="满血", owner=p2, cost=Cost(t=1), targets=target_friendly_positions, attack=1, health=5)
     p2_card1.effect(p2, (0, 0), game)
     full = game.board.get_minion_at((0, 0))
@@ -153,7 +153,7 @@ def test_skeleton_retarget():
     # 由于 before_attack 改目标，实际应该打残血
     assert low.current_health <= 0, f"残血应被消灭，实际HP={low.current_health}"
     assert full.current_health == 5, f"满血不应受伤，实际HP={full.current_health}"
-    print("  通过：骷髅攻击前自动改目标到HP最低的敌方单位")
+    print("  通过：骷髅攻击前自动改目标到HP最低的敌方异象")
 
 
 def test_dripstone():

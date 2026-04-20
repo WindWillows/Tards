@@ -38,7 +38,7 @@ class Board:
 
         existing = self.minion_place.get(pos)
 
-        # 藤蔓：只能部署在友方单位上
+        # 藤蔓：只能部署在友方异象上
         if "藤蔓" in card.keywords:
             if not existing or existing.owner != player:
                 return False
@@ -49,7 +49,7 @@ class Board:
         is_water = self._is_water_at(pos)
         aquatic = card.keywords.get("水生", False) or card.keywords.get("两栖", False)
 
-        # 漂浮物：可以在其上部署单位，无视水路限制
+        # 漂浮物：可以在其上部署异象，无视水路限制
         if existing and "漂浮物" in existing.keywords and existing.owner == player:
             return True
 
@@ -74,7 +74,7 @@ class Board:
         return self.minion_place.get(target)
 
     def remove_minion(self, target: Tuple[int, int]) -> Optional["Minion"]:
-        """将单位从战场移除。注意：移除不触发亡语（与消灭不同）。"""
+        """将异象从战场移除。注意：移除不触发亡语（与消灭不同）。"""
         m = self.minion_place.get(target, None)
         if not m:
             return None
@@ -98,7 +98,7 @@ class Board:
             # 清理部署钩子
             if self.game_ref:
                 m.clear_deploy_hook(self.game_ref)
-            # 清理本 minion 向其它单位提供的所有光环
+            # 清理本 minion 向其它异象提供的所有光环
             m.clear_all_provided_auras()
             # 如果移除的是藤蔓，释放宿主
             if hasattr(m, 'vine_host') and m.vine_host:
@@ -134,7 +134,7 @@ class Board:
         return m
 
     def replace_minion(self, target: Tuple[int, int], new_minion: "Minion") -> bool:
-        """将指定位置上的单位替换为新单位，位置不变（不触发亡语）。"""
+        """将指定位置上的异象替换为新异象，位置不变（不触发亡语）。"""
         if target not in self.minion_place:
             return False
         old = self.minion_place.pop(target)
@@ -147,7 +147,7 @@ class Board:
     def place_minion(self, minion: "Minion", target: Tuple[int, int]) -> bool:
         existing = self.minion_place.get(target)
 
-        # 藤蔓：覆盖友方单位
+        # 藤蔓：覆盖友方异象
         if existing and "藤蔓" in getattr(minion, "keywords", {}):
             if existing.owner != minion.owner:
                 return False
@@ -161,7 +161,7 @@ class Board:
                 self.game_ref.refresh_all_auras()
             return True
 
-        # 漂浮物：允许在其上部署新单位
+        # 漂浮物：允许在其上部署新异象
         if existing and "漂浮物" in existing.keywords and existing.owner == minion.owner:
             self.cell_underlay[target] = existing
             existing.float_occupant = minion
@@ -182,7 +182,7 @@ class Board:
         return True
 
     def move_minion(self, minion: "Minion", new_pos: Tuple[int, int], allow_cross_side: bool = False) -> bool:
-        """将存活单位移动到新的空格子。不触发亡语。
+        """将存活异象移动到新的空格子。不触发亡语。
 
         allow_cross_side: 为 True 时允许跨阵营移动（如劫持/位移效果）。
         移动前后会发射 before_move / moved 事件。
@@ -244,7 +244,7 @@ class Board:
         return True
 
     def swap_minions(self, m1: "Minion", m2: "Minion") -> bool:
-        """交换两个存活单位的位置。"""
+        """交换两个存活异象的位置。"""
         if not m1.is_alive() or not m2.is_alive():
             return False
         p1, p2 = m1.position, m2.position
@@ -293,7 +293,7 @@ class Board:
         return result
 
     def get_front_minion(self, col: int, player: "Player", attacker: Optional["Minion"] = None) -> Optional["Minion"]:
-        """获取指定列中对 player 而言的敌方前排单位。"""
+        """获取指定列中对 player 而言的敌方前排异象。"""
         enemies = self.get_enemy_minions_in_column(col, player)
         if not enemies:
             return None
@@ -303,11 +303,11 @@ class Board:
         if attacker or in_resolve:
             enemies = [m for m in enemies if not m.keywords.get("潜水", False) and not m.keywords.get("潜行", False)]
 
-        # 恐惧：无法被单位选中（仅对单位攻击生效）
+        # 恐惧：无法被异象选中（仅对异象攻击生效）
         if attacker:
             enemies = [m for m in enemies if not getattr(m, '_fear_active', False)]
 
-        # 空袭：优先攻击具有防空的单位，否则跳过所有单位直击英雄
+        # 空袭：优先攻击具有防空的异象，否则跳过所有异象直击英雄
         if attacker and attacker.keywords.get("空袭", False):
             anti_air = [m for m in enemies if m.keywords.get("防空", False)]
             if anti_air:

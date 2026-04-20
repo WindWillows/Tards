@@ -32,7 +32,7 @@ def deal_damage_to_minion(
     source: Optional["Minion"] = None,
     game: Optional["Game"] = None,
 ) -> int:
-    """对单位造成标准【伤害】。
+    """对异象造成标准【伤害】。
 
     依次触发：伤害替换 → 藤蔓替伤 → 坚韧/破甲/脆弱 → 冰冻 → 实际扣血。
     返回实际造成的伤害值（经过所有减免后的正值）。
@@ -83,7 +83,7 @@ def lose_hp_to_player(target: "Player", amount: int) -> None:
 
 
 def heal_minion(minion: "Minion", amount: int) -> None:
-    """治疗单位，恢复其当前生命值（不超过最大生命值）。"""
+    """治疗异象，恢复其当前生命值（不超过最大生命值）。"""
     if amount <= 0:
         return
     if not minion.is_alive():
@@ -101,7 +101,7 @@ def heal_player(player: "Player", amount: int) -> None:
 
 
 # =============================================================================
-# 2. 场上单位操作
+# 2. 场上异象操作
 # =============================================================================
 
 def summon_token(
@@ -114,7 +114,7 @@ def summon_token(
     keywords: Optional[dict] = None,
     summon_turn: Optional[int] = None,
 ) -> Optional["Minion"]:
-    """在指定位置召唤一个 token 单位。
+    """在指定位置召唤一个 token 异象。
 
     位置被占用时返回 None。召唤出的 token 会自动加入棋盘。
     若未指定 summon_turn，默认使用当前回合数。
@@ -152,7 +152,7 @@ def summon_token(
 
 
 def destroy_minion(minion: "Minion", game: "Game") -> None:
-    """【消灭】单位：将其生命值设为 0 并触发死亡流程（亡语等）。
+    """【消灭】异象：将其生命值设为 0 并触发死亡流程（亡语等）。
 
     与 remove_minion 不同：destroy 会正常触发所有死亡相关效果。
     """
@@ -164,7 +164,7 @@ def destroy_minion(minion: "Minion", game: "Game") -> None:
 
 
 def return_minion_to_hand(minion: "Minion", game: "Game") -> bool:
-    """将场上单位以原卡形式返回其拥有者手牌。
+    """将场上异象以原卡形式返回其拥有者手牌。
 
     手牌满则弃置到弃牌堆。自动清理战场占位。
     返回 True 表示成功返回手牌，False 表示因手牌满而被弃置。
@@ -196,9 +196,9 @@ def return_minion_to_hand(minion: "Minion", game: "Game") -> bool:
 
 
 def transform_minion_to(minion: "Minion", target_name: str, game: "Game") -> Optional["Minion"]:
-    """将场上单位变形为指定名称的新单位。
+    """将场上异象变形为指定名称的新异象。
 
-    保持位置不变，不触发亡语。新单位的 summon_turn 继承旧单位。
+    保持位置不变，不触发亡语。新异象的 summon_turn 继承旧异象。
     """
     from tards.card_db import DEFAULT_REGISTRY
     target_def = DEFAULT_REGISTRY.get(target_name)
@@ -216,7 +216,7 @@ def transform_minion_to(minion: "Minion", target_name: str, game: "Game") -> Opt
 # =============================================================================
 
 def move(minion: "Minion", to: Tuple[int, int], game: "Game", allow_cross_side: bool = False) -> bool:
-    """将单位移动到指定坐标。底层会发射 before_move / moved 事件。"""
+    """将异象移动到指定坐标。底层会发射 before_move / moved 事件。"""
     if not minion or not getattr(minion, "is_alive", lambda: False)():
         print(f"  [警告] move 目标已死亡")
         return False
@@ -227,7 +227,7 @@ def move(minion: "Minion", to: Tuple[int, int], game: "Game", allow_cross_side: 
 
 
 def shift(minion: "Minion", delta: Tuple[int, int], game: "Game", allow_cross_side: bool = False) -> bool:
-    """按偏移量移动单位。新位置 = 旧位置 + delta。
+    """按偏移量移动异象。新位置 = 旧位置 + delta。
 
     自动处理边界检查。若新位置越界或被占用，移动失败。
     """
@@ -244,7 +244,7 @@ def shift(minion: "Minion", delta: Tuple[int, int], game: "Game", allow_cross_si
 
 
 def swap(a: "Minion", b: "Minion", game: "Game") -> bool:
-    """交换两个单位的位置。不改变阵营。"""
+    """交换两个异象的位置。不改变阵营。"""
     if not a or not b:
         return False
     ok = game.swap_minions(a, b)
@@ -274,7 +274,7 @@ def empty_positions(player: "Player", board: "Board") -> List[Tuple[int, int]]:
 # =============================================================================
 
 def silence_minion(minion: "Minion") -> None:
-    """沉默单位：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。
+    """沉默异象：清除所有后天获得的关键词、增益/减益和光环效果，恢复基础面板。
 
     保留卡牌定义时的基础攻击力、生命值和最大生命值。
     种族/类型标签（tags）不受影响。
@@ -323,7 +323,7 @@ def buff_minion(
     hp_delta: int = 0,
     permanent: bool = True,
 ) -> None:
-    """为单位提供攻击/生命 buff（或 debuff，传入负值即可）。
+    """为异象提供攻击/生命 buff（或 debuff，传入负值即可）。
 
     hp_delta 作用于最大生命值（current_max_health），当前生命值不自动增加，
     但降低时会截断。
@@ -348,7 +348,7 @@ def gain_keyword(
     value=True,
     permanent: bool = True,
 ) -> None:
-    """为单位赋予关键词。"""
+    """为异象赋予关键词。"""
     if not minion.is_alive():
         print(f"  [警告] gain_keyword 目标 {minion.name} 已死亡")
         return
@@ -357,7 +357,7 @@ def gain_keyword(
 
 
 def remove_keyword(minion: "Minion", keyword: str) -> None:
-    """为单位移除关键词。"""
+    """为异象移除关键词。"""
     if not minion.is_alive():
         print(f"  [警告] remove_keyword 目标 {minion.name} 已死亡")
         return
@@ -366,7 +366,7 @@ def remove_keyword(minion: "Minion", keyword: str) -> None:
 
 
 def set_alias(minion: "Minion", name: str) -> None:
-    """使单位"也算作是"指定名称的单位（命名牌效果）。"""
+    """使异象"也算作是"指定名称的异象（命名牌效果）。"""
     if not minion.is_alive():
         print(f"  [警告] set_alias 目标 {minion.name} 已死亡")
         return
@@ -504,14 +504,14 @@ def create_echo_card(source_card: "MinionCard", echo_level: int) -> "MinionCard"
 # =============================================================================
 
 def random_enemy_minion(game: "Game", player: "Player") -> Optional["Minion"]:
-    """返回一个随机存活敌方单位。没有则返回 None。"""
+    """返回一个随机存活敌方异象。没有则返回 None。"""
     import random
     enemies = all_enemy_minions(game, player)
     return random.choice(enemies) if enemies else None
 
 
 def random_friendly_minion(game: "Game", player: "Player") -> Optional["Minion"]:
-    """返回一个随机存活友方单位。没有则返回 None。"""
+    """返回一个随机存活友方异象。没有则返回 None。"""
     import random
     friends = all_friendly_minions(game, player)
     return random.choice(friends) if friends else None
@@ -520,14 +520,14 @@ def random_friendly_minion(game: "Game", player: "Player") -> Optional["Minion"]
 def random_minion(
     game: "Game", player: "Player", friendly: bool = False
 ) -> Optional["Minion"]:
-    """返回一个随机存活单位（默认敌方）。没有则返回 None。"""
+    """返回一个随机存活异象（默认敌方）。没有则返回 None。"""
     if friendly:
         return random_friendly_minion(game, player)
     return random_enemy_minion(game, player)
 
 
 def all_enemy_minions(game: "Game", player: "Player") -> List["Minion"]:
-    """返回场上所有存活敌方单位列表。"""
+    """返回场上所有存活敌方异象列表。"""
     return [
         m for m in game.board.minion_place.values()
         if m.is_alive() and m.owner != player
@@ -535,7 +535,7 @@ def all_enemy_minions(game: "Game", player: "Player") -> List["Minion"]:
 
 
 def all_friendly_minions(game: "Game", player: "Player") -> List["Minion"]:
-    """返回场上所有存活友方单位列表。"""
+    """返回场上所有存活友方异象列表。"""
     return [
         m for m in game.board.minion_place.values()
         if m.is_alive() and m.owner == player
@@ -547,7 +547,7 @@ def all_friendly_minions(game: "Game", player: "Player") -> List["Minion"]:
 # =============================================================================
 
 def has_tag(obj: Any, tag: str) -> bool:
-    """检查卡牌/单位/卡牌定义是否有某标签。
+    """检查卡牌/异象/卡牌定义是否有某标签。
     对 Minion 会回退检查其 source_card 的标签。
     """
     tags = getattr(obj, "tags", None)
@@ -557,13 +557,13 @@ def has_tag(obj: Any, tag: str) -> bool:
 
 
 def get_enemy_minions_by_tag(game: "Game", player: "Player", tag: str) -> List["Minion"]:
-    """获取敌方场上所有带某标签的存活单位。"""
+    """获取敌方场上所有带某标签的存活异象。"""
     enemy = game.p2 if player == game.p1 else game.p1
     return get_minions_by_tag(game, tag, player=enemy, friendly_only=True)
 
 
 def get_all_minions_by_tag(game: "Game", tag: str) -> List["Minion"]:
-    """获取场上所有带某标签的存活单位（双方）。"""
+    """获取场上所有带某标签的存活异象（双方）。"""
     return get_minions_by_tag(game, tag)
 
 
@@ -590,9 +590,9 @@ def get_adjacent_positions(position: Tuple[int, int], board: "Board") -> List[Tu
 def get_frontmost_enemy(
     column: int, owner: "Player", board: "Board", attacker: Optional["Minion"] = None
 ):
-    """获取指定列中最靠前（距离中线最近）的存活敌方单位。
+    """获取指定列中最靠前（距离中线最近）的存活敌方异象。
 
-    自动过滤潜水/潜行单位（结算阶段）。
+    自动过滤潜水/潜行异象（结算阶段）。
     """
     return board.get_front_minion(column, owner, attacker)
 
@@ -605,15 +605,15 @@ def get_minions_by_tag(
     enemy_only: bool = False,
     alive_only: bool = True,
 ) -> List["Minion"]:
-    """按标签筛选场上单位。
+    """按标签筛选场上异象。
 
     Args:
         game: 当前 Game 实例。
         tag: 要匹配的标签（如 "友好", "地狱", "非生命", "飞禽" 等）。
         player: 若指定，配合 friendly_only/enemy_only 过滤阵营。
-        friendly_only: 为 True 时只返回属于 player 的单位。
-        enemy_only: 为 True 时只返回敌方单位。
-        alive_only: 为 True 时只返回存活单位（默认）。
+        friendly_only: 为 True 时只返回属于 player 的异象。
+        enemy_only: 为 True 时只返回敌方异象。
+        alive_only: 为 True 时只返回存活异象（默认）。
 
     Returns:
         符合条件的 Minion 列表。
@@ -673,15 +673,15 @@ def lose_resource(player: "Player", resource: str, amount: int) -> None:
 # =============================================================================
 
 def is_enemy(m1, m2) -> bool:
-    """判断两个对象（单位或玩家）是否为敌对关系。"""
+    """判断两个对象（异象或玩家）是否为敌对关系。"""
     return getattr(m1, "owner", m1) != getattr(m2, "owner", m2)
 
 
 def add_deathrattle(minion: "Minion", deathrattle_fn: callable) -> None:
-    """为一个单位动态添加亡语效果。
+    """为一个异象动态添加亡语效果。
 
     deathrattle_fn 的签名为 (minion, player, board) -> None。
-    如果单位已有亡语，新亡语会覆盖旧的（暂不支持多亡语叠加）。
+    如果异象已有亡语，新亡语会覆盖旧的（暂不支持多亡语叠加）。
     """
     if not minion.is_alive():
         print(f"  [警告] add_deathrattle 目标 {minion.name} 已死亡")
@@ -760,11 +760,11 @@ def add_card_to_hand_by_name(name: str, owner: "Player", game: Optional["Game"] 
 
 
 # =============================================================================
-# 8. 单位移除（不触发亡语）
+# 8. 异象移除（不触发亡语）
 # =============================================================================
 
 def remove_minion_no_death(minion: "Minion", game: "Game") -> bool:
-    """将单位从战场直接移除，不触发亡语和死亡事件。
+    """将异象从战场直接移除，不触发亡语和死亡事件。
 
     用于"移除"类效果（与 destroy_minion 不同）。
     """
@@ -780,7 +780,7 @@ def remove_minion_no_death(minion: "Minion", game: "Game") -> bool:
 # =============================================================================
 
 def modify_keyword_number(minion: "Minion", keyword: str, delta: int) -> None:
-    """修改单位身上某个数值型关键词的数值（如坚韧±1）。
+    """修改异象身上某个数值型关键词的数值（如坚韧±1）。
 
     若修改后数值不大于 0，则直接删除该关键词。
     """
@@ -804,11 +804,11 @@ def modify_keyword_number(minion: "Minion", keyword: str, delta: int) -> None:
 
 
 # =============================================================================
-# 10. 场上全体单位
+# 10. 场上全体异象
 # =============================================================================
 
 def get_all_minions(game: "Game") -> List["Minion"]:
-    """返回场上所有存活单位列表（不分敌我）。"""
+    """返回场上所有存活异象列表（不分敌我）。"""
     return [m for m in game.board.minion_place.values() if m.is_alive()]
 
 
@@ -818,9 +818,9 @@ def get_all_minions(game: "Game") -> List["Minion"]:
 
 def add_event_listener(minion: "Minion", game: "Game", event_type: str,
                        callback: Callable, priority: int = 0) -> int:
-    """为一个单位注册事件监听器，并返回 owner_id。
+    """为一个异象注册事件监听器，并返回 owner_id。
 
-    单位死亡时，所有以此 owner_id 注册的监听器会自动注销。
+    异象死亡时，所有以此 owner_id 注册的监听器会自动注销。
     """
     # 使用 minion 的 id 作为默认 owner_id（如果没有 _event_owner_id）
     if not hasattr(minion, "_event_owner_id"):
@@ -834,7 +834,7 @@ def remove_event_listener(game: "Game", event_type: str, callback: Callable) -> 
 
 
 def clear_event_listeners(minion: "Minion", game: "Game") -> None:
-    """清除某个单位注册的所有事件监听器。"""
+    """清除某个异象注册的所有事件监听器。"""
     if hasattr(minion, "_event_owner_id"):
         game.unregister_listeners_by_owner(minion._event_owner_id)
 
@@ -989,7 +989,7 @@ def give_card_by_name(player: "Player", name: str, reason: str = "") -> bool:
 
 
 def deploy_card_copy(player: "Player", game: "Game", card: "Card", target_pos: Optional[Any] = None) -> bool:
-    """复制一张单位卡并部署到战场。若未指定目标位置，自动寻找空位。"""
+    """复制一张异象卡并部署到战场。若未指定目标位置，自动寻找空位。"""
     from tards.cards import MinionCard
     if not isinstance(card, MinionCard):
         return False
@@ -1193,7 +1193,7 @@ def track_event_per_turn(
 # =============================================================================
 
 def initiate_combat(a: "Minion", b: "Minion", game: "Game") -> None:
-    """使两个指定单位互相攻击一次（对战）。
+    """使两个指定异象互相攻击一次（对战）。
 
     双方各攻击一次，走完整的 attack_target 事件链。
     若任一方已死亡，则直接返回。
@@ -1286,7 +1286,7 @@ def damage_all_enemies(
     amount: int,
     source: Optional["Minion"] = None,
 ) -> int:
-    """对所有存活敌方单位造成伤害。返回实际造成的总伤害。"""
+    """对所有存活敌方异象造成伤害。返回实际造成的总伤害。"""
     if amount <= 0:
         return 0
     total = 0
@@ -1301,7 +1301,7 @@ def damage_all_friendly(
     amount: int,
     source: Optional["Minion"] = None,
 ) -> int:
-    """对所有存活友方单位造成伤害。返回实际造成的总伤害。"""
+    """对所有存活友方异象造成伤害。返回实际造成的总伤害。"""
     if amount <= 0:
         return 0
     total = 0
@@ -1315,7 +1315,7 @@ def heal_all_friendly(
     player: "Player",
     amount: int,
 ) -> int:
-    """治疗所有存活友方单位。返回实际治疗的总生命值。"""
+    """治疗所有存活友方异象。返回实际治疗的总生命值。"""
     if amount <= 0:
         return 0
     total = 0
@@ -1333,7 +1333,7 @@ def buff_all_friendly(
     hp_delta: int = 0,
     permanent: bool = True,
 ) -> int:
-    """为所有存活友方单位提供 buff。返回被 buff 的单位数。"""
+    """为所有存活友方异象提供 buff。返回被 buff 的异象数。"""
     count = 0
     for m in all_friendly_minions(game, player):
         buff_minion(m, atk_delta, hp_delta, permanent=permanent)
@@ -1345,7 +1345,7 @@ def destroy_all_enemies(
     game: "Game",
     player: "Player",
 ) -> int:
-    """消灭所有存活敌方单位。返回消灭的单位数。"""
+    """消灭所有存活敌方异象。返回消灭的异象数。"""
     count = 0
     for m in list(all_enemy_minions(game, player)):
         destroy_minion(m, game)
@@ -1357,7 +1357,7 @@ def silence_all_enemies(
     game: "Game",
     player: "Player",
 ) -> int:
-    """沉默所有存活敌方单位。返回沉默的单位数。"""
+    """沉默所有存活敌方异象。返回沉默的异象数。"""
     count = 0
     for m in all_enemy_minions(game, player):
         silence_minion(m)
@@ -1373,7 +1373,7 @@ def weakest_enemy_minion(
     game: "Game",
     player: "Player",
 ) -> Optional["Minion"]:
-    """返回当前生命值最低的存活敌方单位。平局时取先遍历到的。没有则 None。"""
+    """返回当前生命值最低的存活敌方异象。平局时取先遍历到的。没有则 None。"""
     enemies = all_enemy_minions(game, player)
     if not enemies:
         return None
@@ -1384,7 +1384,7 @@ def strongest_enemy_minion(
     game: "Game",
     player: "Player",
 ) -> Optional["Minion"]:
-    """返回当前攻击力最高的存活敌方单位。平局时取先遍历到的。没有则 None。"""
+    """返回当前攻击力最高的存活敌方异象。平局时取先遍历到的。没有则 None。"""
     enemies = all_enemy_minions(game, player)
     if not enemies:
         return None
@@ -1396,7 +1396,7 @@ def enemy_minions_in_column(
     player: "Player",
     column: int,
 ) -> List["Minion"]:
-    """返回指定列中的所有存活敌方单位。"""
+    """返回指定列中的所有存活敌方异象。"""
     return [
         m for m in all_enemy_minions(game, player)
         if m.position[1] == column
@@ -1407,7 +1407,7 @@ def adjacent_friendly_minions(
     minion: "Minion",
     game: "Game",
 ) -> List["Minion"]:
-    """返回与指定单位相邻（上下左右）的存活友方单位。"""
+    """返回与指定异象相邻（上下左右）的存活友方异象。"""
     result: List["Minion"] = []
     if not minion.is_alive():
         return result
@@ -1423,7 +1423,7 @@ def adjacent_enemy_minions(
     minion: "Minion",
     game: "Game",
 ) -> List["Minion"]:
-    """返回与指定单位相邻（上下左右）的存活敌方单位。"""
+    """返回与指定异象相邻（上下左右）的存活敌方异象。"""
     result: List["Minion"] = []
     if not minion.is_alive():
         return result
@@ -1439,7 +1439,7 @@ def nearest_enemy_minion(
     minion: "Minion",
     game: "Game",
 ) -> Optional["Minion"]:
-    """返回距离指定单位最近的存活敌方单位（曼哈顿距离）。平局时取先遍历到的。"""
+    """返回距离指定异象最近的存活敌方异象（曼哈顿距离）。平局时取先遍历到的。"""
     if not minion.is_alive():
         return None
     enemies = all_enemy_minions(game, minion.owner)
@@ -1574,10 +1574,10 @@ def if_has_friendly_minions_then(
     amount: int,
     then_fn: Callable[[], None],
 ) -> bool:
-    """如可能，献祭/选择友方单位：当场上有不少于 amount 个存活友方单位时执行 then_fn，否则效果失效。"""
+    """如可能，献祭/选择友方异象：当场上有不少于 amount 个存活友方异象时执行 then_fn，否则效果失效。"""
     count = len(all_friendly_minions(game, player))
     if count < amount:
-        print(f"  {player.name} 友方单位不足（当前{count}个，需要{amount}个），效果失效")
+        print(f"  {player.name} 友方异象不足（当前{count}个，需要{amount}个），效果失效")
         return False
     try:
         then_fn()
@@ -1593,10 +1593,10 @@ def if_has_enemy_minions_then(
     amount: int,
     then_fn: Callable[[], None],
 ) -> bool:
-    """如可能，选择敌方单位：当场上有不少于 amount 个存活敌方单位时执行 then_fn，否则效果失效。"""
+    """如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。"""
     count = len(all_enemy_minions(game, player))
     if count < amount:
-        print(f"  {player.name} 敌方单位不足（当前{count}个，需要{amount}个），效果失效")
+        print(f"  {player.name} 敌方异象不足（当前{count}个，需要{amount}个），效果失效")
         return False
     try:
         then_fn()
@@ -1656,7 +1656,7 @@ def give_temp_keyword_until_turn_end(
     keyword: str,
     value: Any = True,
 ) -> None:
-    """为单位赋予一个临时关键词，当前回合结束时自动清除。
+    """为异象赋予一个临时关键词，当前回合结束时自动清除。
 
     通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。
     """
@@ -1668,7 +1668,7 @@ def give_temp_buff_until_turn_end(
     atk_delta: int = 0,
     hp_delta: int = 0,
 ) -> None:
-    """为单位提供临时 buff，当前回合结束时自动清除。"""
+    """为异象提供临时 buff，当前回合结束时自动清除。"""
     buff_minion(minion, atk_delta, hp_delta, permanent=False)
 
 
@@ -1677,7 +1677,7 @@ def inject_temporary_deathrattle(
     game: "Game",
     deathrattle_fn: Callable,
 ) -> None:
-    """为单位注入一个临时亡语（覆盖原有亡语）。
+    """为异象注入一个临时亡语（覆盖原有亡语）。
 
     新亡语触发后自动恢复原有的亡语（如果存在）。
     注意：此实现基于覆盖-恢复模式，不适用于需要叠加多个亡语的场景。
@@ -1811,9 +1811,9 @@ def count_keyword_on_board(
     keyword: str,
     player: Optional["Player"] = None,
 ) -> int:
-    """统计场上具有指定关键词的存活单位数量。
+    """统计场上具有指定关键词的存活异象数量。
 
-    player 为 None 时统计双方，否则只统计该玩家的单位。
+    player 为 None 时统计双方，否则只统计该玩家的异象。
     """
     minions = get_all_minions(game)
     if player:
@@ -1822,7 +1822,7 @@ def count_keyword_on_board(
 
 
 def has_keyword(minion: "Minion", keyword: str) -> bool:
-    """检查单位是否拥有指定关键词（含临时和基础）。"""
+    """检查异象是否拥有指定关键词（含临时和基础）。"""
     return bool(minion.keywords.get(keyword))
 
 
@@ -1838,7 +1838,7 @@ def get_minions_by_cost(
     max_cost: Optional[int] = None,
     friendly: bool = True,
 ) -> List["Minion"]:
-    """按费用筛选场上单位（基于 source_card 的费用）。
+    """按费用筛选场上异象（基于 source_card 的费用）。
 
     cost_type: 't' 或 'c'。
     max_cost: 最大费用上限（含），None 表示不限。
@@ -1871,14 +1871,14 @@ def get_minions_by_cost(
 # =============================================================================
 
 def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -> None:
-    """给单位注入一个回合开始效果。"""
+    """给异象注入一个回合开始效果。"""
     if not hasattr(minion, "_injected_turn_start"):
         minion._injected_turn_start = []
     minion._injected_turn_start.append(fn)
 
 
 def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -> None:
-    """给单位注入一个回合结束效果。"""
+    """给异象注入一个回合结束效果。"""
     if not hasattr(minion, "_injected_turn_end"):
         minion._injected_turn_end = []
     minion._injected_turn_end.append(fn)
@@ -2059,11 +2059,11 @@ def get_terrain_at(
 
 
 # =============================================================================
-# 26. 无法被单位选中
+# 26. 无法被异象选中
 # =============================================================================
 
 def is_untargetable_by_minions(minion: "Minion") -> bool:
-    """检查单位是否设置了"无法被单位选中"。"""
+    """检查异象是否设置了"无法被异象选中"。"""
     return getattr(minion, "_untargetable_by_minions", False)
 
 
@@ -2078,7 +2078,7 @@ def clear_attack_restrictions(game: "Game") -> None:
 
 
 def can_minion_attack(minion: "Minion", game: "Game") -> bool:
-    """检查单位是否被全局攻击限制禁止攻击。"""
+    """检查异象是否被全局攻击限制禁止攻击。"""
     restrictions = getattr(game, "_attack_restrictions", [])
     for fn in restrictions:
         if fn(minion):

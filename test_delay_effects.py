@@ -2,7 +2,7 @@
 延迟效果工具实战验证脚本。
 验证点：
 1. once=True 时监听器只触发一次
-2. 单位死亡后监听器是否正确跳过/注销
+2. 异象死亡后监听器是否正确跳过/注销
 3. 跨回合时 game.current_turn 判断是否正确
 """
 
@@ -29,7 +29,7 @@ def test_delay_to_turn_end():
     p1 = Player(0, "玩家A", "测试", [])
     p2 = Player(1, "玩家B", "测试", [])
 
-    # 给玩家A的手牌塞一张可以直接部署的测试卡（随便一张 0T 单位）
+    # 给玩家A的手牌塞一张可以直接部署的测试卡（随便一张 0T 异象）
     test_card = MinionCard(
         name="延迟测试-回合结束",
         owner=p1,
@@ -42,7 +42,7 @@ def test_delay_to_turn_end():
 
     turn_count = [0]
     actions = [
-        {"type": "play", "serial": 1, "target": (3, 2)},  # 回合1：部署测试单位
+        {"type": "play", "serial": 1, "target": (3, 2)},  # 回合1：部署测试异象
         {"type": "brake"},
         {"type": "brake"},
     ]
@@ -129,7 +129,7 @@ def test_delay_to_next_turn():
 
 
 def test_delay_dead_minion():
-    """测试单位死亡后延迟监听器是否不再触发。"""
+    """测试异象死亡后延迟监听器是否不再触发。"""
     print("\n========== 测试 死亡后监听器跳过 ==========")
     p1 = Player(0, "玩家A", "测试", [])
     p2 = Player(1, "玩家B", "测试", [])
@@ -173,7 +173,7 @@ def test_delay_dead_minion():
         # 部署后立即自杀（模拟死亡）
         from card_pools.effect_utils import destroy_minion
         destroy_minion(minion, game)
-        print(f"  [测试] 单位已被立即消灭")
+        print(f"  [测试] 异象已被立即消灭")
 
     test_card.special = _test_special
     g.start_game()

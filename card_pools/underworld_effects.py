@@ -166,9 +166,9 @@ def _diao_special(minion, player, game, extras=None):
     minion._pre_attack_fns.append(on_attack)
 
 
-# 鹏(铁) - 所有花费≤5的非飞禽单位部署时具有休眠2（不分敌我）；部署：使敌方花费≤4的单位返回手牌
+# 鹏(铁) - 所有花费≤5的非飞禽异象部署时具有休眠2（不分敌我）；部署：使敌方花费≤4的异象返回手牌
 def _peng_special(minion, player, game, extras=None):
-    # 部署时：使敌方场上花费≤4的单位返回手牌
+    # 部署时：使敌方场上花费≤4的异象返回手牌
     enemies = [m for m in game.board.get_all_minions() if m.owner is not player and m.is_alive()]
     for e in enemies:
         sc = getattr(e, 'source_card', None)
@@ -192,7 +192,7 @@ def _peng_special(minion, player, game, extras=None):
                 e.owner.card_dis.append(new_card)
             print(f"  {e.name} 被鹏遣返回手牌")
 
-    # 部署钩子：花费≤5的非飞禽单位获得休眠2
+    # 部署钩子：花费≤5的非飞禽异象获得休眠2
     def deploy_hook(g, deployed):
         sc = getattr(deployed, 'source_card', None)
         if sc and sc.cost.t <= 5 and "飞禽" not in getattr(deployed, "tags", []):
@@ -221,7 +221,7 @@ def _songshuqiu_special(minion, player, game, extras=None):
     minion._on_take_combat_damage.append(on_damage)
 
 
-# 寄居蟹(铁) - 回合结束向相邻移动一格；记录被其伤害单位的回响，回合开始时加入手牌再弃掉
+# 寄居蟹(铁) - 回合结束向相邻移动一格；记录被其伤害异象的回响，回合开始时加入手牌再弃掉
 def _jijuxie_special(minion, player, game, extras=None):
     minion._recorded_echoes = []
 
@@ -238,7 +238,7 @@ def _jijuxie_special(minion, player, game, extras=None):
                 print(f"  {m.name} 回合结束移动至 {new_pos}")
     minion.on_turn_end = on_turn_end
 
-    # 记录被其伤害单位的回响
+    # 记录被其伤害异象的回响
     old_attack = minion.attack_target
     def attack_target(target, g=game, m=minion):
         result = old_attack(target)
@@ -269,7 +269,7 @@ def _jijuxie_special(minion, player, game, extras=None):
     minion.on_turn_start = on_turn_start
 
 
-# 天牛(铁) - 回合结束：使同列敌方前排单位移动至后排，后排单位返回对方手牌
+# 天牛(铁) - 回合结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌
 def _tianniu_special(minion, player, game, extras=None):
     from card_pools.effect_utils import move, return_minion_to_hand
 
@@ -344,7 +344,7 @@ def _datuanzhuyan_special(minion, player, game, extras=None):
 
 
 def _mao_special(minion, player, game, extras=None):
-    """猫(铁)：不会因献祭而被消灭。标记该单位免疫献祭消灭，献祭时只提供B点而不被移除。"""
+    """猫(铁)：不会因献祭而被消灭。标记该异象免疫献祭消灭，献祭时只提供B点而不被移除。"""
     minion._immune_to_sacrifice = True
 
 
@@ -369,7 +369,7 @@ def _ruolang_special(minion, player, game, extras=None):
 
 @special
 def _xiao_special(minion, player, game, extras=None):
-    """鸮(铁)：攻击时，改为与目标对战。消灭一个单位后，获得等同于其攻击力的HP。"""
+    """鸮(铁)：攻击时，改为与目标对战。消灭一个异象后，获得等同于其攻击力的HP。"""
     def _on_before_attack(event):
         attacker = event.data.get("attacker")
         if attacker is not minion:

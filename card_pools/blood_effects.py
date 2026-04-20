@@ -44,11 +44,11 @@ __all__ = [
 
 
 # =============================================================================
-# 保卫者：你受到伤害时，本单位获得+1/1
+# 保卫者：你受到伤害时，本异象获得+1/1
 # =============================================================================
 @special
 def _baoweizhe_special(minion, player, game, extras=None):
-    """保卫者：你受到伤害时，本单位获得+1/1。"""
+    """保卫者：你受到伤害时，本异象获得+1/1。"""
     def _on_player_damage(event):
         target = event.get("target")
         if target != player:
@@ -100,11 +100,11 @@ def _tianlairenou_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 溴化银：攻击后，消灭本单位。亡语：将1张"胶片"加入对方手牌
+# 溴化银：攻击后，消灭本异象。亡语：将1张"胶片"加入对方手牌
 # =============================================================================
 @special
 def _xiuhuayin_special(minion, player, game, extras=None):
-    """溴化银：攻击后，消灭本单位。亡语：将1张"胶片"加入对方手牌。"""
+    """溴化银：攻击后，消灭本异象。亡语：将1张"胶片"加入对方手牌。"""
     # 攻击后消灭
     def _suicide_after_attack(event):
         if event.get("attacker") != minion:
@@ -125,17 +125,17 @@ def _xiuhuayin_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 亡灵：无法被单位选中（已有恐惧关键词，此函数仅为占位/无额外效果）
+# 亡灵：无法被异象选中（已有恐惧关键词，此函数仅为占位/无额外效果）
 # =============================================================================
 @special
 def _wangling_special(minion, player, game, extras=None):
-    """亡灵：无法被单位选中（已有恐惧关键词）。"""
+    """亡灵：无法被异象选中（已有恐惧关键词）。"""
     # 恐惧关键词已在 keywords 中定义，board.get_front_minion 会自动过滤
     pass
 
 
 # =============================================================================
-# 硫氰化钾：部署：使1个单位获得恐惧。若其已具有恐惧，将其HP设为1点。
+# 硫氰化钾：部署：使1个异象获得恐惧。若其已具有恐惧，将其HP设为1点。
 # =============================================================================
 @special
 def _liuqinghuajia_special(minion, player, game, extras=None):
@@ -154,15 +154,15 @@ def _liuqinghuajia_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 竹心：亡语：随机消灭1个处于协同的敌方单位。
+# 竹心：亡语：随机消灭1个处于协同的敌方异象。
 # =============================================================================
 @special
 def _zhuxin_special(minion, player, game, extras=None):
-    """竹心：亡语：随机消灭1个处于协同的敌方单位。"""
+    """竹心：亡语：随机消灭1个处于协同的敌方异象。"""
     def _dr(m, p, b):
         enemies = [x for x in game.board.get_all_minions() if x.owner != p and x.is_alive() and x.keywords.get("协同", False)]
         if not enemies:
-            print(f"  竹心亡语：没有处于协同的敌方单位")
+            print(f"  竹心亡语：没有处于协同的敌方异象")
             return
         import random
         target = random.choice(enemies)
@@ -173,11 +173,11 @@ def _zhuxin_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 环丁二烯：亡语：使敌方部署的下一个单位获得恐惧。
+# 环丁二烯：亡语：使敌方部署的下一个异象获得恐惧。
 # =============================================================================
 @special
 def _huanderxixi_special(minion, player, game, extras=None):
-    """环丁二烯：亡语：使敌方部署的下一个单位获得恐惧。"""
+    """环丁二烯：亡语：使敌方部署的下一个异象获得恐惧。"""
     def _dr(m, p, b):
         from tards.constants import EVENT_DEPLOYED
         def _listener(event):
@@ -188,23 +188,23 @@ def _huanderxixi_special(minion, player, game, extras=None):
                 game.unregister_listener(EVENT_DEPLOYED, _listener)
 
         game.register_listener(EVENT_DEPLOYED, _listener)
-        print(f"  环丁二烯亡语：已注册敌方下一单位恐惧效果")
+        print(f"  环丁二烯亡语：已注册敌方下一异象恐惧效果")
 
     add_deathrattle(minion, _dr)
 
 
 # =============================================================================
-# Bishop：回合结束：场上每有1个具有恐惧的单位，你获得1点HP。
+# Bishop：回合结束：场上每有1个具有恐惧的异象，你获得1点HP。
 # =============================================================================
 @special
 def _bishop_special(minion, player, game, extras=None):
-    """Bishop：回合结束：场上每有1个具有恐惧的单位，你获得1点HP。"""
+    """Bishop：回合结束：场上每有1个具有恐惧的异象，你获得1点HP。"""
     def on_turn_end(g, event_data, source=minion):
         if not source.is_alive():
             return
         count = sum(1 for m in g.board.get_all_minions() if m.is_alive() and m.keywords.get("恐惧", False))
         if count > 0:
             heal_player(player, count)
-            print(f"  Bishop 触发：场上 {count} 个恐惧单位，{player.name} 恢复 {count} HP")
+            print(f"  Bishop 触发：场上 {count} 个恐惧异象，{player.name} 恢复 {count} HP")
 
     minion.on_turn_end = on_turn_end

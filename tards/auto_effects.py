@@ -7,19 +7,19 @@
 
 
 def move_minion(minion, new_pos, game):
-    """【兼容】将单位移动到新的空格子。等价于 move()。"""
+    """【兼容】将异象移动到新的空格子。等价于 move()。"""
     from card_pools.effect_utils import move
     return move(minion, new_pos, game)
 
 
 def swap_minions(m1, m2, game):
-    """【兼容】交换两个单位的位置。等价于 swap()。"""
+    """【兼容】交换两个异象的位置。等价于 swap()。"""
     from card_pools.effect_utils import swap
     return swap(m1, m2, game)
 
 
 def move_enemy_to_friendly(player, target, game):
-    """【兼容】将一个敌方单位劫持到友方区域，并改变其阵营为当前玩家。"""
+    """【兼容】将一个敌方异象劫持到友方区域，并改变其阵营为当前玩家。"""
     from card_pools.effect_utils import move, empty_positions
     if not target or not getattr(target, "is_alive", lambda: False)():
         return False
@@ -36,7 +36,7 @@ def move_enemy_to_friendly(player, target, game):
 
 
 def move_enemy_to_enemy(player, target, game):
-    """【兼容】将一个敌方单位自动移动到敌方区域的另一个合法空位（不改变阵营）。"""
+    """【兼容】将一个敌方异象自动移动到敌方区域的另一个合法空位（不改变阵营）。"""
     from card_pools.effect_utils import move, empty_positions
     if not target or not getattr(target, "is_alive", lambda: False)():
         return False
@@ -48,7 +48,7 @@ def move_enemy_to_enemy(player, target, game):
 
 
 def move_friendly_to_friendly(player, target, game):
-    """【兼容】将一个友方单位自动移动到友方区域的另一个合法空位。"""
+    """【兼容】将一个友方异象自动移动到友方区域的另一个合法空位。"""
     from card_pools.effect_utils import move, empty_positions
     if not target or not getattr(target, "is_alive", lambda: False)():
         return False
@@ -60,7 +60,7 @@ def move_friendly_to_friendly(player, target, game):
 
 
 def swap_units(target, extras, game):
-    """【兼容】交换 target 与 extras[0] 两个单位的位置。（策略效果签名适配器）"""
+    """【兼容】交换 target 与 extras[0] 两个异象的位置。（策略效果签名适配器）"""
     from card_pools.effect_utils import swap
     if not extras or len(extras) < 1:
         return False
@@ -71,7 +71,7 @@ def swap_units(target, extras, game):
 
 
 def return_to_hand(target, game, owner):
-    """将一个单位返回其拥有者的手牌。（兼容层，底层使用 return_minion_to_hand）"""
+    """将一个异象返回其拥有者的手牌。（兼容层，底层使用 return_minion_to_hand）"""
     from card_pools.effect_utils import return_minion_to_hand
     if not target or not getattr(target, "is_alive", lambda: False)():
         return False

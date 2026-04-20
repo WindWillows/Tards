@@ -179,7 +179,7 @@ class Minioncard(Card):
         if game.board.target_check(target) == False:
             return False
         if not game.board.is_valid_deploy(target, player, self):
-            print("  无法在此位置部署单位。")
+            print("  无法在此位置部署异象。")
             return False
         if game.board.get_minion_at(target) is not None:
             print("  该格子已被占用")
@@ -222,7 +222,7 @@ class Conspiracy(Card):
         self.effect_fn = effect_fn
 
 
-# ========== 战斗单位 ==========
+# ========== 战斗异象 ==========
 class Minion:
     def __init__(self, name, owner, position, attack, health, source_card, board, keywords=None):
         self.name = name
@@ -666,7 +666,7 @@ def make_sample_deck(owner):
         return False
     for _ in range(2):
         deck.append(Strategy("急救", 1, heal_effect, target_self))
-    # 火球 2T 对敌方单位造成2点伤害
+    # 火球 2T 对敌方异象造成2点伤害
     def fireball_effect(p, t, g):
         if isinstance(t, Minion):
             t.take_damage(2)
@@ -680,7 +680,7 @@ def make_sample_deck(owner):
         return True
     for _ in range(2):
         deck.append(Strategy("增援", 1, draw_effect, target_none))
-    # 阴谋卡：伏击 —— 当敌方部署单位时，对其造成 2 点伤害
+    # 阴谋卡：伏击 —— 当敌方部署异象时，对其造成 2 点伤害
     def ambush_condition(game, event, owner):
         return event.get("event_type") == EVENT_DEPLOY and event.get("player") != owner
     def ambush_effect(game, event, owner):

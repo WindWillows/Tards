@@ -65,7 +65,7 @@ def _kuangche_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 回合结束效果
+# 异象卡 — 回合结束效果
 # =============================================================================
 
 @special
@@ -91,12 +91,12 @@ def _naogui_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 回合开始效果
+# 异象卡 — 回合开始效果
 # =============================================================================
 
 @special
 def _liudu_special(minion, player, game, extras=None):
-    """流髑：回合开始：随机冰冻1个敌方单位。若其已被冰冻，将其消灭。"""
+    """流髑：回合开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。"""
 
     def _on_turn_start(g, event_data, m):
         target = random_enemy_minion(g, player)
@@ -112,7 +112,7 @@ def _liudu_special(minion, player, game, extras=None):
 
 @special
 def _shike_special(minion, player, game, extras=None):
-    """尸壳：回合开始：对所有敌方单位造成1点伤害。"""
+    """尸壳：回合开始：对所有敌方异象造成1点伤害。"""
 
     def _on_turn_start(g, event_data, m):
         for enemy in all_enemy_minions(g, player):
@@ -122,19 +122,19 @@ def _shike_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 部署效果
+# 异象卡 — 部署效果
 # =============================================================================
 
 @special
 def _weidaoshi_special(minion, player, game, extras=None):
-    """卫道士：部署：所有敌方单位获得-1坚韧等级。"""
+    """卫道士：部署：所有敌方异象获得-1坚韧等级。"""
     for m in all_enemy_minions(game, player):
         modify_keyword_number(m, "坚韧", -1)
 
 
 @special
 def _zhizhu_special(minion, player, game, extras=None):
-    """蜘蛛：部署：使1个单位失去迅捷，高频和空袭。亡语：将1张"蜘蛛眼"加入手牌。"""
+    """蜘蛛：部署：使1个异象失去迅捷，高频和空袭。亡语：将1张"蜘蛛眼"加入手牌。"""
     # 部署指向效果
     targets = extras or []
     if targets:
@@ -180,12 +180,12 @@ def _xiangshu_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 部署钩子（全局监听）
+# 异象卡 — 部署钩子（全局监听）
 # =============================================================================
 
 @special
 def _yanjiangting_special(minion, player, game, extras=None):
-    """岩浆艇：友方单位部署时，消灭本单位。"""
+    """岩浆艇：友方异象部署时，消灭本异象。"""
 
     def _on_deploy(deployed, self_minion=minion, g=game):
         if deployed.owner == self_minion.owner and deployed is not self_minion:
@@ -196,7 +196,7 @@ def _yanjiangting_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 亡语
+# 异象卡 — 亡语
 # =============================================================================
 
 @special
@@ -210,7 +210,7 @@ def _ganzhe_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 受伤时/前/后（EventBus 驱动）
+# 异象卡 — 受伤时/前/后（EventBus 驱动）
 # =============================================================================
 
 @special
@@ -243,7 +243,7 @@ def _shujia_special(minion, player, game, extras=None):
 
 @special
 def _moyiren_special(minion, player, game, extras=None):
-    """末影人：受到伤害前，与1个友方单位交换位置。"""
+    """末影人：受到伤害前，与1个友方异象交换位置。"""
 
     def _teleport(event):
         if event.get("target") != minion:
@@ -315,7 +315,7 @@ def _huli_special(minion, player, game, extras=None):
 
 @special
 def _haigui_special(minion, player, game, extras=None):
-    """海龟：受到伤害后，将攻击力最高的敌方单位的攻击力设为1，直到下回合结束。"""
+    """海龟：受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下回合结束。"""
 
     def _weaken(event):
         if event.get("target") != minion:
@@ -362,12 +362,12 @@ def _dishuizhuichui_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 攻击前/后（EventBus 驱动）
+# 异象卡 — 攻击前/后（EventBus 驱动）
 # =============================================================================
 
 @special
 def _kulou_special(minion, player, game, extras=None):
-    """骷髅：攻击前，改为对HP最低的敌方单位造成等量伤害。"""
+    """骷髅：攻击前，改为对HP最低的敌方异象造成等量伤害。"""
 
     def _retarget(event):
         if event.get("attacker") != minion:
@@ -385,7 +385,7 @@ def _kulou_special(minion, player, game, extras=None):
 
 @special
 def _baomao_special(minion, player, game, extras=None):
-    """豹猫：本单位攻击时，对其指向的单位造成等量伤害。部署：指向一个单位。"""
+    """豹猫：本异象攻击时，对其指向的异象造成等量伤害。部署：指向一个异象。"""
     targets = extras or []
     if targets and hasattr(targets[0], "is_alive"):
         minion._pointed_target = targets[0]
@@ -420,12 +420,12 @@ def _jiangshi_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 消灭前（EventBus 驱动）
+# 异象卡 — 消灭前（EventBus 驱动）
 # =============================================================================
 
 @special
 def _huanyi_special(minion, player, game, extras=None):
-    """幻翼：消灭单位前，改为移除对方卡组顶的2张牌。"""
+    """幻翼：消灭异象前，改为移除对方卡组顶的2张牌。"""
 
     def _replace_destroy(event):
         target = event.get("target")
@@ -474,7 +474,7 @@ def _huoba_special(minion, player, game, extras=None):
 
 @special
 def _liulangshangren_special(minion, player, game, extras=None):
-    """流浪商人：抽牌阶段，取消抽牌，开发一张卡组中的牌。场上有友方友好单位时，无法选中。"""
+    """流浪商人：抽牌阶段，取消抽牌，开发一张卡组中的牌。场上有友方友好异象时，无法选中。"""
     def on_turn_start(g, event_data, m):
         player._skip_next_draw = True
         game.develop_card(player, player.original_deck_defs)
@@ -509,10 +509,10 @@ def _fumota_strategy(player, target, game, extras=None):
 
 @strategy
 def _gengzhi_strategy(player, target, game, extras=None):
-    """耕殖：开发1张友好单位，抽1张牌。此前你每使用过1张“耕殖”，获得-1T花费。"""
+    """耕殖：开发1张友好异象，抽1张牌。此前你每使用过1张“耕殖”，获得-1T花费。"""
     from tards import CardType
     from tards.card_db import DEFAULT_REGISTRY
-    # 开发友好单位
+    # 开发友好异象
     game.develop_card(
         player,
         [c for c in DEFAULT_REGISTRY.all_cards() if c.card_type == CardType.MINION and c.hidden_keywords.get("友好", False)]
@@ -568,7 +568,7 @@ def _jinbiao_strategy(player, target, game, extras=None):
 @strategy
 def _zuanshibiao_strategy(player, target, game, extras=None):
     """钻石镐：获得1个额外的C槽和2个额外的T槽。
-    然后若对方单位数更多，随机消灭一个花费不大于4T的敌方单位。"""
+    然后若对方异象数更多，随机消灭一个花费不大于4T的敌方异象。"""
     player.c_point_max += 1
     player.t_point_max += 2
     print(f"  {player.name} 获得1个额外C槽和2个额外T槽")
@@ -587,7 +587,7 @@ def _zuanshibiao_strategy(player, target, game, extras=None):
 
 @strategy
 def _xueqiu_strategy(player, target, game, extras=None):
-    """雪球：对一个单位造成1点伤害。然后若其HP不大于2，将其冰冻。"""
+    """雪球：对一个异象造成1点伤害。然后若其HP不大于2，将其冰冻。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 雪球没有有效目标")
         return False
@@ -599,7 +599,7 @@ def _xueqiu_strategy(player, target, game, extras=None):
 
 @strategy
 def _zhizhuyan_strategy(player, target, game, extras=None):
-    """蜘蛛眼：使1个单位获得-2攻击力。"""
+    """蜘蛛眼：使1个异象获得-2攻击力。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 蜘蛛眼没有有效目标")
         return False
@@ -609,13 +609,13 @@ def _zhizhuyan_strategy(player, target, game, extras=None):
 
 @strategy
 def _lieyanfen_strategy(player, target, game, extras=None):
-    """烈焰粉：对一个单位及其相邻单位造成1点伤害。"""
+    """烈焰粉：对一个异象及其相邻异象造成1点伤害。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 烈焰粉没有有效目标")
         return False
     # 对主目标造成伤害
     deal_damage_to_minion(target, 1, source=None, game=game)
-    # 对相邻单位造成伤害
+    # 对相邻异象造成伤害
     for pos in get_adjacent_positions(target.position, game.board):
         neighbor = game.board.get_minion_at(pos)
         if neighbor and neighbor.is_alive():
@@ -633,7 +633,7 @@ def _diaolingkuloutou_strategy(player, target, game, extras=None):
 
 @strategy
 def _guanglingjian_strategy(player, target, game, extras=None):
-    """光灵箭：使1个单位获得-1坚韧等级。"""
+    """光灵箭：使1个异象获得-1坚韧等级。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 光灵箭没有有效目标")
         return False
@@ -643,7 +643,7 @@ def _guanglingjian_strategy(player, target, game, extras=None):
 
 @strategy
 def _zhanlipin_strategy(player, target, game, extras=None):
-    """战利品：触发1个单位的亡语。若是敌方单位，再抹除其亡语。"""
+    """战利品：触发1个异象的亡语。若是敌方异象，再抹除其亡语。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 战利品没有有效目标")
         return False
@@ -653,7 +653,7 @@ def _zhanlipin_strategy(player, target, game, extras=None):
         dr(target, target.owner, target.board)
     else:
         print(f"  {target.name} 没有亡语")
-    # 若是敌方单位，抹除亡语
+    # 若是敌方异象，抹除亡语
     if is_enemy(target, player):
         target.base_keywords.pop("亡语", None)
         target.recalculate()
@@ -663,7 +663,7 @@ def _zhanlipin_strategy(player, target, game, extras=None):
 
 @strategy
 def _yiqi_strategy(player, target, game, extras=None):
-    """遗弃：将1个单位的HP设为1。"""
+    """遗弃：将1个异象的HP设为1。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 遗弃没有有效目标")
         return False
@@ -693,7 +693,7 @@ def _gaoshan_strategy(player, target, game, extras=None):
 
 @strategy
 def _erdi_strategy(player, target, game, extras=None):
-    """恶地：对所有花费不大于3的单位造成3点伤害。"""
+    """恶地：对所有花费不大于3的异象造成3点伤害。"""
     for m in get_all_minions(game):
         if m.is_alive():
             cost = getattr(m.source_card, "cost", None)
@@ -717,8 +717,8 @@ def _tnt_strategy(player, target, game, extras=None):
 
 @strategy
 def _hongshifen_strategy(player, target, game, extras=None):
-    """红石粉：使1个非生命单位具有协同。抽1张牌。"""
-    # 注："非生命单位"的定义待确认，当前实现为任意单位赋予协同
+    """红石粉：使1个非生命异象具有协同。抽1张牌。"""
+    # 注："非生命异象"的定义待确认，当前实现为任意异象赋予协同
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 红石粉没有有效目标")
         return False
@@ -729,7 +729,7 @@ def _hongshifen_strategy(player, target, game, extras=None):
 
 @strategy
 def _jinrenshu_strategy(player, target, game, extras=None):
-    """禁人书：使1个单位及其相邻单位获得眩晕。"""
+    """禁人书：使1个异象及其相邻异象获得眩晕。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 禁人书没有有效目标")
         return False
@@ -765,12 +765,12 @@ def _chongshishitou_strategy(player, target, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — Aura（光环）效果
+# 异象卡 — Aura（光环）效果
 # =============================================================================
 
 @special
 def _ma_special(minion, player, game, extras=None):
-    """马：与其同列的友方单位具有迅捷。"""
+    """马：与其同列的友方异象具有迅捷。"""
     col = minion.position[1]
 
     def _swift_aura(m):
@@ -778,12 +778,12 @@ def _ma_special(minion, player, game, extras=None):
             return {"迅捷": True}
         return {}
 
-    # 立即给场上已有的同列友方单位添加 aura
+    # 立即给场上已有的同列友方异象添加 aura
     for m in all_friendly_minions(game, player):
         if m is not minion and m.position[1] == col:
             minion.provide_aura_keywords(m, _swift_aura)
 
-    # 新部署的友方单位若在同列，也添加 aura
+    # 新部署的友方异象若在同列，也添加 aura
     def _on_deploy(deployed, self_minion=minion, g=game):
         if deployed.owner == player and deployed is not self_minion and deployed.position[1] == col:
             minion.provide_aura_keywords(deployed, _swift_aura)
@@ -793,7 +793,7 @@ def _ma_special(minion, player, game, extras=None):
 
 @special
 def _chizushou_special(minion, player, game, extras=None):
-    """炽足兽：与其同列的友方单位具有先攻1和+1攻击力。"""
+    """炽足兽：与其同列的友方异象具有先攻1和+1攻击力。"""
     col = minion.position[1]
 
     def _kw_aura(m):
@@ -821,7 +821,7 @@ def _chizushou_special(minion, player, game, extras=None):
 
 @special
 def _chaoonghexin_special(minion, player, game, extras=None):
-    """潮涌核心：其它友方单位具有+2攻击力。"""
+    """潮涌核心：其它友方异象具有+2攻击力。"""
 
     def _atk_aura(m):
         if m.owner == player and m is not minion:
@@ -841,7 +841,7 @@ def _chaoonghexin_special(minion, player, game, extras=None):
 
 @special
 def _huosai_feiting_special(minion, player, game, extras=None):
-    """活塞飞艇：同列没有敌方单位时，具有迅捷。"""
+    """活塞飞艇：同列没有敌方异象时，具有迅捷。"""
     col = minion.position[1]
 
     def _self_swift(m):
@@ -860,7 +860,7 @@ def _huosai_feiting_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 回合结束 / 亡语
+# 异象卡 — 回合结束 / 亡语
 # =============================================================================
 
 @special
@@ -871,7 +871,7 @@ def _lv_special(minion, player, game, extras=None):
         if not m.is_alive():
             return
         col = m.position[1]
-        # 检查同列是否有其它友方单位
+        # 检查同列是否有其它友方异象
         has_synergy = any(
             fm.is_alive() and fm is not m and fm.position[1] == col
             for fm in all_friendly_minions(g, player)
@@ -905,7 +905,7 @@ def _guiyu_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 单位卡 — 部署效果
+# 异象卡 — 部署效果
 # =============================================================================
 
 @special
@@ -936,7 +936,7 @@ def _xuewulou_special(minion, player, game, extras=None):
 
 @special
 def _jinrenta_special(minion, player, game, extras=None):
-    """禁人塔：部署：眩晕1行单位。被眩晕单位多眩晕1回合。"""
+    """禁人塔：部署：眩晕1行异象。被眩晕异象多眩晕1回合。"""
     # 部署指向：选择1行
     targets = extras or []
     if targets:
@@ -957,7 +957,7 @@ def _jinrenta_special(minion, player, game, extras=None):
 
 @special
 def _zhenceqi_special(minion, player, game, extras=None):
-    """侦测器：敌方单位部署时，对其造成1点伤害，使其失去迅捷。"""
+    """侦测器：敌方异象部署时，对其造成1点伤害，使其失去迅捷。"""
 
     def _on_deploy(deployed, self_minion=minion, g=game):
         if deployed.owner != self_minion.owner and self_minion.is_alive():
@@ -1034,7 +1034,7 @@ def _huoyao_strategy(player, target, game, extras=None):
 
 @strategy
 def _cunzhuangyingxiong_strategy(player, target, game, extras=None):
-    """村庄英雄：对1个单位及其相邻单位造成2点伤害。若有单位被消灭，将1张"村庄英雄"洗入卡组。"""
+    """村庄英雄：对1个异象及其相邻异象造成2点伤害。若有异象被消灭，将1张"村庄英雄"洗入卡组。"""
     killed = False
     if target and hasattr(target, "is_alive") and target.is_alive():
         deal_damage_to_minion(target, 2, source=None, game=game)
@@ -1055,7 +1055,7 @@ def _cunzhuangyingxiong_strategy(player, target, game, extras=None):
 
 @strategy
 def _jielue_strategy(player, target, game, extras=None):
-    """劫掠：消灭1个花费不大于3T的单位。若其处于协同，从对方卡组顶抽1张牌。"""
+    """劫掠：消灭1个花费不大于3T的异象。若其处于协同，从对方卡组顶抽1张牌。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 劫掠没有有效目标")
         return False
@@ -1065,7 +1065,7 @@ def _jielue_strategy(player, target, game, extras=None):
         print(f"  {target.name} 的花费大于3T，无法劫掠")
         return False
     destroy_minion(target, game)
-    # 检查协同：同列有友方单位
+    # 检查协同：同列有友方异象
     col = target.position[1]
     has_synergy = any(
         m.is_alive() and m is not target and m.position[1] == col
@@ -1181,7 +1181,7 @@ STRATEGY_MAP = {
 
 @special
 def _jiangshizhuren_special(minion, player, game, extras=None):
-    """僵尸猪人：部署：与1个敌方单位对战。若将其消灭，获得-1攻击力。"""
+    """僵尸猪人：部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。"""
     targets = extras or []
     enemy = None
     for t in targets:
@@ -1203,14 +1203,14 @@ def _jiangshizhuren_special(minion, player, game, extras=None):
 
 @strategy
 def _guaiwulieren_strategy(player, target, game, extras=None):
-    """怪物猎人：使1个友方生物单位+1/3，然后与1个敌方单位对战。"""
+    """怪物猎人：使1个友方生物异象+1/3，然后与1个敌方异象对战。"""
     friendly = target
     enemy = extras[0] if extras else None
     if not friendly or not hasattr(friendly, "is_alive") or not friendly.is_alive():
-        print(f"  [警告] 怪物猎人：未选择有效的友方单位")
+        print(f"  [警告] 怪物猎人：未选择有效的友方异象")
         return False
     if not enemy or not hasattr(enemy, "is_alive") or not enemy.is_alive():
-        print(f"  [警告] 怪物猎人：未选择有效的敌方单位")
+        print(f"  [警告] 怪物猎人：未选择有效的敌方异象")
         return False
 
     buff_minion(friendly, atk_delta=1, hp_delta=3)
@@ -1239,9 +1239,9 @@ def _tansuo_strategy(player, target, game, extras=None):
 
 @strategy
 def _jinpingguo_strategy(player, target, game, extras=None):
-    """金苹果：抉择：使1个单位获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。"""
+    """金苹果：抉择：使1个异象获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print(f"  [警告] 金苹果：未选择有效的目标单位")
+        print(f"  [警告] 金苹果：未选择有效的目标异象")
         return False
 
     is_zombie_villager = getattr(target, "name", "") == "僵尸村民"
@@ -1283,7 +1283,7 @@ def _conglin_shendian_strategy(player, target, game, extras=None):
 
 @strategy
 def _shamo_shendian_strategy(player, target, game, extras=None):
-    """沙漠神殿：抽2张单位，使其获得+1/2。"""
+    """沙漠神殿：抽2张异象，使其获得+1/2。"""
     from tards.cards import MinionCard
     drawn = draw_cards_of_type(player, 2, MinionCard, game)
     for card in drawn:
@@ -1295,13 +1295,13 @@ def _shamo_shendian_strategy(player, target, game, extras=None):
 
 @strategy
 def _mingmingpai_strategy(player, target, game, extras=None):
-    """命名牌：选择1张手牌中的单位，使场上的1个单位获得"也算作是本单位"。抽1张牌。"""
-    # target 是手牌中选中的单位卡，extras[0] 是场上选中的单位
+    """命名牌：选择1张手牌中的异象，使场上的1个异象获得"也算作是本异象"。抽1张牌。"""
+    # target 是手牌中选中的异象卡，extras[0] 是场上选中的异象
     if not target or not hasattr(target, "name"):
-        print("  [警告] 命名牌未选择手牌中的单位")
+        print("  [警告] 命名牌未选择手牌中的异象")
         return False
     if not extras or len(extras) < 1:
-        print("  [警告] 命名牌未选择场上单位")
+        print("  [警告] 命名牌未选择场上异象")
         return False
     board_minion = extras[0]
     if not board_minion or not hasattr(board_minion, "is_alive") or not board_minion.is_alive():
@@ -1344,7 +1344,7 @@ def _kuijiujia_special(minion, player, game, extras=None):
 __all__ = [
     "SPECIAL_MAP",
     "STRATEGY_MAP",
-    # 单位效果
+    # 异象效果
     "_kuangche_special",
     "_beijixiong_special",
     "_naogui_special",

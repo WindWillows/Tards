@@ -198,7 +198,7 @@ def _deserialize_target(data: Any, board) -> Any:
         if "pos" in data:
             r, c = data["pos"]
             pos = (r, c)
-            # 如果该位置有单位，返回单位；否则返回位置
+            # 如果该位置有异象，返回异象；否则返回位置
             m = board.get_minion_at(pos)
             return m if m else pos
         if "player_side" in data:

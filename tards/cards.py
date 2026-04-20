@@ -69,7 +69,7 @@ class MineralCard(Card):
 
 
 class MinionCard(Card):
-    """单位卡（随从卡）。"""
+    """异象卡（随从卡）。"""
 
     def __init__(
         self,
@@ -102,13 +102,13 @@ class MinionCard(Card):
         if not game.board.target_check(target):
             return False
         if not game.board.is_valid_deploy(target, player, self):
-            print("  无法在此位置部署单位。")
+            print("  无法在此位置部署异象。")
             return False
         if game.board.get_minion_at(target) is not None:
             print("  该格子已被占用")
             return False
 
-        # 鲜血费用：需要先献祭友方单位
+        # 鲜血费用：需要先献祭友方异象
         if self.cost.b > 0:
             sacrifices = player.request_sacrifice(self.cost.b)
             if sacrifices is None:
@@ -136,9 +136,9 @@ class MinionCard(Card):
                             blood = m.keywords.get("丰饶", 1)
                             total_blood += blood
                             continue
-                # 非变身：消灭单位并触发亡语（免疫献祭的单位除外）
+                # 非变身：消灭异象并触发亡语（免疫献祭的异象除外）
                 if getattr(m, '_immune_to_sacrifice', False):
-                    print(f"  献祭 {m.name}（免疫献祭，单位保留），获得 {blood}B")
+                    print(f"  献祭 {m.name}（免疫献祭，异象保留），获得 {blood}B")
                 else:
                     m.current_health = 0
                     m.minion_death()
@@ -193,7 +193,7 @@ class MinionCard(Card):
                 buff(minion)
             print(f"  {player.name} 在 {target} 部署了 {minion.name}")
             minion.summon_turn = game.current_turn
-            # 休眠：非迅捷单位部署时具有休眠1
+            # 休眠：非迅捷异象部署时具有休眠1
             if "迅捷" not in minion.keywords and "休眠" not in minion.base_keywords:
                 minion.base_keywords["休眠"] = 1
                 minion.recalculate()
@@ -283,7 +283,7 @@ class Conspiracy(Card):
 
 
 class Minion:
-    """战场上的战斗单位。"""
+    """战场上的战斗异象。"""
 
     def __init__(
         self,
@@ -353,12 +353,12 @@ class Minion:
         self._aura_max_health_fns: List[Callable[["Minion"], int]] = []
         self._aura_keyword_fns: List[Callable[["Minion"], Dict[str, Any]]] = []
 
-        # 本 minion 向其它单位提供的光环记录（死亡/离场时自动清理）
+        # 本 minion 向其它异象提供的光环记录（死亡/离场时自动清理）
         self._provided_auras: List[Tuple["Minion", str, Callable]] = []
 
         self._fear_active = self.base_keywords.get("恐惧", False)
 
-        # "也算作是本单位"（命名牌等效果赋予）
+        # "也算作是本异象"（命名牌等效果赋予）
         self.alias_name: Optional[str] = None
 
         # 伤害来源追踪（豪猪/环形虫/鹳/鬣狗/水螅岩等需要）
@@ -399,7 +399,7 @@ class Minion:
         return self.current_max_health
 
     def evolve(self, game: "Game") -> bool:
-        """成长：替换为下一个形态的新单位。"""
+        """成长：替换为下一个形态的新异象。"""
         next_name = getattr(self.source_card, 'evolve_to', None)
         if not next_name:
             print(f"  {self.name} 没有可成长的下一个形态")
@@ -407,7 +407,7 @@ class Minion:
         from .card_db import DEFAULT_REGISTRY, CardType
         card_def = DEFAULT_REGISTRY.get(next_name)
         if not card_def or card_def.card_type != CardType.MINION:
-            print(f"  {self.name} 的下一个形态 {next_name} 未找到或不是单位")
+            print(f"  {self.name} 的下一个形态 {next_name} 未找到或不是异象")
             return False
         new_minion = game.transform_minion(self, card_def, preserve_summon_turn=True)
         if new_minion:
@@ -449,7 +449,7 @@ class Minion:
         self.keywords = kw
 
     def apply_fear(self):
-        """使该单位获得恐惧。"""
+        """使该异象获得恐惧。"""
         if not self._fear_active:
             self._fear_active = True
             self.base_keywords["恐惧"] = True
@@ -457,7 +457,7 @@ class Minion:
             print(f"  {self.name} 获得恐惧！")
 
     def remove_fear(self):
-        """移除该单位的恐惧。"""
+        """移除该异象的恐惧。"""
         if self._fear_active:
             self._fear_active = False
             self.base_keywords.pop("恐惧", None)
@@ -584,12 +584,12 @@ class Minion:
         return self.position in self.board.minion_place and self.board.minion_place[self.position] is self
 
     def register_deploy_hook(self, game: "Game", fn: Callable[["Minion"], None]):
-        """注册一个部署光环钩子：当任何单位部署成功时触发。"""
+        """注册一个部署光环钩子：当任何异象部署成功时触发。"""
         game.deploy_hooks.append(fn)
         self._deploy_hook_fn = fn
 
     def clear_deploy_hook(self, game: "Game"):
-        """清理本单位的部署光环钩子。"""
+        """清理本异象的部署光环钩子。"""
         fn = getattr(self, "_deploy_hook_fn", None)
         if fn and fn in game.deploy_hooks:
             game.deploy_hooks.remove(fn)
@@ -633,7 +633,7 @@ class Minion:
                 self.clear_all_provided_auras()
                 self.board.remove_minion(self.position)
 
-                # 清理本单位的 EventBus 监听器
+                # 清理本异象的 EventBus 监听器
                 if game and hasattr(self, '_event_owner_id'):
                     game.unregister_listeners_by_owner(self._event_owner_id)
 
@@ -674,11 +674,11 @@ class Minion:
 
     def take_damage(self, damage: int, source_minion: Optional["Minion"] = None,
                      source_type: str = "", is_combat_damage: bool = False):
-        """对单位造成伤害。经过 before_damage → 实际扣血 → damaged → after_damage 完整事件链。
+        """对异象造成伤害。经过 before_damage → 实际扣血 → damaged → after_damage 完整事件链。
 
         Args:
             damage: 伤害数值
-            source_minion: 伤害来源单位（如有）
+            source_minion: 伤害来源异象（如有）
             source_type: 伤害来源类型（"combat"/"strategy"/"effect"）
             is_combat_damage: 是否为战斗伤害（攻击流程中造成）
         """
@@ -833,12 +833,12 @@ class Minion:
 
         # 执行攻击
         if isinstance(target, Minion):
-            # 串击/穿刺/穿透：对同列所有敌方单位造成伤害
+            # 串击/穿刺/穿透：对同列所有敌方异象造成伤害
             if self.keywords.get("串击", False) or self.keywords.get("穿刺", False) or self.keywords.get("穿透", False):
                 col = self.position[1]
                 enemies = [m for m in self.board.get_enemy_minions_in_column(col, self.owner) if m.is_alive()]
                 if enemies:
-                    print(f"  {self.name} 串击同列所有敌方单位")
+                    print(f"  {self.name} 串击同列所有敌方异象")
                     for enemy in enemies:
                         enemy.take_damage(self.current_attack, source_minion=self, source_type="combat", is_combat_damage=True)
                         if enemy.is_alive():

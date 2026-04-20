@@ -8,7 +8,7 @@
 
 命令:
     hand / h          查看当前玩家手牌
-    board / bd        查看场上单位
+    board / bd        查看场上异象
     res               查看双方资源
     status / st       查看当前回合/阶段
     play <idx> / p <idx>   打出指定手牌（自动提示目标）
@@ -145,7 +145,7 @@ class TardsShell:
             cost_str = str(card.cost) if hasattr(card, "cost") else "?"
             ctype = ""
             if isinstance(card, MinionCard):
-                ctype = f" 单位 {card.attack}/{card.health}"
+                ctype = f" 异象 {card.attack}/{card.health}"
             elif isinstance(card, Strategy):
                 ctype = " 策略"
             elif isinstance(card, Conspiracy):
@@ -282,7 +282,7 @@ class TardsShell:
         card = active.card_hand[idx - 1]
         serial = idx
 
-        # 献祭处理 (cost.b > 0 的单位卡)
+        # 献祭处理 (cost.b > 0 的异象卡)
         sacrifices = []
         if isinstance(card, MinionCard) and card.cost.b > 0:
             sacs = self._prompt_sacrifices(active, card.cost.b)
@@ -398,12 +398,12 @@ class TardsShell:
         return selected if selected else None
 
     def _prompt_sacrifices(self, active: Player, required: int) -> Optional[List[Any]]:
-        """提示选择献祭单位。"""
+        """提示选择献祭异象。"""
         minions = list(active.board_ref.get_minions_of_player(active))
         if not minions:
-            print("  场上没有可献祭的友方单位")
+            print("  场上没有可献祭的友方异象")
             return None
-        print(f"  需要献祭 {required} B点，请选择献祭单位（丰饶值之和需≥{required}）:")
+        print(f"  需要献祭 {required} B点，请选择献祭异象（丰饶值之和需≥{required}）:")
         for i, m in enumerate(minions, 1):
             fertile = m.keywords.get("丰饶", 1)
             print(f"    [{i}] {m.name} ({m.current_attack}/{m.current_health}) 丰饶={fertile}")
@@ -423,7 +423,7 @@ class TardsShell:
                 continue
             m = minions[choice - 1]
             if m in selected:
-                print("  已选择该单位")
+                print("  已选择该异象")
                 continue
             selected.append(m)
             total += m.keywords.get("丰饶", 1)
@@ -548,7 +548,7 @@ class TardsShell:
 命令列表:
   --- 信息查看 ---
   hand / h              查看当前玩家手牌
-  board / bd            查看场上单位
+  board / bd            查看场上异象
   res                   查看双方资源
   status / st           查看当前回合/阶段
 

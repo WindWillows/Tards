@@ -20,7 +20,7 @@ from tards import (
 
 
 def simple_sacrifice_chooser(required_blood: int):
-    """简单的献祭选择器：优先献祭丰饶高的友方单位。"""
+    """简单的献祭选择器：优先献祭丰饶高的友方异象。"""
     def chooser(player: Player):
         candidates = [m for m in player.board_ref.get_minions_of_player(player) if m.is_alive()]
         if not candidates:

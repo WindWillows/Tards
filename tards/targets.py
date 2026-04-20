@@ -38,6 +38,6 @@ def target_friendly_minions(player: "Player", board: "Board") -> List["Minion"]:
 
 
 def target_hand_minions(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家手牌中的所有单位卡（MinionCard）。"""
+    """返回玩家手牌中的所有异象卡（MinionCard）。"""
     from .cards import MinionCard
     return [c for c in player.card_hand if isinstance(c, MinionCard)]

@@ -19,7 +19,7 @@ register_card(
     health=3,
     keywords={"协同": True},
     tags=['生物', '陆生'],
-    # 效果描述：你受到伤害时，本单位获得+1/1。
+    # 效果描述：你受到伤害时，本异象获得+1/1。
     targets_fn=target_friendly_positions,
     special_fn=_baoweizhe_special,
 )
@@ -34,7 +34,7 @@ register_card(
     attack=2,
     health=2,
     tags=['生物', '陆生'],
-    # 效果描述：部署：至多消耗6S，每消耗2S，随机将1张精灵单位加入战场。
+    # 效果描述：部署：至多消耗6S，每消耗2S，随机将1张精灵异象加入战场。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -79,7 +79,7 @@ register_card(
     attack=0,
     health=6,
     tags=['生物', '陆生'],
-    # 效果描述：回合开始：将1个“溴化银”加入本单位前方。
+    # 效果描述：回合开始：将1个“溴化银”加入本异象前方。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -95,7 +95,7 @@ register_card(
     health=1,
     keywords={"协同": True, "亡语": True},
     tags=['生物', '陆生'],
-    # 效果描述：攻击后，消灭本单位。 亡语：将1张“胶片”加入对方手牌。
+    # 效果描述：攻击后，消灭本异象。 亡语：将1张“胶片”加入对方手牌。
     targets_fn=target_friendly_positions,
     special_fn=_xiuhuayin_special,
 )
@@ -124,7 +124,7 @@ register_card(
     attack=3,
     health=6,
     tags=['生物', '陆生'],
-    # 效果描述：回合结束：场上每有1个具有恐惧的单位，你获得1点HP。
+    # 效果描述：回合结束：场上每有1个具有恐惧的异象，你获得1点HP。
     targets_fn=target_friendly_positions,
     special_fn=_bishop_special,
 )
@@ -139,7 +139,7 @@ register_card(
     attack=4,
     health=6,
     tags=['生物', '陆生'],
-    # 效果描述：敌方单位被消灭时，将1个“亡灵“加入其原位。
+    # 效果描述：敌方异象被消灭时，将1个“亡灵“加入其原位。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -155,7 +155,7 @@ register_card(
     health=2,
     keywords={"恐惧": True, "协同": True},
     tags=['生物', '陆生'],
-    # 效果描述：无法被单位选中。
+    # 效果描述：无法被异象选中。
     targets_fn=target_friendly_positions,
     special_fn=_wangling_special,
 )
@@ -203,7 +203,7 @@ register_card(
     health=4,
     keywords={"迅捷": True},
     tags=['生物', '陆生'],
-    # 效果描述：攻击时，改为对攻击力最高的敌方单位造成等量伤害。 部署：攻击1次。
+    # 效果描述：攻击时，改为对攻击力最高的敌方异象造成等量伤害。 部署：攻击1次。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -219,7 +219,7 @@ register_card(
     health=4,
     keywords={"坚韧": 1},
     tags=['生物', '陆生'],
-    # 效果描述：部署：消灭1个受伤单位。
+    # 效果描述：部署：消灭1个受伤异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -235,7 +235,7 @@ register_card(
     health=3,
     keywords={"协同": True, "尖刺": 1},
     tags=['生物', '陆生'],
-    # 效果描述：HP不小于4时，具有“你受到伤害时，改为由本单位承受。” 部署：每有1个敌方单位，获得1次+1HP。
+    # 效果描述：HP不小于4时，具有“你受到伤害时，改为由本异象承受。” 部署：每有1个敌方异象，获得1次+1HP。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -266,7 +266,7 @@ register_card(
     attack=3,
     health=4,
     tags=['生物', '陆生'],
-    # 效果描述：部署：将1个单位返回其所有者手牌，其所有者抽1张牌。
+    # 效果描述：部署：将1个异象返回其所有者手牌，其所有者抽1张牌。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
@@ -283,7 +283,7 @@ register_card(
     health=2,
     keywords={"迅捷": True, "亡语": True},
     tags=['生物', '陆生'],
-    # 效果描述：亡语：使敌方部署的下一个单位获得恐惧。
+    # 效果描述：亡语：使敌方部署的下一个异象获得恐惧。
     targets_fn=target_friendly_positions,
     special_fn=_huanderxixi_special,
 )
@@ -313,7 +313,7 @@ register_card(
     immersion_level=1,
     tags=['生物', '陆生'],
     is_token=True,
-    # 效果描述：场上每有1个具有恐惧的单位 使1个纯净单位获得+1/1。
+    # 效果描述：场上每有1个具有恐惧的异象 使1个纯净异象获得+1/1。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -374,7 +374,7 @@ register_card(
     health=6,
     keywords={"亡语": True},
     tags=['生物', '陆生'],
-    # 效果描述：部署：所有友方单位攻击1次本单位。 亡语：所有对其造成过伤害的单位获得+1/1。
+    # 效果描述：部署：所有友方异象攻击1次本异象。 亡语：所有对其造成过伤害的异象获得+1/1。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -389,7 +389,7 @@ register_card(
     attack=4,
     health=4,
     tags=['生物', '陆生'],
-    # 效果描述：部署：对1个单位和你造成3点伤害。
+    # 效果描述：部署：对1个异象和你造成3点伤害。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=None,  # TODO: 实现部署/回合效果
@@ -406,7 +406,7 @@ register_card(
     health=3,
     keywords={"协同": True, "亡语": True},
     tags=['生物', '陆生'],
-    # 效果描述：亡语：随机消灭1个处于协同的敌方单位。
+    # 效果描述：亡语：随机消灭1个处于协同的敌方异象。
     targets_fn=target_friendly_positions,
     special_fn=_zhuxin_special,
 )
@@ -437,7 +437,7 @@ register_card(
     attack=2,
     health=3,
     tags=['生物', '陆生'],
-    # 效果描述：部署：使1个单位获得恐惧。若其已具有恐惧，将其HP设为1点。
+    # 效果描述：部署：使1个异象获得恐惧。若其已具有恐惧，将其HP设为1点。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=_liuqinghuajia_special,
@@ -453,7 +453,7 @@ register_card(
     attack=3,
     health=3,
     tags=['生物', '陆生'],
-    # 效果描述：场上有单位具有恐惧时，无法被单位指向。 回合开始：随机使1个敌方单位具有恐惧。
+    # 效果描述：场上有异象具有恐惧时，无法被异象指向。 回合开始：随机使1个敌方异象具有恐惧。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -468,7 +468,7 @@ register_card(
     attack=1,
     health=1,
     tags=['生物', '陆生'],
-    # 效果描述：部署：对1个单位造成1点伤害，将其冰冻。
+    # 效果描述：部署：对1个异象造成1点伤害，将其冰冻。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=lambda p, t, g, extras=None: (t.health_change(-1) if hasattr(t, "health_change") else (t.take_damage(1) if hasattr(t, "take_damage") else False) or True),
@@ -484,7 +484,7 @@ register_card(
     attack=1,
     health=2,
     tags=['生物', '陆生'],
-    # 效果描述：部署：还原一个单位的HP。
+    # 效果描述：部署：还原一个异象的HP。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -500,7 +500,7 @@ register_card(
     health=7,
     keywords={"两栖": True},
     tags=['两栖', '生物'],
-    # 效果描述：手牌不因被使用而被移出手牌区时，本单位获得-2T花费。 抽取：选择1张手牌，将其洗入卡组。你获得等同于此牌花费的HP。
+    # 效果描述：手牌不因被使用而被移出手牌区时，本异象获得-2T花费。 抽取：选择1张手牌，将其洗入卡组。你获得等同于此牌花费的HP。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -512,7 +512,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：抽1张牌，获得1S，对1个单位和你造成1点伤害。
+    # 效果描述：抽1张牌，获得1S，对1个异象和你造成1点伤害。
     targets_fn=target_any_minion,
     effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
@@ -536,7 +536,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：对1个单位造成1点伤害。若其在本回合离开战场，将其回响加入手牌。
+    # 效果描述：对1个异象造成1点伤害。若其在本回合离开战场，将其回响加入手牌。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -548,7 +548,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：将上一个被消灭的单位的复制洗入卡组。
+    # 效果描述：将上一个被消灭的异象的复制洗入卡组。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -560,7 +560,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：对所有单位造成2点伤害。每消灭1个单位，获得2S。
+    # 效果描述：对所有异象造成2点伤害。每消灭1个异象，获得2S。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -584,7 +584,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：将场上1个具有恐惧的单位的复制加入手牌。
+    # 效果描述：将场上1个具有恐惧的异象的复制加入手牌。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -620,7 +620,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：消灭所有攻击力最高的单位。你拉闸。
+    # 效果描述：消灭所有攻击力最高的异象。你拉闸。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -632,7 +632,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：使1个单位获得恐惧。抽1张牌。
+    # 效果描述：使1个异象获得恐惧。抽1张牌。
     targets_fn=target_any_minion,
     effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
@@ -656,7 +656,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：冰冻所有具有恐惧的单位，对其造成1点伤害。
+    # 效果描述：冰冻所有具有恐惧的异象，对其造成1点伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -680,7 +680,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：对所有具有恐惧的敌方单位造成等同于场上具有恐惧的单位数的伤害。
+    # 效果描述：对所有具有恐惧的敌方异象造成等同于场上具有恐惧的异象数的伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -692,7 +692,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：选择并弃1张牌，消灭1个折算花费不大于此牌的单位。
+    # 效果描述：选择并弃1张牌，消灭1个折算花费不大于此牌的异象。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -728,7 +728,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：将2张“胶片”加入对方手牌，对所有单位造成等同于对方手中“胶片”数目的伤害。 对方手中每有1张牌，具有-1S花费。
+    # 效果描述：将2张“胶片”加入对方手牌，对所有异象造成等同于对方手中“胶片”数目的伤害。 对方手中每有1张牌，具有-1S花费。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -740,7 +740,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：冰冻所有敌方单位。若这是本回合双方使用的第3张策略，对所有敌方单位造成3 点伤害。
+    # 效果描述：冰冻所有敌方异象。若这是本回合双方使用的第3张策略，对所有敌方异象造成3 点伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -752,7 +752,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：将1个单位返回其所有者手牌。冰冻相邻两列的敌方单位。
+    # 效果描述：将1个异象返回其所有者手牌。冰冻相邻两列的敌方异象。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -764,7 +764,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：选择手牌中的1张单位，使其花费-2T。你失去1个T槽。
+    # 效果描述：选择手牌中的1张异象，使其花费-2T。你失去1个T槽。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -776,7 +776,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：开发1张纯净单位。若场上有友方纯净单位，再开发1张“时刻”。
+    # 效果描述：开发1张纯净异象。若场上有友方纯净异象，再开发1张“时刻”。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -824,7 +824,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：随机对1个敌方单位造成1点伤害。若场上有敌方单位的HP为偶数，重复此操作。
+    # 效果描述：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。
     targets_fn=target_enemy_minions,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -836,7 +836,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：对1个高地单位造成6点伤害。若被消灭，将其回响加入手牌。
+    # 效果描述：对1个高地异象造成6点伤害。若被消灭，将其回响加入手牌。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -848,7 +848,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：消灭场上攻击力唯一最高的敌方单位。 抽取：若可能，消耗1S，对对手造成2点伤害。
+    # 效果描述：消灭场上攻击力唯一最高的敌方异象。 抽取：若可能，消耗1S，对对手造成2点伤害。
     targets_fn=target_enemy_player,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -860,7 +860,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    # 效果描述：使1个单位及其相邻单位获得恐惧。 抽取：对所有具有恐惧的单位造成2点伤害。
+    # 效果描述：使1个异象及其相邻异象获得恐惧。 抽取：对所有具有恐惧的异象造成2点伤害。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -897,7 +897,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     is_moment=True,
-    # 效果描述：对1个单位造成3点伤害。抽1张牌。
+    # 效果描述：对1个异象造成3点伤害。抽1张牌。
     targets_fn=target_any_minion,
     effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
@@ -949,7 +949,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     is_moment=True,
-    # 效果描述：冰冻1个单位及其相邻的1个单位。抽1张牌。
+    # 效果描述：冰冻1个异象及其相邻的1个异象。抽1张牌。
     targets_fn=target_none,
     effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
@@ -962,7 +962,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     is_moment=True,
-    # 效果描述：将场上攻击力最高的1个单位返回其所有者手牌。抽1张牌。
+    # 效果描述：将场上攻击力最高的1个异象返回其所有者手牌。抽1张牌。
     targets_fn=target_none,
     effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )

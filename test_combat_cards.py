@@ -33,7 +33,7 @@ def _make_minion(name, owner, atk, hp, pos, game):
 
 
 def test_jiangshizhuren():
-    """测试僵尸猪人：部署后与敌方单位对战，若消灭则-1攻。"""
+    """测试僵尸猪人：部署后与敌方异象对战，若消灭则-1攻。"""
     print("\n========== 测试 僵尸猪人 ==========")
     p1 = Player(0, "玩家A", "测试", [])
     p2 = Player(1, "玩家B", "测试", [])

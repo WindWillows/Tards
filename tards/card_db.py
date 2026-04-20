@@ -24,7 +24,7 @@ class Rarity(Enum):
 
 
 class CardType(Enum):
-    MINION = "单位"
+    MINION = "异象"
     STRATEGY = "策略"
     CONSPIRACY = "阴谋"
     MINERAL = "矿物"
@@ -239,7 +239,7 @@ def register_card(
     registry: CardRegistry = DEFAULT_REGISTRY,
 ) -> CardDefinition:
     """便捷注册函数。"""
-    # 冥刻卡包单位默认具有献祭1和丰饶1
+    # 冥刻卡包异象默认具有献祭1和丰饶1
     kw = dict(keywords) if keywords else {}
     if pack == Pack.UNDERWORLD and card_type == CardType.MINION:
         if "献祭" not in kw:

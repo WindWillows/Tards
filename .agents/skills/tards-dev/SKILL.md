@@ -26,7 +26,7 @@ description: |
 1. 分析效果 → 确定触发时机（部署/回合开始/回合结束/受伤/亡语/策略打出）
 2. 检查 effect_utils.py 是否已有可用 API
 3. 若无可用 API，先扩展工具库，再写卡牌效果
-4. 编写 special_fn（单位）或 strategy_fn（策略）
+4. 编写 special_fn（异象）或 strategy_fn（策略）
 5. 加上 @special 或 @strategy 装饰器
 6. 在 card_pools/xxx_effects.py 中注册到 SPECIAL_MAP / STRATEGY_MAP
 7. 在 card_pools/xxx.py 中通过 register_card() 注册卡牌（或修改现有定义）

@@ -48,8 +48,8 @@
 - **5 列**：高地(0)、山脊(1)、中路(2)、河岸(3)、水路(4)
 - **5 行**：0-1 行为敌方区，2 行为禁行区（双方不可部署/操作），3-4 行为友方区
 - **距离**：曼哈顿距离 `|r1-r2| + |c1-c2|`
-- **前排**：同列中距离 row=2（中线）更近的单位算前排
-- `Board.get_front_minion(col, owner, attacker)` 返回某一列中敌方前排单位，自动过滤潜水/潜行单位（结算阶段）
+- **前排**：同列中距离 row=2（中线）更近的异象算前排
+- `Board.get_front_minion(col, owner, attacker)` 返回某一列中敌方前排异象，自动过滤潜水/潜行异象（结算阶段）
 
 ### 2.3 回合流程
 1. **抽牌阶段**（`Game.draw_phase`）
@@ -61,20 +61,20 @@
 2. **出牌阶段**（`Game.action_phase`）
    - 先手方在所有**奇数回合**中先行动。
    - 可执行行动类型：
-     - `play` — 打出一张手牌（单位部署、策略、矿物、阴谋激活）
+     - `play` — 打出一张手牌（异象部署、策略、矿物、阴谋激活）
      - `bell` — 拍铃：将行动权交给对方
      - `brake` — 拉闸：强制结束自己的出牌阶段
      - `exchange` — 兑换矿物（离散 1 级解锁）
      - `exchange_squirrel` — 兑换松鼠（冥刻 2 级解锁）
-     - `set_vision` — 为具有视野的单位预设攻击目标列
-     - `set_attack_targets` — 为高频/视野单位预设多个攻击目标
+     - `set_vision` — 为具有视野的异象预设攻击目标列
+     - `set_attack_targets` — 为高频/视野异象预设多个攻击目标
    - 拍铃规则：若本轮次未通过出牌改变过 T 点，拍铃时额外失去 1 T 点。
    - 拉闸规则：一方拉闸后，对方无法再拍铃。
 3. **结算阶段**（`Game.resolve_phase`）
    - 对战顺序：**水路(4) → 河岸(3) → 中路(2) → 山脊(1) → 高地(0)**
    - 同列内攻击者排序：**先攻等级降序 → 距离中线升序（`|row-2|`）→ side（0 在前）**
-   - **同先攻等级的单位同时攻击**：通过 `EffectQueue.resolve()` 包裹整轮攻击逻辑实现。
-   - 单位攻击默认选中敌方前排；若该列无前排，则攻击对手英雄。
+   - **同先攻等级的异象同时攻击**：通过 `EffectQueue.resolve()` 包裹整轮攻击逻辑实现。
+   - 异象攻击默认选中敌方前排；若该列无前排，则攻击对手英雄。
    - 结算阶段末尾依次执行：
      - 恢复因 `高频` 临时降低的先攻等级
      - 清理临时 BUFF（`temp_attack_bonus`、`temp_keywords` 等）
@@ -100,7 +100,7 @@
 |------|------|------|----------|
 | **T** | 通用点数 | 每回合自然获得，回合结束重置为 T槽 值 | `Player.t_point` / `t_point_max` |
 | **C** | 兑换槽 | 不会自然增长；离散 2 级上限 4，其余 0 | `Player.c_point` / `c_point_max`；变动请使用 `c_point_change(delta)` |
-| **B** | 鲜血 | 通过**献祭**友方单位获得，**回合结束清空** | `Player.b_point`；在 `action_phase` 开头清空 |
+| **B** | 鲜血 | 通过**献祭**友方异象获得，**回合结束清空** | `Player.b_point`；在 `action_phase` 开头清空 |
 | **S** | 血契 | **跨回合保留，无上限** | `Player.s_point` |
 
 ### 3.3 流失生命值 vs 受到伤害
@@ -110,7 +110,7 @@
 | **受到伤害** | "造成X点伤害"、受到攻击 | `Player.health_change(-delta)` | ✅ | ✅ | ✅ |
 
 - **疲劳惩罚**、**血契1级沉浸度**、卡牌中的"失去HP"效果均使用 `lose_hp()`。
-- **单位攻击英雄**、策略卡"造成伤害"均使用 `health_change()`（或 `Minion.take_damage()` 对单位）。
+- **异象攻击英雄**、策略卡"造成伤害"均使用 `health_change()`（或 `Minion.take_damage()` 对异象）。
 
 ### 3.1 矿物（离散卡包）
 - 铁锭 (I) — 兑换价 **2CT** — 堆叠上限 4 — 打出：获得 **1T**
@@ -122,11 +122,11 @@
 - **兑换前提**：玩家必须有**离散 1 级沉浸度**。
 
 ### 3.2 鲜血（B）与献祭
-- 当你部署一个带有 **B 费用**的单位时，必须**指定若干友方单位进行献祭**。
-- 被献祭单位根据其**丰饶等级**产生鲜血（默认丰饶为 1）。
+- 当你部署一个带有 **B 费用**的异象时，必须**指定若干友方异象进行献祭**。
+- 被献祭异象根据其**丰饶等级**产生鲜血（默认丰饶为 1）。
 - 支付完部署费用后，**剩余鲜血保留到回合结束**，之后清空。
-- **只能在部署需要鲜血的单位时进行献祭**。
-- 默认规则：冥刻单位默认具有 **献祭1、丰饶1**。
+- **只能在部署需要鲜血的异象时进行献祭**。
+- 默认规则：冥刻异象默认具有 **献祭1、丰饶1**。
 - **献祭属于"消灭"**，会触发亡语；移除、返回手牌、洗入卡组均不触发。
 
 ---
@@ -153,13 +153,13 @@ class TargetingRequest:
 
 ### 4.2 指向流程
 
-以**部署一个需要额外目标的单位**为例（如"部署：使一个单位获得恐惧"）：
+以**部署一个需要额外目标的异象**为例（如"部署：使一个异象获得恐惧"）：
 
 ```
 玩家点击手牌
   → _on_hand_card_click()
     → 检查 card.deploy_targets_fn（是否需要额外指向）
-      → 需要：构造 TargetingRequest(valid_targets=敌方单位, count=1)
+      → 需要：构造 TargetingRequest(valid_targets=敌方异象, count=1)
         → process_targeting_request(req)
           → 进入指向模式，高亮 valid_targets
             → 玩家点击目标
@@ -178,7 +178,7 @@ class TargetingRequest:
 | 目标类型 | 数据类型 | 来源 | 渲染方式 |
 |---------|---------|------|---------|
 | 棋盘位置 | `tuple(r, c)` | `board.get_empty_positions()` | Canvas 上绘制 oval（椭圆）高亮 |
-| 场上单位 | `Minion` 对象 | `board.get_all_minions()` | Canvas 上给单位矩形加边框 |
+| 场上异象 | `Minion` 对象 | `board.get_all_minions()` | Canvas 上给异象矩形加边框 |
 | 玩家 | `Player` 对象 | `[game.p1, game.p2]` | 信息面板中的玩家标签高亮 |
 | 无目标 | `None` | `target_none` | 无需高亮 |
 
@@ -198,17 +198,17 @@ effect_fn(player, target, game, extras=None)
 - **后续选中的目标** = `extra_targets` 列表（按选择顺序）
 
 ```python
-# 部署时：使一个单位获得恐惧
+# 部署时：使一个异象获得恐惧
 # target = 部署位置 (r, c)
-# extras[0] = 被选中的敌方单位
+# extras[0] = 被选中的敌方异象
 ```
 
 ### 4.5 视野与高频攻击的预设目标
 
-- **视野 X**：出牌阶段通过 `set_vision` action 选择攻击列，`minion._resolve_target_col = col`。结算阶段该单位优先攻击该列。
+- **视野 X**：出牌阶段通过 `set_vision` action 选择攻击列，`minion._resolve_target_col = col`。结算阶段该异象优先攻击该列。
 - **高频/三重打击**：出牌阶段通过 `set_attack_targets` action 预设多个攻击目标，`minion._pending_attack_targets = [target1, target2, ...]`。结算阶段按顺序消耗：第 1 次攻击取第 0 个，第 2 次取第 1 个……
 - 预设目标耗尽后攻击英雄。
-- **潜水/潜行单位**：行动阶段（出牌阶段）**可见且可选中**（策略可以指向它们）；结算阶段**攻击自动落空**。
+- **潜水/潜行异象**：行动阶段（出牌阶段）**可见且可选中**（策略可以指向它们）；结算阶段**攻击自动落空**。
 
 ---
 
@@ -218,11 +218,11 @@ effect_fn(player, target, game, extras=None)
 
 | 层 | 属性名 | 存储内容 | 行为 |
 |---|--------|---------|------|
-| 主层 | `minion_place: dict[(r,c) → Minion]` | 场上正常单位 | 碰撞检测、移动、攻击 |
-| 底层 | `cell_underlay: dict[(r,c) → Minion]` | 藤蔓、漂浮物 | 依附于主层单位 |
+| 主层 | `minion_place: dict[(r,c) → Minion]` | 场上正常异象 | 碰撞检测、移动、攻击 |
+| 底层 | `cell_underlay: dict[(r,c) → Minion]` | 藤蔓、漂浮物 | 依附于主层异象 |
 
 ### 5.1 藤蔓（Vine）
-- 只能部署在**友方单位**的格子上。
+- 只能部署在**友方异象**的格子上。
 - 藤蔓与宿主共享同一个 `(r, c)`，但藤蔓存储在 `cell_underlay`，宿主在 `minion_place`。
 - **替伤机制**：当宿主受到攻击伤害时，`take_damage()` 自动将伤害路由给 `vine_overlay`（如果存在且存活）。
 - **共生死亡**：宿主死亡时，藤蔓同步死亡（`minion_death()` 中处理）。
@@ -230,13 +230,13 @@ effect_fn(player, target, game, extras=None)
 
 ### 5.2 漂浮物（Float）
 - 存储在 `cell_underlay`。
-- 允许在其格子上**再部署一个单位**（无视通常的碰撞检测）。
-- 受到的伤害由上方单位承受。
-- 上方单位死亡/离场后，漂浮物回归 `minion_place` 原位。
+- 允许在其格子上**再部署一个异象**（无视通常的碰撞检测）。
+- 受到的伤害由上方异象承受。
+- 上方异象死亡/离场后，漂浮物回归 `minion_place` 原位。
 
 ### 5.3 跨方移动
 - `Board.move_minion(minion, new_pos, allow_cross_side=False)`
-- 当 `allow_cross_side=True` 时，允许单位移动到敌方行区域（如"将敌方单位移到友方区域"类效果）。
+- 当 `allow_cross_side=True` 时，允许异象移动到敌方行区域（如"将敌方异象移到友方区域"类效果）。
 - `auto_effects.move_enemy_to_friendly()` 会先改变 `minion.owner`，再调用 `move_minion(..., allow_cross_side=True)`。
 
 ---
@@ -251,7 +251,7 @@ effect_fn(player, target, game, extras=None)
 
 ### 6.2 恐惧（Fear）
 - 代码：`Minion.apply_fear()` / `remove_fear()`。
-- 视觉：恐惧单位带**紫色粗边框**（`#9c27b0`，3px）。
+- 视觉：恐惧异象带**紫色粗边框**（`#9c27b0`，3px）。
 
 ### 6.3 成长（Evolve）
 - 结算阶段触发：`成长 X` 每回合 -1，到 0 时调用 `m.evolve(game)`。
@@ -267,7 +267,7 @@ effect_fn(player, target, game, extras=None)
 - **condition_fn 全部 TODO**：当前所有阴谋卡只有框架，没有实际触发条件。
 
 ### 6.6 回响（Echo）
-- 单位回响：生成 2T/1/1 复制体，`echo_level - 1`。
+- 异象回响：生成 2T/1/1 复制体，`echo_level - 1`。
 - 策略回响：`copy.copy` 后 `echo_level - 1`。
 
 ### 6.7 效果队列（EffectQueue）
@@ -275,7 +275,7 @@ effect_fn(player, target, game, extras=None)
 - `resolve(name, fn)` — 执行主效果 + 处理所有连锁。
 - **当前模型为 FIFO 队列，非堆栈**。无法支持 Counterspell 式的"响应并取消原效果"。
 
-### 6.8 单位死亡与亡语
+### 6.8 异象死亡与亡语
 - `Minion.minion_death()` 加入 `EffectQueue`：先移除棋盘 → 派发 `EVENT_DEATH` → 触发亡语。
 - 亡语签名：`fn(minion, player, board)`。
 
@@ -288,13 +288,13 @@ effect_fn(player, target, game, extras=None)
 
 ### 6.10 部署钩子框架（Deploy Hooks）
 - `Game.deploy_hooks: List[Callable[[Minion], None]]`
-- 单位通过 `Minion.register_deploy_hook(game, fn)` 注册全局部署监听。
-- 钩子在新单位部署时自动触发。
-- 单位死亡时自动清理自己的钩子。
+- 异象通过 `Minion.register_deploy_hook(game, fn)` 注册全局部署监听。
+- 钩子在新异象部署时自动触发。
+- 异象死亡时自动清理自己的钩子。
 
 ### 6.11 自动化事件框架
 - 事件常量：`EVENT_TURN_START`、`EVENT_TURN_END`、`EVENT_PHASE_START`、`EVENT_PHASE_END`。
-- `Game._trigger_auto_effects()` 遍历场上单位、手牌、玩家，触发 `on_turn_start/end`、`on_phase_start/end` 回调。
+- `Game._trigger_auto_effects()` 遍历场上异象、手牌、玩家，触发 `on_turn_start/end`、`on_phase_start/end` 回调。
 - 回调签名：`fn(game, event_data, source)`。
 
 ### 6.12 轻量"取消"机制
@@ -316,16 +316,16 @@ effect_fn(player, target, game, extras=None)
 | 词条 | 实现状态 | 实现细节 |
 |------|---------|----------|
 | **协同** | ✅ | 部署合法性检查 |
-| **独行** | ✅ | 同列友方单位存在时不可部署 |
+| **独行** | ✅ | 同列友方异象存在时不可部署 |
 | **水生/两栖** | ✅ | 水路/陆地部署限制 |
 | **高地** | ✅ | `c==0` 部署限制 |
 | **亡语** | ✅ | 死亡时触发 `EffectQueue` |
 | **丰饶** | ✅ | 献祭时产血数量 |
-| **献祭** | ✅ | B费用单位部署时强制献祭 |
+| **献祭** | ✅ | B费用异象部署时强制献祭 |
 | **恐惧** | ✅ | 清除通用词条并加紫色边框 |
 | **冰冻** | ✅ | 受战斗伤害削层，归零翻倍；结算阶段结束衰减 |
 | **眩晕** | ✅ | 结算阶段无法攻击；结算阶段结束衰减 |
-| **休眠** | ✅ | 非迅捷单位部署时默认获得休眠1；结算阶段无法攻击；结算阶段结束衰减 |
+| **休眠** | ✅ | 非迅捷异象部署时默认获得休眠1；结算阶段无法攻击；结算阶段结束衰减 |
 | **坚韧** | ✅ | 受到伤害 `-坚韧值` |
 | **脆弱** | ✅ | 并入坚韧逻辑：坚韧为0时脆弱使受伤+1（负数坚韧） |
 | **重甲** | ✅ | 等价于坚韧 |
@@ -335,17 +335,17 @@ effect_fn(player, target, game, extras=None)
 | **三重打击** | ✅ | 等价于 `高频3` |
 | **先攻** | ✅ | 决定攻击顺序与同时攻击分组 |
 | **横扫** | ✅ | 对左右相邻列造成伤害 |
-| **串击/穿刺/穿透** | ✅ | 对同列所有敌方单位造成伤害 |
+| **串击/穿刺/穿透** | ✅ | 对同列所有敌方异象造成伤害 |
 | **空袭** | ✅ | 若无敌方防空拦截，直接攻击对手英雄 |
-| **防空** | ✅ | 拦截空袭单位；本列敌方单位失去串击/穿刺/穿透 |
+| **防空** | ✅ | 拦截空袭异象；本列敌方异象失去串击/穿刺/穿透 |
 | **潜水/潜行** | ✅ | 行动阶段可见可选中；结算阶段攻击自动落空；视野不可看破 |
-| **绝缘** | ✅ | 策略卡无法直接以对方绝缘单位为初始目标；AOE策略需手动检查 `game.is_immune()` |
+| **绝缘** | ✅ | 策略卡无法直接以对方绝缘异象为初始目标；AOE策略需手动检查 `game.is_immune()` |
 | **视野X** | ✅ | 预设攻击目标列；结算阶段优先攻击该列 |
 | **破甲X** | ✅ | 攻击时无视目标X层坚韧 |
 | **成长** | ✅ | 回合结束计数器-1，到0时进化；支持罗马数字解析 |
 | **回响** | ✅ | 部署/打出后生成弱化复制体或返回手牌 |
 | **藤蔓** | ✅ | 双层细胞架构；替伤；共生死亡 |
-| **漂浮物** | ✅ | 允许叠放；伤害由上方单位承受 |
+| **漂浮物** | ✅ | 允许叠放；伤害由上方异象承受 |
 | **护盾** | ❌ | 未实现（曾讨论后搁置） |
 | **嘲讽** | ❌ | 未实现 |
 | **圣盾/护盾** | ❌ | 未实现 |
@@ -409,7 +409,7 @@ effect_fn(player, target, game, extras=None)
 
 ### 9.2 对战界面
 - 棋盘：500×500 Canvas，5×5 格子。
-- 单位渲染：蓝色（己方）、红色（敌方），边框颜色根据状态变化。
+- 异象渲染：蓝色（己方）、红色（敌方），边框颜色根据状态变化。
 - 手牌区：横向 Canvas + Scrollbar。
 - 信息面板：HP、T/C/B/S、手牌/卡组/弃牌/阴谋数量。
 - 弹窗：`BluffDialog`、`SacrificeDialog`、`DiscoverDialog`。
@@ -422,7 +422,7 @@ effect_fn(player, target, game, extras=None)
 
 ### 9.4 AI（本地测试）
 - `LocalDuel._ai_action()` 是简单随机 AI。
-- 优先献祭丰饶值低的友方单位。
+- 优先献祭丰饶值低的友方异象。
 
 ---
 
@@ -455,14 +455,14 @@ effect_fn(player, target, game, extras=None)
 
 | 函数 | 用途 |
 |------|------|
-| `return_minion_to_hand(minion, game)` | 将场上单位返回手牌（满则弃置） |
-| `summon_token(game, name, owner, position, ...)` | 在指定位置召唤 token 单位 |
-| `deal_damage_to_minion(target, damage, source, game)` | 对单位造成标准伤害（自动触发所有替换/护盾/坚韧） |
+| `return_minion_to_hand(minion, game)` | 将场上异象返回手牌（满则弃置） |
+| `summon_token(game, name, owner, position, ...)` | 在指定位置召唤 token 异象 |
+| `deal_damage_to_minion(target, damage, source, game)` | 对异象造成标准伤害（自动触发所有替换/护盾/坚韧） |
 | `create_echo_card(source_card, echo_level)` | 创建回响版本卡牌（2T/1/1） |
 | `is_enemy(m1, m2)` | 判断是否为敌对关系 |
 | `get_adjacent_positions(position, board)` | 获取上下左右相邻位置 |
-| `get_frontmost_enemy(column, owner, board, attacker)` | 获取指定列最靠前敌方单位 |
-| `transform_minion_to(minion, target_name, game)` | 将单位变形为指定名称新单位 |
+| `get_frontmost_enemy(column, owner, board, attacker)` | 获取指定列最靠前敌方异象 |
+| `transform_minion_to(minion, target_name, game)` | 将异象变形为指定名称新异象 |
 | `copy_card_to_hand(source_card, owner, game, cost_modifier)` | 将卡牌复制加入手牌 |
 | `add_deathrattle(minion, deathrattle_fn)` | 动态添加亡语效果 |
 
@@ -484,13 +484,13 @@ def _xxx_special(minion, player, game, extras=None):
 
 **运行时自动行为：**
 - 检查 `minion.is_alive()`，死亡时跳过并打印警告
-- 打印 `[效果触发] 函数名 (单位名)` 日志
+- 打印 `[效果触发] 函数名 (异象名)` 日志
 
 ### 11.3 四条铁律
 
 1. **状态变量必须带卡牌前缀**：`_songshuqiu_triggered`，禁止用 `_triggered` / `_flag`。
 2. **回调函数必须用默认参数绑定**：`def on_damage(m=minion, g=game):`，禁止裸闭包。
-3. **操作前检查单位是否存活**：`if not minion.is_alive(): return`。
+3. **操作前检查异象是否存活**：`if not minion.is_alive(): return`。
 4. **每个关键行为必须打印日志**：`print(f" {minion.name} 移动至 {new_pos}")`。
 
 ### 11.4 协作开发流程
@@ -512,7 +512,7 @@ def _xxx_special(minion, player, game, extras=None):
 | # | Bug 描述 | 根因 | 修复位置 |
 |---|----------|------|----------|
 | 1 | **献祭弹窗死锁** | 在 tkinter 回调里调用 `Event().wait()` 阻塞主线程 | 将献祭选择提前到 `_on_hand_card_click()`，用模态 `SacrificeDialog` + 回调传值 |
-| 2 | **B 费用单位无法出牌** | `card_can_play` 在 `request_sacrifice` 之前检查费用 | 临时预加鲜血，出牌后回滚 |
+| 2 | **B 费用异象无法出牌** | `card_can_play` 在 `request_sacrifice` 之前检查费用 | 临时预加鲜血，出牌后回滚 |
 | 3 | **冰冻/眩晕层数不减** | 直接修改 `self.keywords`，但 `recalculate()` 会覆盖 | 改为从源头字典递减后 `recalculate()` |
 | 4 | **平局无结束提示** | `game_over_callback` 只在 `winner` 非 None 时触发 | 改为 `game.game_over` 时触发 |
 | 5 | **NetworkDuel.close 死锁** | `close()` 没设置 `_discover_event` | 补充 `self._discover_event.set()` |
@@ -520,7 +520,7 @@ def _xxx_special(minion, player, game, extras=None):
 | 7 | **统一指向模块重构** | GUI 中各种 if/else 分支处理不同指向逻辑，维护困难 | 全部替换为 `TargetingRequest` + `process_targeting_request()` |
 | 8 | **extra_targets 标准化** | Strategy 和 MinionCard 的 effect 签名不一致 | 统一为 `(p, t, g, extras=None)`，通过 inspect 兼容旧代码 |
 | 9 | **藤蔓替伤失效** | 藤蔓 overlay 未在 `take_damage()` 中正确路由 | 在坚韧计算前优先检查 `vine_overlay` |
-| 10 | **潜水可见性矛盾** | 潜水单位在行动阶段不可选中，导致策略无法指向 | 改为行动阶段可见可选中，结算阶段攻击落空 |
+| 10 | **潜水可见性矛盾** | 潜水异象在行动阶段不可选中，导致策略无法指向 | 改为行动阶段可见可选中，结算阶段攻击落空 |
 | 11 | **献祭后鲜血未正确扣除** | 临时鲜血注入后，`card_can_play` 失败没有回滚 | 在 finally 逻辑中恢复 `sacrifice_chooser` 和 `b_point` |
 | 12 | **AI 使用错误卡组** | 本地测试 AI 使用 `make_gui_deck` 而非玩家选择的卡组 | 改为 `deck.to_game_deck(None)` 并同步沉浸度 |
 | 13 | **额外目标序列化缺失** | `net_protocol.py` 未处理 `extra_targets` 字段 | 补充 `extra_targets` 的序列化/反序列化 |
@@ -539,7 +539,7 @@ def _xxx_special(minion, player, game, extras=None):
 - [ ] **效果来源追踪**：区分"被策略效果消灭" vs "被战斗消灭"（亡语判断需要）。
 - [ ] **英雄技能系统**：完全缺失。
 - [ ] **牌库抽空疲劳**：`draw_fail` 计数器已存在，但需确认逻辑完整性。
-- [ ] **`Player.minions_on_board` 属性缺失**：`auto_effects.py`（`move_enemy_to_friendly`）和 `underworld_effects.py` 都假设该属性存在，但 `Player.__init__` 从未初始化它。需要补充 `self.minions_on_board = []` 并在单位部署/死亡/移动时同步维护。
+- [ ] **`Player.minions_on_board` 属性缺失**：`auto_effects.py`（`move_enemy_to_friendly`）和 `underworld_effects.py` 都假设该属性存在，但 `Player.__init__` 从未初始化它。需要补充 `self.minions_on_board = []` 并在异象部署/死亡/移动时同步维护。
 
 ### 13.2 卡牌效果层（高优先级）
 - `translate_packs.py` 生成的 416 张卡牌中，绝大多数 `special_fn=None` 或 `effect_fn=None`。
@@ -552,7 +552,7 @@ def _xxx_special(minion, player, game, extras=None):
 
 ### 13.3 阴谋系统
 - [ ] **condition_fn 全部 TODO**：所有阴谋卡只有框架，没有实际触发条件。
-- 需要实现的常见条件：受到战斗伤害时、打出策略时、单位被消灭时、回合开始时……
+- 需要实现的常见条件：受到战斗伤害时、打出策略时、异象被消灭时、回合开始时……
 
 ### 13.4 场上主动技能
 - [ ] "出牌阶段限一次" 类型效果尚未实现。架构已支持（通过 `TargetingRequest`），但无卡牌定义 `active_effect_fn`。
@@ -582,8 +582,8 @@ def _xxx_special(minion, player, game, extras=None):
    - 献祭次数限制（`_sacrifice_remaining`）
    - 非变形献祭现在触发 `minion_death()`（正确触发亡语）
    - 献祭免疫标记（`_immune_to_sacrifice`）
-   - 冥刻单位注册时自动注入 `"献祭":1`、`"丰饶":1`
-4. **恐惧机制**：`board.get_front_minion` 过滤 `_fear_active` 单位。
+   - 冥刻异象注册时自动注入 `"献祭":1`、`"丰饶":1`
+4. **恐惧机制**：`board.get_front_minion` 过滤 `_fear_active` 异象。
 
 ### 15.2 effect_utils.py 扩展（新增 ~70 函数，11 个分区）
 - **延迟效果**：`delay_to_next_turn`、`delay_to_phase_start`、`delay_to_turn_end`

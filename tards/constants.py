@@ -75,7 +75,7 @@ GENERAL_KEYWORDS = {
     "三重打击", "穿透", "亡语", "恐惧",
 }
 
-# 标签词库（用于单位分类，与 GENERAL_KEYWORDS 可能重叠）
+# 标签词库（用于异象分类，与 GENERAL_KEYWORDS 可能重叠）
 TAG_TOKENS = {
     "友好", "敌对", "中立",
     "生物", "非生命",

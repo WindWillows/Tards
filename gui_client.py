@@ -373,7 +373,7 @@ class DeckBuilderFrame(tk.Frame):
         self.show_strategy = tk.BooleanVar(value=True)
         self.show_conspiracy = tk.BooleanVar(value=True)
         self.hide_unimplemented = tk.BooleanVar(value=False)
-        tk.Checkbutton(filter_frame, text="单位", variable=self.show_minion, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
+        tk.Checkbutton(filter_frame, text="异象", variable=self.show_minion, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
         tk.Checkbutton(filter_frame, text="策略", variable=self.show_strategy, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
         tk.Checkbutton(filter_frame, text="阴谋", variable=self.show_conspiracy, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
         tk.Checkbutton(filter_frame, text="隐藏未实现", variable=self.hide_unimplemented, command=self._refresh_available).pack(side=tk.LEFT, padx=(10, 0))
@@ -965,7 +965,7 @@ class BattleFrame(tk.Frame):
             self.canvas.tag_bind(tag, "<Leave>", lambda e: self._hide_tooltip())
             self.canvas.tag_bind(tag, "<Motion>", lambda e: self._move_tooltip(e.x_root, e.y_root))
             self.canvas.tag_bind(tag, "<Button-1>", lambda e, mm=m: self._on_minion_click(mm))
-            # 如果当前在指向模式中且该单位是合法目标，高亮边框
+            # 如果当前在指向模式中且该异象是合法目标，高亮边框
             if self.targeting_picker and m in self.targeting_picker.valid_targets:
                 self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline="yellow", width=4, tags="target_hint")
         # 高亮合法目标（位置）
@@ -1089,7 +1089,7 @@ class BattleFrame(tk.Frame):
         self._render_info()
 
     def _handle_board_unit_click(self, target):
-        """处理玩家点击场上自己的单位。"""
+        """处理玩家点击场上自己的异象。"""
         if not self.duel.game:
             return
         active = self.duel.game.current_player
@@ -1183,7 +1183,7 @@ class BattleFrame(tk.Frame):
             if card.cost.b > 0:
                 minions = list(self.duel.game.board.get_minions_of_player(active)) if self.duel.game else []
                 if not minions:
-                    self.hint_label.config(text="场上没有可献祭的友方单位")
+                    self.hint_label.config(text="场上没有可献祭的友方异象")
                     return
                 def on_sacrifice_confirm(selected: List[Minion]):
                     total = sum(m.keywords.get("丰饶", 1) for m in selected)
@@ -1309,7 +1309,7 @@ class BattleFrame(tk.Frame):
                     self._render_info()
             return
 
-        # 2. 如果没有选中的手牌，检查是否点击了场上的可交互单位（视野/高频）
+        # 2. 如果没有选中的手牌，检查是否点击了场上的可交互异象（视野/高频）
         if not self.selected_card or not self.valid_targets:
             self._handle_board_unit_click(target)
             return

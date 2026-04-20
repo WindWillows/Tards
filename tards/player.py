@@ -77,7 +77,7 @@ class Player:
 
     @property
     def minions_on_board(self) -> List["Minion"]:
-        """返回该玩家当前在场上的所有单位（动态计算，无需手动同步）。"""
+        """返回该玩家当前在场上的所有异象（动态计算，无需手动同步）。"""
         if self.board_ref:
             return [m for m in self.board_ref.minion_place.values() if m.owner is self]
         return []
@@ -294,7 +294,7 @@ class Player:
             return False
         if card.can_play is False:
             return False
-        # 绝缘：策略卡无法以对方的绝缘单位为直接目标
+        # 绝缘：策略卡无法以对方的绝缘异象为直接目标
         from .cards import Strategy, Minion
         if isinstance(card, Strategy) and isinstance(target, Minion):
             if target.keywords.get("绝缘", False) and target.owner != self:

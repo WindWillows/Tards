@@ -124,7 +124,7 @@ def main():
     add_box(doc, "比喻一：EffectUtils = 厨房里的标准菜刀",
         [
             "『把肉切块』这个操作，你不需要自己磨一把刀，直接拿厨房里的标准菜刀就行。",
-            "EffectUtils 就是那些『标准菜刀』——把单位返回手牌、召唤 token、造成伤害……都是现成的。",
+            "EffectUtils 就是那些『标准菜刀』——把异象返回手牌、召唤 token、造成伤害……都是现成的。",
             "禁止自己『造菜刀』（手写重复逻辑），必须用厨房里的。"
         ])
 
@@ -176,8 +176,8 @@ def main():
                 set_chinese_font(run, "微软雅黑", 11, bold=True)
 
     rows = [
-        ("部署时", "部署时、部署：", "鹏：部署时让敌方单位回手牌"),
-        ("回合结束时", "回合结束：", "天牛：回合结束时移动敌方单位"),
+        ("部署时", "部署时、部署：", "鹏：部署时让敌方异象回手牌"),
+        ("回合结束时", "回合结束：", "天牛：回合结束时移动敌方异象"),
         ("受到伤害时", "受到伤害后", "松鼠球"),
         ("死亡时", "亡语：", "某卡：死亡时对敌方造成伤害"),
         ("回合开始时", "回合开始：", "某卡：回合开始时加攻击力"),
@@ -232,10 +232,10 @@ def main():
     add_code_block(doc, [
         "# effect_utils.py 里的常用工具",
         "",
-        "return_minion_to_hand(minion, game)      # 把场上单位返回手牌（满则弃置）",
-        "summon_token(game, name, owner, pos)     # 在指定位置召唤一个 token 单位",
+        "return_minion_to_hand(minion, game)      # 把场上异象返回手牌（满则弃置）",
+        "summon_token(game, name, owner, pos)     # 在指定位置召唤一个 token 异象",
         "get_adjacent_positions(pos, board)       # 获取上下左右四个相邻位置",
-        "deal_damage_to_minion(target, dmg)       # 对单位造成伤害（自动触发护盾/坚韧）",
+        "deal_damage_to_minion(target, dmg)       # 对异象造成伤害（自动触发护盾/坚韧）",
         "create_echo_card(source_card, level)     # 创建回响版本卡牌",
     ])
 
@@ -263,7 +263,7 @@ def main():
         "    m._on_take_combat_damage.append(on_damage)",
     ])
 
-    add_paragraph_zh(doc, "【关键细节】回调函数里的 m=minion 写法很重要，这叫『默认参数绑定』。如果不这么写，游戏会指向错误的单位。照抄即可，不需要理解原理。", bold=True, color=RGBColor(0xC0, 0x00, 0x00))
+    add_paragraph_zh(doc, "【关键细节】回调函数里的 m=minion 写法很重要，这叫『默认参数绑定』。如果不这么写，游戏会指向错误的异象。照抄即可，不需要理解原理。", bold=True, color=RGBColor(0xC0, 0x00, 0x00))
 
     # 步骤 4
     add_heading_zh(doc, "步骤 4：加上装饰器（自动检查）", level=2)
@@ -316,7 +316,7 @@ def main():
     add_heading_zh(doc, "第三章  四条铁律（违反必出问题）", level=1)
 
     add_heading_zh(doc, "铁律一：状态变量必须带卡牌前缀", level=2)
-    add_paragraph_zh(doc, "每个卡牌可能需要在单位上存一些临时状态（比如『是否已经触发过』）。这些变量名必须以卡牌缩写开头，否则会和其他卡牌冲突。")
+    add_paragraph_zh(doc, "每个卡牌可能需要在异象上存一些临时状态（比如『是否已经触发过』）。这些变量名必须以卡牌缩写开头，否则会和其他卡牌冲突。")
     add_code_block(doc, [
         "# ✅ 正确",
         "minion._songshuqiu_triggered = True",
@@ -335,21 +335,21 @@ def main():
         "def on_damage(m=minion, g=game, p=player):",
         "    m.base_keywords['休眠'] = 2",
         "",
-        "# ❌ 错误（会导致 bug，指向错误的单位）",
+        "# ❌ 错误（会导致 bug，指向错误的异象）",
         "def on_damage():",
         "    minion.base_keywords['休眠'] = 2"
     ])
     add_paragraph_zh(doc, "照抄即可，不需要理解原理。")
 
-    add_heading_zh(doc, "铁律三：操作前检查单位是否存活", level=2)
-    add_paragraph_zh(doc, "任何时候操作一个单位之前，先问一句：它还活着吗？")
+    add_heading_zh(doc, "铁律三：操作前检查异象是否存活", level=2)
+    add_paragraph_zh(doc, "任何时候操作一个异象之前，先问一句：它还活着吗？")
     add_code_block(doc, [
         "# ✅ 正确",
         "if not minion.is_alive():",
         "    return",
         "game.move_minion(minion, new_pos)",
         "",
-        "# ❌ 错误（单位可能已经死了）",
+        "# ❌ 错误（异象可能已经死了）",
         "game.move_minion(minion, new_pos)   # 崩溃！"
     ])
 
@@ -375,7 +375,7 @@ def main():
           "", "# ✅ 正确", "def _xxx_special(minion, player, game, extras=None):"]),
 
         ("错误 2：效果只在第一次部署时有效",
-         "原因：回调函数没有正确绑定单位对象，导致闭包陷阱。\n解决：使用默认参数 m=minion。",
+         "原因：回调函数没有正确绑定异象对象，导致闭包陷阱。\n解决：使用默认参数 m=minion。",
          ["# ✅ 正确", "def on_damage(m=minion, g=game):",
           "    m.base_keywords['休眠'] = 2"]),
 

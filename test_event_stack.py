@@ -291,7 +291,7 @@ class TestLifecycleEvents(unittest.TestCase):
         self.p2.sacrifice_chooser = lambda req: None
 
     def test_cancel_before_deploy(self):
-        """before_deploy 取消后，单位不应出现在场上。"""
+        """before_deploy 取消后，异象不应出现在场上。"""
         card = MinionCard(
             name="禁兵",
             owner=self.p1,
@@ -338,7 +338,7 @@ class TestLifecycleEvents(unittest.TestCase):
         self.assertIsNotNone(self.game.board.get_minion_at((3, 1)))
 
     def test_cancel_before_destroy(self):
-        """before_destroy 取消后，单位恢复 1 HP 并留在场上。"""
+        """before_destroy 取消后，异象恢复 1 HP 并留在场上。"""
         card = MinionCard(
             name="不灭兵",
             owner=self.p1,
@@ -390,7 +390,7 @@ class TestLifecycleEvents(unittest.TestCase):
         self.assertIsNone(self.game.board.get_minion_at((3, 3)))
 
     def test_cancel_before_remove(self):
-        """before_remove 取消后，单位仍留在场上。"""
+        """before_remove 取消后，异象仍留在场上。"""
         card = MinionCard(
             name="扎根兵",
             owner=self.p1,
@@ -408,7 +408,7 @@ class TestLifecycleEvents(unittest.TestCase):
         self.game.register_listener(EVENT_BEFORE_REMOVE, rooted)
         result = self.game.board.remove_minion((3, 3))
         self.assertIsNone(result, "remove_minion 应返回 None（移除被阻止）")
-        self.assertIsNotNone(self.game.board.get_minion_at((3, 3)), "单位应仍留在场上")
+        self.assertIsNotNone(self.game.board.get_minion_at((3, 3)), "异象应仍留在场上")
 
 
 # ---------------------------------------------------------------------------

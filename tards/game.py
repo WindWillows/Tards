@@ -54,13 +54,13 @@ class Game:
         # 雕像拼装待处理队列
         self._pending_statues: List[Dict[str, Any]] = []
 
-        # 部署光环/钩子（全局监听新单位部署）
+        # 部署光环/钩子（全局监听新异象部署）
         self.deploy_hooks: List[Callable[["Minion"], None]] = []
 
         # 延迟效果队列（下回合开始时/回合结束时触发）
         self._delayed_effects: List[Dict[str, Any]] = []
 
-        # 全局部署限制（如疣猪"双方无法部署花费≤4T的单位"）
+        # 全局部署限制（如疣猪"双方无法部署花费≤4T的异象"）
         self._global_deploy_restrictions: List[Callable[["Player", Any], bool]] = []
 
         # 伤害替换效果（用于"取消该伤害"等机制）
@@ -92,7 +92,7 @@ class Game:
         self.event_bus.unregister(event_type, fn)
 
     def unregister_listeners_by_owner(self, owner_id: int) -> None:
-        """注销某个 owner_id 下的所有监听器。用于单位死亡时自动清理。"""
+        """注销某个 owner_id 下的所有监听器。用于异象死亡时自动清理。"""
         self.event_bus.unregister_by_owner(owner_id)
 
     # -------------------------------------------------------------------
@@ -197,7 +197,7 @@ class Game:
     _EVENT_SPECIFIC_TARGET = {EVENT_DRAW}
 
     def _trigger_auto_effects(self, event_type: str, event_data: Dict[str, Any]):
-        """触发场上单位、手牌、玩家的自动化时间节点效果。"""
+        """触发场上异象、手牌、玩家的自动化时间节点效果。"""
         attr_name = self._EVENT_ATTR_MAP.get(event_type)
         if not attr_name:
             return
@@ -205,7 +205,7 @@ class Game:
         specific_only = event_type in self._EVENT_SPECIFIC_TARGET
         specific_target = event_data.get("card") if specific_only else None
 
-        # 场上存活单位
+        # 场上存活异象
         for m in list(self.board.minion_place.values()):
             if not m.is_alive():
                 continue
@@ -255,16 +255,16 @@ class Game:
                 )
 
     def refresh_all_auras(self):
-        """刷新全场单位的临时光环（具有）效果。"""
+        """刷新全场异象的临时光环（具有）效果。"""
         for m in list(self.board.minion_place.values()):
             if m.is_alive():
                 m.recalculate()
 
     def transform_minion(self, old_minion: "Minion", new_card_def, preserve_summon_turn: bool = True) -> Optional["Minion"]:
-        """通用单位变化/替换框架：将 old_minion 替换为 new_card_def 定义的新单位，位置不变。"""
+        """通用异象变化/替换框架：将 old_minion 替换为 new_card_def 定义的新异象，位置不变。"""
         from .card_db import CardType
         if new_card_def.card_type != CardType.MINION:
-            print(f"  错误：{new_card_def.name} 不是单位类型，无法替换")
+            print(f"  错误：{new_card_def.name} 不是异象类型，无法替换")
             return None
         next_card = new_card_def.to_game_card(old_minion.owner)
         new_minion = Minion(
@@ -296,13 +296,13 @@ class Game:
         return None
 
     def move_minion(self, minion: "Minion", new_pos: Any) -> bool:
-        """安全移动单位到新的空格子。"""
+        """安全移动异象到新的空格子。"""
         if not minion or not minion.is_alive():
             return False
         return self.board.move_minion(minion, new_pos)
 
     def swap_minions(self, m1: "Minion", m2: "Minion") -> bool:
-        """安全交换两个单位的位置。"""
+        """安全交换两个异象的位置。"""
         if not m1 or not m2:
             return False
         return self.board.swap_minions(m1, m2)
@@ -631,7 +631,7 @@ class Game:
                 bluff = action.get("bluff", False)
                 sacrifices = action.get("sacrifices", [])
                 extra_targets = action.get("extra_targets")
-                # 过滤掉因不同步而丢失的牺牲目标（只剩 tuple 位置），以及献祭次数已耗尽的单位
+                # 过滤掉因不同步而丢失的牺牲目标（只剩 tuple 位置），以及献祭次数已耗尽的异象
                 valid_sacs = [m for m in sacrifices if hasattr(m, "keywords") and getattr(m, "is_alive", lambda: True)() and getattr(m, '_sacrifice_remaining', 0) > 0]
                 temp_b = 0
                 if valid_sacs:
@@ -742,7 +742,7 @@ class Game:
         print("[结算阶段]")
         print(self.board)
 
-        # 高频攻击次数状态：按 Minion 对象引用存储，支持结算阶段中途加入的单位
+        # 高频攻击次数状态：按 Minion 对象引用存储，支持结算阶段中途加入的异象
         attacker_swings: dict[Minion, int] = {}
         # 记录因高频而临时改变的先攻值，结算阶段结束后恢复
         original_first_strike: dict[Minion, int] = {}
@@ -751,7 +751,7 @@ class Game:
         for col in range(4, -1, -1):
             col_name = self.board.COL_NAMES[col]
 
-            # 找出以本列为 base_col 的攻击者（横扫单位只在 base_col 发起攻击）
+            # 找出以本列为 base_col 的攻击者（横扫异象只在 base_col 发起攻击）
             attackers = []
             for m in self.board.minion_place.values():
                 if m.position[1] != col:
@@ -788,7 +788,7 @@ class Game:
             print(f"  {col_name}列发生战斗")
 
             while True:
-                # 动态刷新：找出仍存活且还有攻击次数的 base_col == col 的单位
+                # 动态刷新：找出仍存活且还有攻击次数的 base_col == col 的异象
                 active = [m for m in self.board.minion_place.values()
                           if m.position[1] == col and m.is_alive()
                           and m.can_attack_this_turn(self.current_turn)
@@ -804,17 +804,17 @@ class Game:
                     m.owner.side,
                 ))
 
-                # 只取当前先攻最高的一批单位作为本轮攻击者
+                # 只取当前先攻最高的一批异象作为本轮攻击者
                 highest_fs = active[0].keywords.get("先攻", 0)
                 group = [m for m in active if m.keywords.get("先攻", 0) == highest_fs]
 
                 def do_round():
                     for m in group:
-                        # 同先攻组内不检查 _pending_death，保证同先攻单位都能出手
+                        # 同先攻组内不检查 _pending_death，保证同先攻异象都能出手
                         if not m.is_alive() or attacker_swings.get(m, 0) <= 0:
                             continue
 
-                        # 防空：本列敌方单位失去串击/穿刺/穿透
+                        # 防空：本列敌方异象失去串击/穿刺/穿透
                         has_enemy_anti_air = any(
                             enemy.keywords.get("防空", False)
                             for enemy in self.board.get_enemy_minions_in_column(base_col, m.owner)
@@ -872,7 +872,7 @@ class Game:
                                     if target and target.is_alive():
                                         from card_pools.effect_utils import is_untargetable_by_minions
                                         if is_untargetable_by_minions(target):
-                                            print(f"  {m.name} 攻击 {target.name}，但目标无法被单位选中，攻击落空")
+                                            print(f"  {m.name} 攻击 {target.name}，但目标无法被异象选中，攻击落空")
                                             enemy = self.p2 if m.owner == self.p1 else self.p1
                                             m.attack_target(enemy)
                                         else:
@@ -880,7 +880,7 @@ class Game:
                                     else:
                                         enemy = self.p2 if m.owner == self.p1 else self.p1
                                         m.attack_target(enemy)
-                        # 预设攻击目标（视野+高频等单位在行动阶段选择的直接目标）
+                        # 预设攻击目标（视野+高频等异象在行动阶段选择的直接目标）
                         pending = getattr(m, "_pending_attack_targets", None)
                         if pending and isinstance(pending, list) and len(pending) > 0:
                             # 按顺序消耗预设目标：第1次攻击取第0个，第2次取第1个...
@@ -891,7 +891,7 @@ class Game:
                             target_idx = total_swings - remaining
                             if 0 <= target_idx < len(pending):
                                 target = pending[target_idx]
-                                # 结算阶段：潜水/潜行单位无法被选中，攻击落空
+                                # 结算阶段：潜水/潜行异象无法被选中，攻击落空
                                 if hasattr(target, "keywords") and (target.keywords.get("潜水", False) or target.keywords.get("潜行", False)):
                                     print(f"  {m.name} 攻击 {target.name}，但目标处于潜水/潜行状态，攻击落空")
                                 elif target and hasattr(target, "is_alive") and target.is_alive():
@@ -907,12 +907,12 @@ class Game:
                                 enemy = self.p2 if m.owner == self.p1 else self.p1
                                 m.attack_target(enemy)
                         elif can_pierce:
-                            # 串击/穿刺/穿透：攻击同列所有敌方单位
+                            # 串击/穿刺/穿透：攻击同列所有敌方异象
                             enemies = [e for e in self.board.get_enemy_minions_in_column(attack_col, m.owner) if e.is_alive()]
                             # 潜水/潜行始终不可见
                             enemies = [e for e in enemies if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)]
                             if enemies:
-                                print(f"  {m.name} 串击 {self.board.COL_NAMES[attack_col]}列所有敌方单位")
+                                print(f"  {m.name} 串击 {self.board.COL_NAMES[attack_col]}列所有敌方异象")
                                 for enemy in enemies:
                                     m.attack_target(enemy)
                             else:
@@ -948,7 +948,7 @@ class Game:
             if m.is_alive():
                 m.keywords["先攻"] = original
 
-        # 结算阶段结束：清理全场单位的临时效果，并递减状态层数
+        # 结算阶段结束：清理全场异象的临时效果，并递减状态层数
         for m in list(self.board.minion_place.values()):
             if not m.is_alive():
                 continue
@@ -1114,7 +1114,7 @@ class Game:
                 print(f"  [延迟效果错误] {e}")
 
     def set_vision_target(self, minion: "Minion", col: int) -> bool:
-        """为具有视野的单位预设攻击目标列（出牌阶段调用）。"""
+        """为具有视野的异象预设攻击目标列（出牌阶段调用）。"""
         vision_range = minion.keywords.get("视野", 0)
         if vision_range <= 0:
             return False

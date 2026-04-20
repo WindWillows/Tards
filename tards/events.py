@@ -81,7 +81,7 @@ class EventBus:
                 break
 
     def unregister_by_owner(self, owner_id: int) -> None:
-        """注销某个 owner_id 下的所有监听器。用于单位死亡时自动清理。"""
+        """注销某个 owner_id 下的所有监听器。用于异象死亡时自动清理。"""
         event_types = self._owner_registry.pop(owner_id, [])
         for event_type in event_types:
             listeners = self._listeners.get(event_type, [])

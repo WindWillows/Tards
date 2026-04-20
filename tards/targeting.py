@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """通用目标选择器模块。
 
-所有需要玩家选择目标的行为（策略卡、单位部署、场上单位技能、视野攻击预设等）
+所有需要玩家选择目标的行为（策略卡、异象部署、场上异象技能、视野攻击预设等）
 都通过 TargetingRequest 统一描述，由 TargetPicker 负责收集玩家输入。
 """
 
@@ -20,7 +20,7 @@ class TargetingRequest:
     """统一的目标选择请求。任何需要指向的行为都打包成此对象。
 
     字段:
-        valid_targets: 合法目标列表（位置、单位、玩家等）
+        valid_targets: 合法目标列表（位置、异象、玩家等）
         count: 需要选择的目标数量（默认1）
         allow_repeat: 是否允许重复选择同一目标
         prompt: 给玩家的提示文字
@@ -68,10 +68,10 @@ class TargetPicker:
 
 
 def get_attack_target_candidates(minion: "Minion", game: "Game") -> List[Any]:
-    """返回该单位当前可以攻击的合法目标（包含敌方单位和敌方玩家）。
+    """返回该异象当前可以攻击的合法目标（包含敌方异象和敌方玩家）。
 
-    有视野的单位可以攻击视野范围内的任意敌方单位（含潜水/潜行，因为指向发生在出牌阶段）；
-    无视野的单位只能攻击同列最前排的敌方单位。
+    有视野的异象可以攻击视野范围内的任意敌方异象（含潜水/潜行，因为指向发生在出牌阶段）；
+    无视野的异象只能攻击同列最前排的敌方异象。
     """
     board = game.board
     vision_range = minion.keywords.get("视野", 0)

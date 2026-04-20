@@ -103,7 +103,7 @@ register_card(
     keywords={"协同": True},
     tags=['昆虫', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：对1个单位造成1点伤害。
+    # 效果描述：部署：对1个异象造成1点伤害。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=lambda p, t, g, extras=None: (t.health_change(-1) if hasattr(t, "health_change") else (t.take_damage(1) if hasattr(t, "take_damage") else False) or True),
@@ -121,7 +121,7 @@ register_card(
     keywords={"协同": True, "迅捷": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：受到伤害前，与1个友方单位交换位置。
+    # 效果描述：受到伤害前，与1个友方异象交换位置。
     targets_fn=target_friendly_positions,
     special_fn=_moyiren_special,
 )
@@ -153,7 +153,7 @@ register_card(
     tags=['地狱', '非生命'],
     hidden_keywords={},
     is_token=True,
-    # 效果描述：对一个单位及其相邻单位造成1点伤害。
+    # 效果描述：对一个异象及其相邻异象造成1点伤害。
     targets_fn=target_any_minion,
     effect_fn=_lieyanfen_strategy,
 )
@@ -170,7 +170,7 @@ register_card(
     keywords={"亡语": True},
     tags=['地狱', '敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：本单位造成的伤害无视坚韧效果。 亡语：将1张“恶魂之泪“加入手牌。
+    # 效果描述：本异象造成的伤害无视坚韧效果。 亡语：将1张“恶魂之泪“加入手牌。
     targets_fn=target_friendly_positions,
     special_fn=_ehan_special,
 )
@@ -234,7 +234,7 @@ register_card(
     keywords={"协同": True, "迅捷": True, "亡语": True},
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：处于协同时，具有+1攻击力。亡语：同列友方单位立刻攻击1次。
+    # 效果描述：处于协同时，具有+1攻击力。亡语：同列友方异象立刻攻击1次。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -251,7 +251,7 @@ register_card(
     keywords={"协同": True},
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：回合结束：若其为本回合唯一部署的友方单位，抽1张牌，将其花费改为0T。
+    # 效果描述：回合结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -267,7 +267,7 @@ register_card(
     health=6,
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：指向1个单位，为其承担伤害。
+    # 效果描述：部署：指向1个异象，为其承担伤害。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -284,7 +284,7 @@ register_card(
     keywords={"协同": True},
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：与其同列的友方单位具有迅捷。
+    # 效果描述：与其同列的友方异象具有迅捷。
     targets_fn=target_friendly_positions,
     special_fn=_ma_special,
 )
@@ -318,7 +318,7 @@ register_card(
     keywords={"坚韧": 1, "先攻": 1},
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：受到其伤害的单位获得-1攻击力。然后若其攻击力为0，将其消灭。
+    # 效果描述：受到其伤害的异象获得-1攻击力。然后若其攻击力为0，将其消灭。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -334,7 +334,7 @@ register_card(
     health=6,
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：受到等于其HP的单次伤害时，将其免除。 你打出“铁锭”时，本单位获得+1HP。
+    # 效果描述：受到等于其HP的单次伤害时，将其免除。 你打出“铁锭”时，本异象获得+1HP。
     targets_fn=target_friendly_positions,
     special_fn=_tiekuilei_special,
 )
@@ -384,7 +384,7 @@ register_card(
     tags=['非生命'],
     hidden_keywords={},
     is_token=True,
-    # 效果描述：对一个单位造成1点伤害。然后若其HP不大于2 将其冰冻。
+    # 效果描述：对一个异象造成1点伤害。然后若其HP不大于2 将其冰冻。
     targets_fn=target_any_minion,
     effect_fn=_xueqiu_strategy,
 )
@@ -417,7 +417,7 @@ register_card(
     keywords={"迅捷": True},
     tags=['友好', '生物', '肉食动物', '陆生'],
     hidden_keywords={},
-    # 效果描述：本单位攻击时，对其指向的单位造成等量伤害。部署：指向一个单位。
+    # 效果描述：本异象攻击时，对其指向的异象造成等量伤害。部署：指向一个异象。
     targets_fn=target_friendly_positions,
     special_fn=_baomao_special,
 )
@@ -434,7 +434,7 @@ register_card(
     keywords={"协同": True, "两栖": True, "坚韧": 1},
     tags=['两栖', '友好', '生物'],
     hidden_keywords={},
-    # 效果描述：受到伤害后，将攻击力最高的敌方单位的攻击力设为1，直到下回合结束。
+    # 效果描述：受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下回合结束。
     targets_fn=target_friendly_positions,
     special_fn=_haigui_special,
 )
@@ -484,7 +484,7 @@ register_card(
     keywords={"水生": True, "亡语": True},
     tags=['水生', '两栖', '友好', '生物'],
     hidden_keywords={},
-    # 效果描述：亡语：造成等同于其受到过伤害总和的伤害，随机分配至所有敌方单位。
+    # 效果描述：亡语：造成等同于其受到过伤害总和的伤害，随机分配至所有敌方异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -517,7 +517,7 @@ register_card(
     keywords={"协同": True},
     tags=['友好', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：抽牌阶段，取消抽牌，开发一张卡组中的牌。 场上有友方友好单位时，无法选中。
+    # 效果描述：抽牌阶段，取消抽牌，开发一张卡组中的牌。 场上有友方友好异象时，无法选中。
     targets_fn=target_friendly_positions,
     special_fn=_liulangshangren_special,
 )
@@ -551,7 +551,7 @@ register_card(
     keywords={"协同": True},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：与其同列的友方单位具有先攻1和+1攻击力。
+    # 效果描述：与其同列的友方异象具有先攻1和+1攻击力。
     targets_fn=target_friendly_positions,
     special_fn=_chizushou_special,
 )
@@ -568,7 +568,7 @@ register_card(
     keywords={"坚韧": 2, "串击": True},
     tags=['友好', '地狱', '敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：双方无法部署花费不大于4T的单位。
+    # 效果描述：双方无法部署花费不大于4T的异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -601,7 +601,7 @@ register_card(
     keywords={"坚韧": 2, "高频": 2},
     tags=['友好', '地狱', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：友方友好单位无法被选中。
+    # 效果描述：友方友好异象无法被选中。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -618,7 +618,7 @@ register_card(
     keywords={"迅捷": True, "高频": 3, "破甲": 3},
     tags=['友好', '地狱', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：一回合内，此前每攻击过目标1次，对其攻击力-1。 每消灭1个单位，将1张“光灵箭”加入手牌。
+    # 效果描述：一回合内，此前每攻击过目标1次，对其攻击力-1。 每消灭1个异象，将1张“光灵箭”加入手牌。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -633,7 +633,7 @@ register_card(
     tags=['非生命'],
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个单位获得-1坚韧等级。
+    # 效果描述：使1个异象获得-1坚韧等级。
     targets_fn=target_any_minion,
     effect_fn=_guanglingjian_strategy,
 )
@@ -650,7 +650,7 @@ register_card(
     keywords={"迅捷": True, "视野": 1},
     tags=['敌对', '生物', '陆生', '飞禽'],
     hidden_keywords={},
-    # 效果描述：消灭单位前，改为移除对方卡组顶的2张牌。
+    # 效果描述：消灭异象前，改为移除对方卡组顶的2张牌。
     targets_fn=target_friendly_positions,
     special_fn=_huanyi_special,
 )
@@ -667,7 +667,7 @@ register_card(
     keywords={"串击": True},
     tags=['生物', '精灵', '陆生'],
     hidden_keywords={},
-    # 效果描述：友方每有1个敌对单位和中立单位，具有+1攻击力。
+    # 效果描述：友方每有1个敌对异象和中立异象，具有+1攻击力。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -683,7 +683,7 @@ register_card(
     health=4,
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：所有敌方单位获得-1坚韧等级。
+    # 效果描述：部署：所有敌方异象获得-1坚韧等级。
     targets_fn=target_friendly_positions,
     special_fn=_weidaoshi_special,
 )
@@ -700,7 +700,7 @@ register_card(
     keywords={"坚韧": 1, "先攻": -1, "视野": 2},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：敌方单位受到1点伤害后，在回合结束时返回手牌。
+    # 效果描述：敌方异象受到1点伤害后，在回合结束时返回手牌。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -717,7 +717,7 @@ register_card(
     keywords={"绝缘": True},
     tags=['敌对', '生物', '精灵', '陆生'],
     hidden_keywords={},
-    # 效果描述：回合开始：将1张精灵单位加入战场，使其具有迅捷。 场上有精灵单位时，无法选中。
+    # 效果描述：回合开始：将1张精灵异象加入战场，使其具有迅捷。 场上有精灵异象时，无法选中。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -734,7 +734,7 @@ register_card(
     keywords={"高频": 2},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：眩晕其它所有单位。 单位进入战场时，获得-1HP和-1坚韧等级。
+    # 效果描述：部署：眩晕其它所有异象。 异象进入战场时，获得-1HP和-1坚韧等级。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -767,7 +767,7 @@ register_card(
     keywords={"高地": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：回合开始：对所有敌方单位造成1点伤害。
+    # 效果描述：回合开始：对所有敌方异象造成1点伤害。
     targets_fn=target_friendly_positions,
     special_fn=_shike_special,
 )
@@ -784,7 +784,7 @@ register_card(
     keywords={"水生": True},
     tags=['水生', '两栖', '敌对', '生物'],
     hidden_keywords={},
-    # 效果描述：部署：失去1T。 对单位造成伤害时，弃掉对方花费最低的1张手牌。
+    # 效果描述：部署：失去1T。 对异象造成伤害时，弃掉对方花费最低的1张手牌。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -801,7 +801,7 @@ register_card(
     keywords={"亡语": True},
     tags=['敌对', '昆虫', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：使1个单位失去迅捷，高频和空袭。 亡语：将1张“蜘蛛眼“加入手牌。
+    # 效果描述：部署：使1个异象失去迅捷，高频和空袭。 亡语：将1张“蜘蛛眼“加入手牌。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=_zhizhu_special,
@@ -817,7 +817,7 @@ register_card(
     tags=['敌对', '昆虫', '生物', '陆生'],
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个单位获得-2攻击力。
+    # 效果描述：使1个异象获得-2攻击力。
     targets_fn=target_any_minion,
     effect_fn=_zhizhuyan_strategy,
 )
@@ -834,7 +834,7 @@ register_card(
     keywords={"亡语": True},
     tags=['敌对', '昆虫', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：将1个单位的攻击力设为1。 亡语：将1张“蜘蛛眼“加入手牌。
+    # 效果描述：部署：将1个异象的攻击力设为1。 亡语：将1张“蜘蛛眼“加入手牌。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     special_fn=None,  # TODO: 实现部署/回合效果
@@ -852,7 +852,7 @@ register_card(
     keywords={"迅捷": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：攻击前，改为对HP最低的敌方单位造成等量伤害。
+    # 效果描述：攻击前，改为对HP最低的敌方异象造成等量伤害。
     targets_fn=target_friendly_positions,
     special_fn=_kulou_special,
 )
@@ -885,7 +885,7 @@ register_card(
     health=5,
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：回合开始：随机冰冻1个敌方单位。若其已被冰冻，将其消灭。
+    # 效果描述：回合开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。
     targets_fn=target_friendly_positions,
     special_fn=_liudu_special,
 )
@@ -984,7 +984,7 @@ register_card(
     health=4,
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：消灭1个与本单位距离最近的单位。
+    # 效果描述：部署：消灭1个与本异象距离最近的异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1051,7 +1051,7 @@ register_card(
     health=4,
     tags=['友好', '敌对', '生物', '陆生', '飞禽'],
     hidden_keywords={},
-    # 效果描述：部署：移除卡组顶的1张友好单位。若如此做，获得迅捷和先攻1。
+    # 效果描述：部署：移除卡组顶的1张友好异象。若如此做，获得迅捷和先攻1。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1101,7 +1101,7 @@ register_card(
     keywords={"坚韧": 1},
     tags=['地狱', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：友方单位被消灭时，改为将其洗入卡组。
+    # 效果描述：友方异象被消灭时，改为将其洗入卡组。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1118,7 +1118,7 @@ register_card(
     keywords={"协同": True, "两栖": True, "漂浮物": True},
     tags=['两栖', '非生命'],
     hidden_keywords={},
-    # 效果描述：其上单位被消灭时，抽1张牌。
+    # 效果描述：其上异象被消灭时，抽1张牌。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1135,7 +1135,7 @@ register_card(
     keywords={"迅捷": True, "破甲": 3},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：攻击单位前，先造成等同于目标部署花费的伤害。
+    # 效果描述：攻击异象前，先造成等同于目标部署花费的伤害。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1152,7 +1152,7 @@ register_card(
     keywords={"协同": True, "亡语": True},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：指向1个单位。 亡语：使其+2/2。
+    # 效果描述：部署：指向1个异象。 亡语：使其+2/2。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1254,7 +1254,7 @@ register_card(
     health=4,
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：敌方单位部署时，对其造成1点伤害，使其失去迅捷。
+    # 效果描述：敌方异象部署时，对其造成1点伤害，使其失去迅捷。
     targets_fn=target_friendly_positions,
     special_fn=_zhenceqi_special,
 )
@@ -1286,7 +1286,7 @@ register_card(
     health=4,
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：友方单位造成1点战斗伤害时，改为造成3点伤害。
+    # 效果描述：友方异象造成1点战斗伤害时，改为造成3点伤害。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1303,7 +1303,7 @@ register_card(
     keywords={"空袭": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：同列没有敌方单位时，具有迅捷。
+    # 效果描述：同列没有敌方异象时，具有迅捷。
     targets_fn=target_friendly_positions,
     special_fn=_huosai_feiting_special,
 )
@@ -1320,7 +1320,7 @@ register_card(
     keywords={"视野": 2, "高频": 2, "两栖": True},
     tags=['两栖', '非生命'],
     hidden_keywords={},
-    # 效果描述：其它友方单位具有+2攻击力。
+    # 效果描述：其它友方异象具有+2攻击力。
     targets_fn=target_friendly_positions,
     special_fn=_chaoonghexin_special,
 )
@@ -1337,7 +1337,7 @@ register_card(
     keywords={"视野": 1, "坚韧": 1},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：溢出伤害转移至对手。 回合结束：若你的手牌数不小于6，随机攻击1个敌方单位。
+    # 效果描述：溢出伤害转移至对手。 回合结束：若你的手牌数不小于6，随机攻击1个敌方异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1354,7 +1354,7 @@ register_card(
     keywords={"迅捷": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：无法选中攻击力不大于本单位的单位。
+    # 效果描述：无法选中攻击力不大于本异象的异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1370,7 +1370,7 @@ register_card(
     health=6,
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：眩晕1行单位。 被眩晕单位多眩晕1回合。
+    # 效果描述：部署：眩晕1行异象。 被眩晕异象多眩晕1回合。
     targets_fn=target_friendly_positions,
     special_fn=_jinrenta_special,
 )
@@ -1387,7 +1387,7 @@ register_card(
     keywords={"坚韧": -1},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：无法攻击对手。每消灭1个单位，抽1张牌。
+    # 效果描述：无法攻击对手。每消灭1个异象，抽1张牌。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1404,7 +1404,7 @@ register_card(
     keywords={"迅捷": True, "串击": True},
     tags=['地狱', '非生命'],
     hidden_keywords={},
-    # 效果描述：友方单位部署时，消灭本单位。
+    # 效果描述：友方异象部署时，消灭本异象。
     targets_fn=target_friendly_positions,
     special_fn=_yanjiangting_special,
 )
@@ -1421,7 +1421,7 @@ register_card(
     keywords={"协同": True, "坚韧": 2},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：使所有友方单位获得防空。 受到非生命单位或策略造成的伤害时，将其设为0点。
+    # 效果描述：部署：使所有友方异象获得防空。 受到非生命异象或策略造成的伤害时，将其设为0点。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1438,7 +1438,7 @@ register_card(
     keywords={"绝缘": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：非迅捷友方单位部署时，获得-1HP和迅捷。
+    # 效果描述：非迅捷友方异象部署时，获得-1HP和迅捷。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1472,7 +1472,7 @@ register_card(
     keywords={"亡语": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：友方目标受到对方策略效果时，改为由本单位承受。 亡语：若是被策略效果消灭，对所有敌方目标造成2点伤害。
+    # 效果描述：友方目标受到对方策略效果时，改为由本异象承受。 亡语：若是被策略效果消灭，对所有敌方目标造成2点伤害。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1489,7 +1489,7 @@ register_card(
     keywords={"亡语": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：部署：抽1张花费不大于4T的单位。 亡语：将其加入本单位所在的位置。
+    # 效果描述：部署：抽1张花费不大于4T的异象。 亡语：将其加入本异象所在的位置。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1506,7 +1506,7 @@ register_card(
     keywords={"坚韧": 1},
     tags=['友好', '地狱', '敌对', '生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：部署：与1个敌方单位对战。若将其消灭，获得-1攻击力。
+    # 效果描述：部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_enemy_minions, 1, False)],
     special_fn=_jiangshizhuren_special,
@@ -1541,7 +1541,7 @@ register_card(
     keywords={"协同": True, "亡语": True},
     tags=['非生命'],
     hidden_keywords={},
-    # 效果描述：友方其它非回响单位具有“亡语：将本单位的回响加入手牌。“ 友方回响单位的花费设为1G。
+    # 效果描述：友方其它非回响异象具有“亡语：将本异象的回响加入手牌。“ 友方回响异象的花费设为1G。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1558,7 +1558,7 @@ register_card(
     keywords={"协同": True},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：友方回响单位具有“部署：获得+2/2。“
+    # 效果描述：友方回响异象具有“部署：获得+2/2。“
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1574,7 +1574,7 @@ register_card(
     health=2,
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：结算阶段不攻击。出牌阶段，敌方单位首次部署时，本单位攻击1次。
+    # 效果描述：结算阶段不攻击。出牌阶段，敌方异象首次部署时，本异象攻击1次。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1591,7 +1591,7 @@ register_card(
     keywords={"两栖": True, "串击": True, "迅捷": True},
     tags=['两栖', '敌对', '生物'],
     hidden_keywords={},
-    # 效果描述：对对手造成伤害后，消灭本单位。
+    # 效果描述：对对手造成伤害后，消灭本异象。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1608,7 +1608,7 @@ register_card(
     keywords={"迅捷": True, "破甲": 1},
     tags=['生物', '陆生'],
     hidden_keywords={},
-    # 效果描述：攻击单位后，若目标未被消灭，获得-1HP并攻击1次。
+    # 效果描述：攻击异象后，若目标未被消灭，获得-1HP并攻击1次。
     targets_fn=target_friendly_positions,
     special_fn=None,  # TODO: 实现部署/回合效果
 )
@@ -1749,7 +1749,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：获得1个额外的C槽和2个额外的T槽。然后若对方单位数更多，随机消灭一个 花费不大于4T的敌方单位。
+    # 效果描述：获得1个额外的C槽和2个额外的T槽。然后若对方异象数更多，随机消灭一个 花费不大于4T的敌方异象。
     targets_fn=target_none,
     effect_fn=_zuanshibiao_strategy,
 )
@@ -1791,7 +1791,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：冰冻1个单位及其相邻单位。抽1张牌。
+    # 效果描述：冰冻1个异象及其相邻异象。抽1张牌。
     targets_fn=target_hand_minions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     effect_fn=_mingmingpai_strategy,
@@ -1806,7 +1806,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个陆地单位获得+4攻击力。
+    # 效果描述：使1个陆地异象获得+4攻击力。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1820,7 +1820,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：对1行单位造成3点伤害。
+    # 效果描述：对1行异象造成3点伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1848,7 +1848,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：对一个单位造成6点伤害。
+    # 效果描述：对一个异象造成6点伤害。
     targets_fn=target_any_minion,
     effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
 )
@@ -1862,7 +1862,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个友方单位获得亡语：将本单位的复制加入手牌。
+    # 效果描述：使1个友方异象获得亡语：将本异象的复制加入手牌。
     targets_fn=target_friendly_minions,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1876,7 +1876,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：将1个单位返回其所有者手牌。
+    # 效果描述：将1个异象返回其所有者手牌。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1904,7 +1904,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个水路单位获得+2/2 或 对其造成6点伤害。
+    # 效果描述：使1个水路异象获得+2/2 或 对其造成6点伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1933,7 +1933,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：使1个单位获得+0/3 和坚韧1。
+    # 效果描述：使1个异象获得+0/3 和坚韧1。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -1975,7 +1975,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：将手牌抽至6张 获得1个额外的C槽和T槽 使所有友方单位获得+4HP。
+    # 效果描述：将手牌抽至6张 获得1个额外的C槽和T槽 使所有友方异象获得+4HP。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2001,7 +2001,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张离散金卡单位。
+    # 效果描述：开发1张离散金卡异象。
     targets_fn=target_none,
     effect_fn=lambda p, t, g, extras=None: g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.DISCRETE and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION]),
 )
@@ -2014,7 +2014,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张花费不大于3的非敌对生物单位。将1张“掘进！“加入手牌。
+    # 效果描述：开发1张花费不大于3的非敌对生物异象。将1张“掘进！“加入手牌。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2027,7 +2027,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张花费不小于4的非友好生物单位 使其具有迅捷。
+    # 效果描述：开发1张花费不小于4的非友好生物异象 使其具有迅捷。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2068,7 +2068,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：抽2张单位 使其获得+1/2。
+    # 效果描述：抽2张异象 使其获得+1/2。
     targets_fn=target_none,
     effect_fn=_shamo_shendian_strategy,
 )
@@ -2081,7 +2081,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：抉择：使1个单位获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。
+    # 效果描述：抉择：使1个异象获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2094,7 +2094,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：触发1个单位的亡语。若是敌方单位，再抹除其亡语。
+    # 效果描述：触发1个异象的亡语。若是敌方异象，再抹除其亡语。
     targets_fn=target_none,
     effect_fn=_zhanlipin_strategy,
 )
@@ -2120,7 +2120,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：移除所有矿物，将3个花费之和等于移除矿物的打出总和的非生命单位加入战场。
+    # 效果描述：移除所有矿物，将3个花费之和等于移除矿物的打出总和的非生命异象加入战场。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2133,7 +2133,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：消灭1个友方单位，将2张具有迅捷的“恶魂“加入战场，回合结束时，将其移除。
+    # 效果描述：消灭1个友方异象，将2张具有迅捷的“恶魂“加入战场，回合结束时，将其移除。
     targets_fn=target_friendly_minions,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2146,7 +2146,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：抽3张牌，然后若场上有不少于4个友方地狱生物单位，跳过对方的下一个抽牌 阶段。
+    # 效果描述：抽3张牌，然后若场上有不少于4个友方地狱生物异象，跳过对方的下一个抽牌 阶段。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2159,7 +2159,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：抉择：使所有离散单位获得+1/1，或所有离散单位获得+1HP和+1坚韧等级。 若你本回合此前未部署单位，两项都触发。
+    # 效果描述：抉择：使所有离散异象获得+1/1，或所有离散异象获得+1HP和+1坚韧等级。 若你本回合此前未部署异象，两项都触发。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2172,7 +2172,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张友好单位，抽1张牌。此前你每使用过1张“耕殖”，获得-1T花费。
+    # 效果描述：开发1张友好异象，抽1张牌。此前你每使用过1张“耕殖”，获得-1T花费。
     targets_fn=target_none,
     effect_fn=_gengzhi_strategy,
 )
@@ -2185,7 +2185,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：移除1个单位。下个抽牌阶段，将其返回战场。其所有者抽1张牌。
+    # 效果描述：移除1个异象。下个抽牌阶段，将其返回战场。其所有者抽1张牌。
     targets_fn=target_hand_minions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     effect_fn=_mingmingpai_strategy,
@@ -2225,7 +2225,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张攻击力不大于4的非友好单位，将其复制加入战场。
+    # 效果描述：开发1张攻击力不大于4的非友好异象，将其复制加入战场。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2238,7 +2238,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：移除1个单位，将其2张复制置入其所有者卡组顶。
+    # 效果描述：移除1个异象，将其2张复制置入其所有者卡组顶。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2264,7 +2264,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：将1个单位的HP设为1。
+    # 效果描述：将1个异象的HP设为1。
     targets_fn=target_any_minion,
     effect_fn=_yiqi_strategy,
 )
@@ -2303,7 +2303,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：对所有花费不大于3的单位造成3点伤害。
+    # 效果描述：对所有花费不大于3的异象造成3点伤害。
     targets_fn=target_none,
     effect_fn=_erdi_strategy,
 )
@@ -2316,7 +2316,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个单位获得亡语：随机消灭1个距离不大于3的敌方单位。
+    # 效果描述：使1个异象获得亡语：随机消灭1个距离不大于3的敌方异象。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2329,7 +2329,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：对1行单位造成等同于此行单位数的伤害。
+    # 效果描述：对1行异象造成等同于此行异象数的伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2383,7 +2383,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
-    # 效果描述：消灭1个受伤单位 将1张“TNT炮“加入手牌。
+    # 效果描述：消灭1个受伤异象 将1张“TNT炮“加入手牌。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2440,7 +2440,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：指向1个单位，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。
+    # 效果描述：指向1个异象，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2466,7 +2466,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个非生命单位具有协同。抽1张牌。
+    # 效果描述：使1个非生命异象具有协同。抽1张牌。
     targets_fn=target_none,
     effect_fn=_hongshifen_strategy,
 )
@@ -2479,7 +2479,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个单位及其相邻单位获得眩晕。
+    # 效果描述：使1个异象及其相邻异象获得眩晕。
     targets_fn=target_any_minion,
     effect_fn=_jinrenshu_strategy,
 )
@@ -2492,7 +2492,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：对1个单位造成6点伤害，溢出伤害随机分配至所有敌方目标。
+    # 效果描述：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。
     targets_fn=target_any_minion,
     effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
 )
@@ -2505,7 +2505,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个单位获得：回合开始：获得+1/1。
+    # 效果描述：使1个异象获得：回合开始：获得+1/1。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2518,7 +2518,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：将卡组顶的1张迅捷单位加入战场。
+    # 效果描述：将卡组顶的1张迅捷异象加入战场。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2544,7 +2544,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：随机消灭2个敌方单位。
+    # 效果描述：随机消灭2个敌方异象。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2557,7 +2557,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：对1个非高地单位造成2点伤害，将其攻击力设为0直到回合结束。
+    # 效果描述：对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2570,7 +2570,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张离散迅捷单位。然后若你拥有不小于4个T点，对所有敌方目标造成1点 伤害。
+    # 效果描述：开发1张离散迅捷异象。然后若你拥有不小于4个T点，对所有敌方目标造成1点 伤害。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2583,7 +2583,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个友方单位与1个攻击力最低的敌方单位对战。若将其消灭，获得+1HP并重 复此流程。
+    # 效果描述：使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重 复此流程。
     targets_fn=target_friendly_minions,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2622,7 +2622,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：开发1张非生命单位，使其具有“受到伤害前，每有1个友方“绊线钩“与之同行或 同列，对1个随机敌方目标造成1次1点伤害。“
+    # 效果描述：开发1张非生命异象，使其具有“受到伤害前，每有1个友方“绊线钩“与之同行或 同列，对1个随机敌方目标造成1次1点伤害。“
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2635,7 +2635,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个单位获得+1/2，抽1张牌。若指向非生命单位，再使所有友方非生命单位 获得+2HP。
+    # 效果描述：使1个异象获得+1/2，抽1张牌。若指向非生命异象，再使所有友方非生命异象 获得+2HP。
     targets_fn=target_any_minion,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2648,7 +2648,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：抉择：对所有后排单位造成4点伤害 或 对对手造成6点伤害。
+    # 效果描述：抉择：对所有后排异象造成4点伤害 或 对对手造成6点伤害。
     targets_fn=target_enemy_player,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2662,7 +2662,7 @@ register_card(
     immersion_level=1,
     keywords={"回响": 2},
     hidden_keywords={},
-    # 效果描述：移动1个陆地单位。若是友方单位，抽1张牌。
+    # 效果描述：移动1个陆地异象。若是友方异象，抽1张牌。
     targets_fn=target_none,
     effect_fn=None,  # TODO: 实现效果
 )
@@ -2675,7 +2675,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个友方单位返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。
+    # 效果描述：使1个友方异象返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。
     targets_fn=target_friendly_minions,
     effect_fn=lambda p, t, g, extras=None: return_to_hand(t, g, p),
 )
@@ -2688,7 +2688,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：使1个友方生物单位+1/3，然后与1个敌方单位对战。
+    # 效果描述：使1个友方生物异象+1/3，然后与1个敌方异象对战。
     targets_fn=target_friendly_minions,
     extra_targeting_stages=[(target_enemy_minions, 1, False)],
     effect_fn=_guaiwulieren_strategy,
@@ -2702,7 +2702,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：消灭1个花费不大于3T的单位。若其处于协同，从对方卡组顶抽1张牌。
+    # 效果描述：消灭1个花费不大于3T的异象。若其处于协同，从对方卡组顶抽1张牌。
     targets_fn=target_none,
     effect_fn=_jielue_strategy,
 )
@@ -2715,7 +2715,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：选择1张手牌中的单位，使场上的1个单位获得“也算作是本单位”。抽1张牌。
+    # 效果描述：选择1张手牌中的异象，使场上的1个异象获得“也算作是本异象”。抽1张牌。
     targets_fn=target_hand_minions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
     effect_fn=_mingmingpai_strategy,
@@ -2755,7 +2755,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    # 效果描述：对1个单位及其相邻单位造成2点伤害。若有单位被消灭，将1张“村庄英雄”洗入 卡组。
+    # 效果描述：对1个异象及其相邻异象造成2点伤害。若有异象被消灭，将1张“村庄英雄”洗入 卡组。
     targets_fn=target_any_minion,
     effect_fn=_cunzhuangyingxiong_strategy,
 )
