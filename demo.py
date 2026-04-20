@@ -103,7 +103,7 @@ def random_actor(game: Game, active: Player, opponent: Player) -> Optional[Dict[
             if isinstance(card, MinionCard):
                 if not game.board.is_valid_deploy(t, active, card) or game.board.get_minion_at(t) is not None:
                     continue
-            if active.card_can_play(serial, t):
+            if active.card_can_play(serial, t)[0]:
                 playable.append((serial, t, card))
 
     if playable:

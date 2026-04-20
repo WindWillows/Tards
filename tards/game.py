@@ -640,30 +640,28 @@ class Game:
                 old_chooser = active.sacrifice_chooser
                 if valid_sacs:
                     active.sacrifice_chooser = lambda req, v=valid_sacs: v
-                if active.card_can_play(serial, target):
-                    card = active.card_hand[serial - 1]
-                    # 全局部署限制检查（仅随从卡）
-                    if isinstance(card, MinionCard):
-                        blocked = False
-                        for restriction in self._global_deploy_restrictions:
-                            if not restriction(active, card):
-                                print(f"  全局部署限制阻止了 {card.name} 的部署")
-                                blocked = True
-                                break
-                        if blocked:
-                            active.sacrifice_chooser = old_chooser
-                            if temp_b:
-                                active.b_point = max(0, active.b_point - temp_b)
-                            continue
-                    print(f"  {active.name} 尝试打出 {card.name} (目标: {self._fmt_target(target)})")
-                    ok = active.play_card(serial, target, self, bluff=bluff, extra_targets=extra_targets)
-                    if not ok:
-                        print(f"  出牌失败")
-                else:
-                    print(f"  非法出牌请求，跳过")
-                active.sacrifice_chooser = old_chooser
-                if temp_b:
-                    active.b_point = max(0, active.b_point - temp_b)
+                try:
+                    can_play, reason = active.card_can_play(serial, target)
+                    if can_play:
+                        card = active.card_hand[serial - 1]
+                        # 全局部署限制检查（仅随从卡）
+                        if isinstance(card, MinionCard):
+                            blocked = False
+                            for restriction in self._global_deploy_restrictions:
+                                if not restriction(active, card):
+                                    print(f"  全局部署限制阻止了 {card.name} 的部署")
+                                    blocked = True
+                                    break
+                            if blocked:
+                                continue
+                        print(f"  {active.name} 尝试打出 {card.name} (目标: {self._fmt_target(target)})")
+                        ok = active.play_card(serial, target, self, bluff=bluff, extra_targets=extra_targets)
+                        if not ok:
+                            print(f"  出牌失败")
+                    else:
+                        print(f"  非法出牌请求：{reason}")
+                finally:
+                    active.sacrifice_chooser = old_chooser
             elif act_type == "set_vision":
                 pos = action.get("pos")
                 col = action.get("col")

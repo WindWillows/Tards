@@ -1,5 +1,15 @@
 # 效果实现模板
 
+## 卡牌描述用语速查
+
+| 描述用语 | 含义 | 实现方式 |
+|---------|------|---------|
+| **"具有"** | 一般为**光环效果（aura）**，动态实时更新 | `provide_aura_attack/keywords/max_health` |
+| **"获得"** | 一般为**永久效果**，持续到游戏结束 | `buff_minion(permanent=True)` / `gain_keyword(permanent=True)` |
+| **"直到回合结束"** | 临时效果 | `gain_keyword(permanent=False)` / `give_temp_buff_until_turn_end` |
+| **"目标"**（策略卡） | 可能包含**玩家（主角）和异象** | 使用自定义 `targets_fn` 返回异象+玩家列表 |
+| **"或"**（抉择） | 玩家二选一 | `game.request_choice()` |
+
 ## 标准函数签名
 
 ```python

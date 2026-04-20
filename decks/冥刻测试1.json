@@ -1,0 +1,15 @@
+{
+  "name": "冥刻测试1",
+  "is_test_deck": true,
+  "immersion_points": {
+    "UNDERWORLD": 3
+  },
+  "cards": {
+    "金牙齿": 2,
+    "扇子": 2,
+    "狐": 2,
+    "臭虫": 2,
+    "林鼠": 2,
+    "蜡烛": 1
+  }
+}

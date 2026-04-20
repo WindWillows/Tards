@@ -110,17 +110,21 @@ class Player:
 
     def card_can_play(self, serial, target):
         if serial < 1 or serial > len(self.card_hand):
-            return False
+            return False, "手牌序号无效"
         card = self.card_hand[serial - 1]
         if card.cost > self.t_point:
-            return False
+            return False, f"T点不足（需要{card.cost}T，当前{self.t_point}T）"
         if card.can_play == False:
-            return False
+            return False, "该卡牌当前无法打出（can_play=False）"
         valid_targets = self.get_valid_targets(card)
-        return target in valid_targets
+        if target not in valid_targets:
+            return False, "目标位置无效"
+        return True, ""
 
     def play_card(self, serial, target, game, bluff=False):
-        if not self.card_can_play(serial, target):
+        ok, reason = self.card_can_play(serial, target)
+        if not ok:
+            print(f"  {reason}")
             return False
         card = self.card_hand[serial - 1]
         self.t_point_change(-card.cost)
@@ -531,7 +535,7 @@ class Game:
                     if isinstance(card, Minioncard):
                         if not self.board.is_valid_deploy(t, player, card) or self.board.get_minion_at(t) is not None:
                             continue
-                    if player.card_can_play(serial, t):
+                    if player.card_can_play(serial, t)[0]:
                         playable.append((serial, t, card))
             if not playable:
                 break

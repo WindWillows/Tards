@@ -1,15 +1,23 @@
 # 冥刻卡包复杂效果辅助函数
 # 该文件不被 translate_packs.py 覆盖，供 underworld.py 引用
 
-from card_pools.effect_decorator import special
+from card_pools.effect_decorator import special, strategy
 from card_pools.effect_utils import (
     add_deathrattle,
+    buff_minion,
+    create_card_by_name,
+    deal_damage_to_minion,
     deal_damage_to_player,
     destroy_minion,
     draw_cards,
+    draw_cards_of_type,
+    gain_keyword,
+    gain_resource,
     heal_minion,
     initiate_combat,
+    on,
     on_before_attack,
+    redirect_damage,
     return_minion_to_hand,
 )
 
@@ -27,6 +35,9 @@ SPECIAL_MAP = {
     "西瓜": "_xigua_special",
     "信鸽": "_xinge_special",
     "鸮": "_xiao_special",
+    "臭虫": "_chouchong_special",
+    "林鼠": "_linshu_special",
+    "狐": "_hu_special",
 }
 
 __all__ = [
@@ -53,6 +64,12 @@ __all__ = [
     "_xigua_special",
     "_xinge_special",
     "_xiao_special",
+    "_chouchong_special",
+    "_linshu_special",
+    "_hu_special",
+    "_jin_yachi_strategy",
+    "_shanzi_strategy",
+    "target_any_minion_or_enemy_player",
 ]
 
 
@@ -395,3 +412,133 @@ def _xiao_special(minion, player, game, extras=None):
             print(f"  {minion.name} 消灭目标后恢复 {target_atk} HP")
 
     on_before_attack(minion, game, _on_before_attack)
+
+
+# =============================================================================
+# 冥刻包 — 新增卡牌效果（臭虫、林鼠、狐、金牙齿、扇子）
+# =============================================================================
+
+@special
+def _chouchong_special(minion, player, game, extras=None):
+    """臭虫：与其同列的敌方异象具有-1攻击力（光环效果）。"""
+
+    def aura_fn(target):
+        if not minion.is_alive():
+            return 0
+        if target.owner is minion.owner:
+            return 0
+        bug_pos = minion.position
+        target_pos = target.position
+        if bug_pos is None or target_pos is None:
+            return 0
+        if bug_pos[1] == target_pos[1]:
+            return -1
+        return 0
+
+    # 给所有当前敌方异象添加 aura
+    for m in game.board.minion_place.values():
+        if m.owner is not minion.owner and m.is_alive():
+            minion.provide_aura_attack(m, aura_fn)
+
+    # 新部署的敌方异象也获得 aura
+    def on_deployed(event):
+        deployed = event.data.get("minion")
+        if not deployed or not deployed.is_alive():
+            return
+        if deployed.owner is minion.owner:
+            return
+        minion.provide_aura_attack(deployed, aura_fn)
+
+    on("deployed", on_deployed, game, minion=minion)
+
+
+@special
+def _linshu_special(minion, player, game, extras=None):
+    """林鼠：部署：抉择：抽一张策略，或将1只0T的松鼠加入手牌。"""
+    choice = game.request_choice(
+        player,
+        ["抽一张策略", "将1只0T的松鼠加入手牌"],
+        title="林鼠：选择一项",
+    )
+    if choice == "抽一张策略":
+        from tards.cards import Strategy
+
+        drawn = draw_cards_of_type(player, 1, Strategy, game)
+        if drawn:
+            print(f"  林鼠：{player.name} 抽到策略 {drawn[0].name}")
+        else:
+            print(f"  林鼠：{player.name} 牌库中没有策略")
+    elif choice == "将1只0T的松鼠加入手牌":
+        card = create_card_by_name("松鼠", player)
+        if card:
+            card.cost.t = 0
+            if len(player.card_hand) < player.card_hand_max:
+                player.card_hand.append(card)
+                print(f"  林鼠：{player.name} 将0T松鼠加入手牌")
+            else:
+                player.card_dis.append(card)
+                print(f"  林鼠：{player.name} 手牌满，0T松鼠被弃置")
+
+
+@special
+def _hu_special(minion, player, game, extras=None):
+    """狐：攻击后，获得+1攻击力。免疫偶数伤害。"""
+    # 免疫偶数伤害
+    redirect_damage(minion, lambda d, s: d % 2 == 0, 0, "even_immunity")
+    print(f"  狐：{minion.name} 免疫偶数伤害")
+
+    # 攻击后永久+1攻击力
+    def on_after_attack(event):
+        attacker = event.data.get("attacker")
+        if attacker is not minion:
+            return
+        if not minion.is_alive():
+            return
+        buff_minion(minion, atk_delta=1, permanent=True)
+        print(f"  狐：{minion.name} 攻击后获得+1攻击力")
+
+    on("after_attack", on_after_attack, game, minion=minion)
+
+
+# ----- 策略卡效果 -----
+
+def target_any_minion_or_enemy_player(player, board):
+    """返回所有场上异象 + 敌方玩家（用于金牙齿等需要指向玩家或异象的策略）。"""
+    targets = list(board.minion_place.values())
+    if board.game_ref:
+        for p in board.game_ref.players:
+            if p != player:
+                targets.append(p)
+    return targets
+
+
+@strategy
+def _jin_yachi_strategy(player, target, game, extras=None):
+    """金牙齿：对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。"""
+    from tards.cards import Minion
+
+    if isinstance(target, Minion):
+        deal_damage_to_minion(target, 1, source=None, game=game)
+        if not target.is_alive():
+            gain_resource(player, "t", 1)
+            draw_cards(player, 1, game)
+            print(f"  金牙齿消灭 {target.name}，{player.name} 获得1T并抽一张牌")
+    else:
+        # 对玩家造成伤害（无法消灭玩家，不触发后续）
+        deal_damage_to_player(target, 1, source=None, game=game)
+        print(f"  金牙齿对 {target.name} 造成1点伤害")
+    return True
+
+
+@strategy
+def _shanzi_strategy(player, target, game, extras=None):
+    """扇子：使一个异象具有空袭直到回合结束。抽1张牌。"""
+    from tards.cards import Minion
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  扇子：目标无效")
+        return False
+    gain_keyword(target, "空袭", value=True, permanent=False)
+    draw_cards(player, 1, game)
+    print(f"  扇子：{target.name} 获得空袭直到回合结束，{player.name} 抽1张牌")
+    return True

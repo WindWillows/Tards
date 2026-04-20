@@ -175,7 +175,7 @@ register_card(
     keywords={"协同": True, "尖刺": 1},
     # 效果描述：与其同列的敌方异象具有-1攻击力。
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_chouchong_special,
 )
 
 register_card(
@@ -205,7 +205,7 @@ register_card(
     keywords={"丰饶": 2},
     # 效果描述：部署：抽一张指令，或将1只0T的松鼠加入手牌。
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_linshu_special,
 )
 
 register_card(
@@ -1000,7 +1000,7 @@ register_card(
     keywords={"迅捷": True, "三重打击": True},
     # 效果描述：攻击后，获得+1攻击力。免疫偶数伤害。
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_hu_special,
 )
 
 register_card(
@@ -1663,8 +1663,8 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     # 效果描述：对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target_any_minion_or_enemy_player,
+    effect_fn=_jin_yachi_strategy,
 )
 
 register_card(
@@ -1798,7 +1798,7 @@ register_card(
     immersion_level=1,
     # 效果描述：使一个异象具有空袭直到回合结束。抽1张牌。
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shanzi_strategy,
 )
 
 register_card(

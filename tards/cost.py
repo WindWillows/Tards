@@ -99,21 +99,21 @@ class Cost:
             parts.append(f"{v}{k}")
         return "".join(parts) if parts else "0"
 
-    def can_afford(self, player: "Player") -> bool:
-        """检查玩家当前资源是否足够支付此费用。"""
+    def can_afford_detail(self, player: "Player") -> tuple[bool, str]:
+        """检查玩家当前资源是否足够支付此费用，返回 (是否可支付, 失败原因)。"""
         # 检查 T/B/S
         if player.t_point < self.t:
-            return False
+            return False, f"T点不足（需要{self.t}T，当前{player.t_point}T）"
         if player.b_point < self.b:
-            return False
+            return False, f"鲜血不足（需要{self.b}B，当前{player.b_point}B）"
         if player.s_point < self.s:
-            return False
+            return False, f"血契不足（需要{self.s}S，当前{player.s_point}S）"
 
         # 检查 CT（组合费用）：支付 t 后，剩余的 t + c 必须 >= ct
         if self.ct > 0:
             remaining_t = player.t_point - self.t
             if remaining_t + player.c_point < self.ct:
-                return False
+                return False, f"CT不足（需要{self.ct}CT，当前剩余T+C={remaining_t + player.c_point}）"
 
         # 检查手牌中的矿物卡
         from .cards import MineralCard
@@ -124,9 +124,13 @@ class Cost:
 
         for mtype, need in self.minerals.items():
             if hand_minerals.get(mtype, 0) < need:
-                return False
+                return False, f"手牌矿物不足（需要{need}张{mtype}，当前{hand_minerals.get(mtype, 0)}张）"
 
-        return True
+        return True, ""
+
+    def can_afford(self, player: "Player") -> bool:
+        """检查玩家当前资源是否足够支付此费用。"""
+        return self.can_afford_detail(player)[0]
 
     def pay(self, player: "Player") -> bool:
         """执行支付。支付前会自动检查，若无法支付则返回 False。"""

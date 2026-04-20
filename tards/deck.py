@@ -15,6 +15,7 @@ class Deck:
         name: str,
         registry: CardRegistry,
         immersion_points: Optional[Dict[Pack, int]] = None,
+        is_test_deck: bool = False,
     ):
         self.name = name
         self.registry = registry
@@ -22,6 +23,8 @@ class Deck:
         self.immersion_points: Dict[Pack, int] = immersion_points or {}
         # 卡牌条目：name -> count
         self.card_entries: Dict[str, int] = {}
+        # 测试卡组标记：测试卡组不受构筑规则限制，仅用于本地测试
+        self.is_test_deck = is_test_deck
 
     def set_immersion(self, pack: Pack, points: int):
         """设置某卡包的沉浸点数。"""
@@ -85,13 +88,28 @@ class Deck:
         return sum(self.card_entries.values())
 
     def validate(self) -> List[str]:
-        """校验卡组合法性，返回错误信息列表。空列表表示合法。"""
+        """校验卡组合法性，返回错误信息列表。空列表表示合法。
+        
+        测试卡组 (is_test_deck=True) 仅检查卡牌是否注册、是否为非法特殊卡，
+        跳过所有构筑数量限制（40张、沉浸点、卡包数量、沉浸等级、稀有度上限）。
+        """
         errors = []
 
-        # 1. 总牌数（测试期间取消校验）
-        # total = self.total_cards()
-        # if total != self.DECK_SIZE:
-        #     errors.append(f"卡组牌数应为 {self.DECK_SIZE} 张，当前 {total} 张")
+        # 测试卡组：仅做最基本检查
+        if self.is_test_deck:
+            for name, count in self.card_entries.items():
+                card_def = self.registry.get(name)
+                if not card_def:
+                    errors.append(f"卡组中包含未注册卡牌 [{name}]")
+                    continue
+                if card_def.card_type == CardType.MINERAL or card_def.is_moment or card_def.is_token:
+                    errors.append(f"特殊卡 [{name}] 不能加入卡组")
+            return errors
+
+        # 1. 总牌数
+        total = self.total_cards()
+        if total != self.DECK_SIZE:
+            errors.append(f"卡组牌数应为 {self.DECK_SIZE} 张，当前 {total} 张")
 
         # 2. 沉浸点总和
         total_immersion = sum(self.immersion_points.values())
@@ -213,8 +231,12 @@ class Deck:
 
     def deck_summary(self) -> str:
         """返回卡组统计摘要。"""
-        lines = [f"卡组 [{self.name}] 摘要:"]
-        lines.append(f"  总牌数: {self.total_cards()}/{self.DECK_SIZE}")
+        prefix = "[测试卡组] " if self.is_test_deck else ""
+        lines = [f"{prefix}卡组 [{self.name}] 摘要:"]
+        if self.is_test_deck:
+            lines.append(f"  总牌数: {self.total_cards()} 张（测试卡组无40张限制）")
+        else:
+            lines.append(f"  总牌数: {self.total_cards()}/{self.DECK_SIZE}")
         lines.append(f"  沉浸点分配:")
         for pack in Pack:
             pts = self.immersion_points.get(pack, 0)

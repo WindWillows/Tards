@@ -108,13 +108,12 @@ class MinionCard(Card):
             print("  该格子已被占用")
             return False
 
-        # 鲜血费用：需要先献祭友方异象
+        # 鲜血费用：执行献祭（消灭友方异象、触发事件，不管理 b_point）
         if self.cost.b > 0:
             sacrifices = player.request_sacrifice(self.cost.b)
             if sacrifices is None:
                 print("  献祭不足，无法部署")
                 return False
-            total_blood = 0
             for m in sacrifices:
                 # 检查献祭次数
                 if getattr(m, '_sacrifice_remaining', 0) <= 0:
@@ -122,7 +121,6 @@ class MinionCard(Card):
                     return False
                 m._sacrifice_remaining -= 1
                 blood = m.keywords.get("丰饶", 1)
-                total_blood += blood
                 # 献祭变身（13号孩子）
                 transform_target = getattr(m, "_transform_on_sacrifice", None)
                 if transform_target and game:
@@ -134,7 +132,6 @@ class MinionCard(Card):
                             print(f"  {m.name} 献祭后变身为 {new_minion.name}！")
                             m = new_minion
                             blood = m.keywords.get("丰饶", 1)
-                            total_blood += blood
                             continue
                 # 非变身：消灭异象并触发亡语（免疫献祭的异象除外）
                 if getattr(m, '_immune_to_sacrifice', False):
@@ -144,11 +141,6 @@ class MinionCard(Card):
                     m.minion_death()
                     print(f"  献祭 {m.name}，获得 {blood}B")
                 game.emit_event(EVENT_SACRIFICE, minion=m, player=player)
-            player.b_point += total_blood
-            if player.b_point < self.cost.b:
-                print(f"  献祭获得的鲜血不足（{total_blood}/{self.cost.b}B）")
-                return False
-            player.b_point -= self.cost.b
 
         minion = Minion(
             name=self.name,

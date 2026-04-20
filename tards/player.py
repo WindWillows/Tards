@@ -285,26 +285,30 @@ class Player:
                 fn(card, cost)
         return cost
 
-    def card_can_play(self, serial: int, target: Any) -> bool:
+    def card_can_play(self, serial: int, target: Any) -> tuple[bool, str]:
         if serial < 1 or serial > len(self.card_hand):
-            return False
+            return False, "手牌序号无效"
         card = self.card_hand[serial - 1]
         cost = self._get_play_cost(card)
-        if not cost.can_afford(self):
-            return False
+        ok, reason = cost.can_afford_detail(self)
+        if not ok:
+            return False, reason
         if card.can_play is False:
-            return False
+            return False, "该卡牌当前无法打出（can_play=False）"
         # 绝缘：策略卡无法以对方的绝缘异象为直接目标
         from .cards import Strategy, Minion
         if isinstance(card, Strategy) and isinstance(target, Minion):
             if target.keywords.get("绝缘", False) and target.owner != self:
-                print(f"  {target.name} 具有绝缘，无法被策略选中")
-                return False
+                return False, f"{target.name} 具有绝缘，无法被策略选中"
         valid_targets = self.get_valid_targets(card)
-        return target in valid_targets
+        if target not in valid_targets:
+            return False, "目标位置无效"
+        return True, ""
 
     def play_card(self, serial: int, target: Any, game: "Game", bluff: bool = False, extra_targets: Optional[List[Any]] = None) -> bool:
-        if not self.card_can_play(serial, target):
+        ok, reason = self.card_can_play(serial, target)
+        if not ok:
+            print(f"  {reason}")
             return False
         card = self.card_hand[serial - 1]
 

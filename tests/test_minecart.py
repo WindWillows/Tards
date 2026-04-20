@@ -53,7 +53,7 @@ def test_actor(game: Game, active: Player, opponent: Player) -> Optional[Dict[st
                 for c in range(5):
                     pos = (r, c)
                     if active.board_ref.get_minion_at(pos) is None:
-                        if active.card_can_play(serial, pos):
+                        if active.card_can_play(serial, pos)[0]:
                             return {"type": "play", "serial": serial, "target": pos}
 
     # 其次找火球打自己的矿车（测试亡语）
@@ -63,7 +63,7 @@ def test_actor(game: Game, active: Player, opponent: Player) -> Optional[Dict[st
             # 找友方矿车作为目标
             for m in active.board_ref.get_minions_of_player(active):
                 if m.is_alive() and m.name == "矿车":
-                    if active.card_can_play(serial, m):
+                    if active.card_can_play(serial, m)[0]:
                         return {"type": "play", "serial": serial, "target": m}
 
     # 否则拉闸

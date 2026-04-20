@@ -350,6 +350,9 @@ class DeckBuilderFrame(tk.Frame):
         self.name_entry.insert(0, self.deck.name)
         self.name_entry.pack(side=tk.LEFT, padx=5)
         tk.Button(top, text="保存卡组", command=self._save_deck).pack(side=tk.LEFT, padx=10)
+        self.is_test_var = tk.BooleanVar(value=self.deck.is_test_deck)
+        self.test_check = tk.Checkbutton(top, text="测试卡组", variable=self.is_test_var, fg="orange", font=("Microsoft YaHei", 10, "bold"), command=self._on_test_mode_change)
+        self.test_check.pack(side=tk.LEFT, padx=10)
 
         immersion_frame = tk.LabelFrame(self, text="沉浸点分配 (每卡包 0-3)")
         immersion_frame.pack(fill=tk.X, padx=10, pady=5)
@@ -416,10 +419,17 @@ class DeckBuilderFrame(tk.Frame):
         self.deck_count_label = tk.Label(deck_frame, text="0 张")
         self.deck_count_label.pack(side=tk.BOTTOM, fill=tk.X)
 
+    def _on_test_mode_change(self):
+        """切换测试卡组模式时更新 Deck 对象和界面。"""
+        self.deck.is_test_deck = self.is_test_var.get()
+        self._refresh_available()
+        self._refresh_deck_list()
+
     def _load_deck_data(self):
         """加载已有卡组后，同步界面状态。"""
         self.name_entry.delete(0, tk.END)
         self.name_entry.insert(0, self.deck.name)
+        self.is_test_var.set(self.deck.is_test_deck)
         for pack in Pack:
             pts = self.deck.immersion_points.get(pack, 0)
             self.imm_sliders[pack].set(pts)
@@ -466,6 +476,7 @@ class DeckBuilderFrame(tk.Frame):
         if self.show_conspiracy.get():
             type_filter.add(CardType.CONSPIRACY)
         sort_by = self.sort_by.get()
+        is_test = self.deck.is_test_deck
         for pack in Pack:
             pts = self.deck.immersion_points.get(pack, 0)
             def _is_implemented(c):
@@ -479,7 +490,7 @@ class DeckBuilderFrame(tk.Frame):
 
             cards = [
                 c for c in DEFAULT_REGISTRY.by_pack(pack)
-                if c.immersion_level <= pts
+                if (is_test or c.immersion_level <= pts)
                 and c.card_type in type_filter
                 and c.card_type != CardType.MINERAL
                 and not c.is_moment
@@ -508,13 +519,14 @@ class DeckBuilderFrame(tk.Frame):
         if not card_def:
             return
         current = self.deck.get_card_count(name)
-        if current >= card_def.rarity.value:
-            messagebox.showwarning("提示", f"{card_def.rarity.name} 卡最多携带 {card_def.rarity.value} 张")
-            return
-        # 测试期间不限制卡组大小
-        # if self.deck.total_cards() >= 40:
-        #     messagebox.showwarning("提示", "卡组已满 40 张")
-        #     return
+        # 测试卡组取消稀有度上限和40张限制
+        if not self.deck.is_test_deck:
+            if current >= card_def.rarity.value:
+                messagebox.showwarning("提示", f"{card_def.rarity.name} 卡最多携带 {card_def.rarity.value} 张")
+                return
+            if self.deck.total_cards() >= 40:
+                messagebox.showwarning("提示", "卡组已满 40 张")
+                return
         self.deck.add_card(name)
         self._refresh_deck_list()
 
@@ -535,12 +547,16 @@ class DeckBuilderFrame(tk.Frame):
         self.deck_listbox.delete(0, tk.END)
         for name, count in sorted(self.deck.card_entries.items()):
             self.deck_listbox.insert(tk.END, f"{name} x{count}")
-        self.deck_count_label.config(text=f"{self.deck.total_cards()} 张")
+        prefix = "[测试] " if self.deck.is_test_deck else ""
+        self.deck_count_label.config(text=f"{prefix}{self.deck.total_cards()} 张")
         errors = self.deck.validate()
         if errors:
             self.validation_label.config(text=" | ".join(errors), fg="red")
         else:
-            self.validation_label.config(text="卡组合法", fg="green")
+            if self.deck.is_test_deck:
+                self.validation_label.config(text="测试卡组（无构筑限制）", fg="orange")
+            else:
+                self.validation_label.config(text="卡组合法", fg="green")
 
     def _save_deck(self):
         name = self.name_entry.get().strip()
@@ -548,7 +564,8 @@ class DeckBuilderFrame(tk.Frame):
             messagebox.showwarning("提示", "请输入卡组名")
             return
         errors = self.deck.validate()
-        if errors:
+        # 测试卡组允许保存（即使有不合法项）
+        if errors and not self.deck.is_test_deck:
             messagebox.showwarning("校验失败", "\n".join(errors))
             return
         self.deck.name = name
@@ -559,7 +576,10 @@ class DeckBuilderFrame(tk.Frame):
             if not messagebox.askyesno("覆盖确认", f"卡组 [{name}] 已存在，是否覆盖？"):
                 return
         path = save_deck(self.deck)
-        messagebox.showinfo("保存成功", f"已保存到 {path}")
+        msg = f"已保存到 {path}"
+        if self.deck.is_test_deck:
+            msg += "\n（测试卡组，仅可用于本地测试）"
+        messagebox.showinfo("保存成功", msg)
 
 
 # ========== 联机大厅 ==========
@@ -613,6 +633,9 @@ class LobbyFrame(tk.Frame):
         deck = load_deck(name, DEFAULT_REGISTRY)
         if not deck:
             messagebox.showwarning("提示", f"无法读取卡组 {name}")
+            return None
+        if deck.is_test_deck:
+            messagebox.showwarning("提示", f"卡组 [{name}] 为测试卡组，不能用于联机对战")
             return None
         return deck
 
@@ -713,6 +736,7 @@ class BluffDialog(tk.Toplevel):
 
     def _choose(self, is_true: bool):
         self.on_choice(is_true)
+        self.grab_release()
         self.destroy()
 
 
@@ -751,12 +775,14 @@ class SacrificeDialog(tk.Toplevel):
 
     def _confirm(self):
         selected = [m for var, m in zip(self.vars, self.minions) if var.get()]
-        self.on_confirm(selected)
+        self.grab_release()
         self.destroy()
+        self.on_confirm(selected)
 
     def _on_close(self):
-        self.on_confirm([])
+        self.grab_release()
         self.destroy()
+        self.on_confirm([])
 
 
 class DiscoverDialog(tk.Toplevel):
@@ -780,11 +806,13 @@ class DiscoverDialog(tk.Toplevel):
 
     def _choose(self, name: str):
         self.on_choose(name)
+        self.grab_release()
         self.destroy()
 
     def _on_close(self):
         if self.names:
             self.on_choose(self.names[0])
+        self.grab_release()
         self.destroy()
 
 
@@ -810,11 +838,13 @@ class ChoiceDialog(tk.Toplevel):
 
     def _choose(self, option: str):
         self.on_choose(option)
+        self.grab_release()
         self.destroy()
 
     def _on_close(self):
         if self.options:
             self.on_choose(self.options[0])
+        self.grab_release()
         self.destroy()
 
 
@@ -1155,7 +1185,7 @@ class BattleFrame(tk.Frame):
         if isinstance(card, Conspiracy):
             def on_bluff_choice(is_true: bool):
                 if is_true:
-                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)]
+                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
                     if valid:
                         req = TargetingRequest(
                             valid_targets=valid,
@@ -1221,7 +1251,7 @@ class BattleFrame(tk.Frame):
                     count = 1
                     repeat = False
                 else:
-                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)]
+                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
                     prompt = f"请选择 [{card.name}] 的目标（阶段 1/{total_stages}）"
                     count = getattr(card, "targets_count", 1)
                     repeat = getattr(card, "targets_repeat", False)

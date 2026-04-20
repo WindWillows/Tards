@@ -30,6 +30,7 @@ def save_deck(deck: Deck, filename: Optional[str] = None) -> str:
 
     data = {
         "name": deck.name,
+        "is_test_deck": deck.is_test_deck,
         "immersion_points": {
             _pack_to_str(p): pts for p, pts in deck.immersion_points.items()
         },
@@ -50,7 +51,11 @@ def load_deck(name: str, registry: CardRegistry) -> Optional[Deck]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    deck = Deck(name=data.get("name", name), registry=registry)
+    deck = Deck(
+        name=data.get("name", name),
+        registry=registry,
+        is_test_deck=data.get("is_test_deck", False),
+    )
     for p_str, pts in data.get("immersion_points", {}).items():
         deck.set_immersion(_str_to_pack(p_str), pts)
     for card_name, count in data.get("cards", {}).items():

@@ -414,7 +414,7 @@ def main():
                     if hasattr(card, '__class__') and card.__class__.__name__ == 'MinionCard':
                         if not game.board.is_valid_deploy(t, active, card) or game.board.get_minion_at(t) is not None:
                             continue
-                    if active.card_can_play(serial, t):
+                    if active.card_can_play(serial, t)[0]:
                         playable.append((serial, t, card))
             if playable:
                 playable.sort(key=lambda x: x[2].cost.t + x[2].cost.b + x[2].cost.s + x[2].cost.ct + sum(x[2].cost.minerals.values()), reverse=True)
