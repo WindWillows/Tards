@@ -500,46 +500,92 @@ def create_echo_card(source_card: "MinionCard", echo_level: int) -> "MinionCard"
 
 
 # =============================================================================
-# 4. 目标选择
+# 4. 返回指定类型的异象（通用查询）
 # =============================================================================
 
+def get_minions(
+    game: "Game",
+    *,
+    player: Optional["Player"] = None,
+    friendly_only: bool = False,
+    enemy_only: bool = False,
+    tag: Optional[str] = None,
+    random_one: bool = False,
+    alive_only: bool = True,
+) -> Union[List["Minion"], Optional["Minion"]]:
+    """返回指定类型的异象。
+
+    通用查询函数，通过参数组合筛选场上异象。
+
+    Args:
+        game: 当前 Game 实例。
+        player: 参照玩家，配合 friendly_only/enemy_only 使用。
+        friendly_only: 为 True 时只返回属于 player 的异象。
+        enemy_only: 为 True 时只返回敌方异象。
+        tag: 若指定，只返回带此标签的异象。
+        random_one: 为 True 时随机返回一个异象（或 None），否则返回列表。
+        alive_only: 为 True 时只返回存活异象（默认）。
+
+    Returns:
+        random_one=True 时返回单个异象或 None；否则返回列表。
+    """
+    result: List["Minion"] = []
+    for m in game.board.minion_place.values():
+        if alive_only and not m.is_alive():
+            continue
+        if friendly_only and player and m.owner is not player:
+            continue
+        if enemy_only and player and m.owner is player:
+            continue
+        if tag is not None and tag not in getattr(m, "tags", []):
+            continue
+        result.append(m)
+
+    if random_one:
+        import random
+        return random.choice(result) if result else None
+    return result
+
+
+# ---- 以下为兼容层薄包装，直接调用 get_minions ----
+
+def all_enemy_minions(game: "Game", player: "Player") -> List["Minion"]:
+    """【兼容】返回场上所有存活敌方异象列表。"""
+    return get_minions(game, player=player, enemy_only=True)  # type: ignore
+
+
+def all_friendly_minions(game: "Game", player: "Player") -> List["Minion"]:
+    """【兼容】返回场上所有存活友方异象列表。"""
+    return get_minions(game, player=player, friendly_only=True)  # type: ignore
+
+
 def random_enemy_minion(game: "Game", player: "Player") -> Optional["Minion"]:
-    """返回一个随机存活敌方异象。没有则返回 None。"""
-    import random
-    enemies = all_enemy_minions(game, player)
-    return random.choice(enemies) if enemies else None
+    """【兼容】返回一个随机存活敌方异象。没有则返回 None。"""
+    return get_minions(game, player=player, enemy_only=True, random_one=True)  # type: ignore
 
 
 def random_friendly_minion(game: "Game", player: "Player") -> Optional["Minion"]:
-    """返回一个随机存活友方异象。没有则返回 None。"""
-    import random
-    friends = all_friendly_minions(game, player)
-    return random.choice(friends) if friends else None
+    """【兼容】返回一个随机存活友方异象。没有则返回 None。"""
+    return get_minions(game, player=player, friendly_only=True, random_one=True)  # type: ignore
 
 
 def random_minion(
     game: "Game", player: "Player", friendly: bool = False
 ) -> Optional["Minion"]:
-    """返回一个随机存活异象（默认敌方）。没有则返回 None。"""
+    """【兼容】返回一个随机存活异象（默认敌方）。没有则返回 None。"""
     if friendly:
-        return random_friendly_minion(game, player)
-    return random_enemy_minion(game, player)
+        return get_minions(game, player=player, friendly_only=True, random_one=True)  # type: ignore
+    return get_minions(game, player=player, enemy_only=True, random_one=True)  # type: ignore
 
 
-def all_enemy_minions(game: "Game", player: "Player") -> List["Minion"]:
-    """返回场上所有存活敌方异象列表。"""
-    return [
-        m for m in game.board.minion_place.values()
-        if m.is_alive() and m.owner != player
-    ]
+def get_enemy_minions_by_tag(game: "Game", player: "Player", tag: str) -> List["Minion"]:
+    """【兼容】获取敌方场上所有带某标签的存活异象。"""
+    return get_minions(game, player=player, tag=tag, enemy_only=True)  # type: ignore
 
 
-def all_friendly_minions(game: "Game", player: "Player") -> List["Minion"]:
-    """返回场上所有存活友方异象列表。"""
-    return [
-        m for m in game.board.minion_place.values()
-        if m.is_alive() and m.owner == player
-    ]
+def get_all_minions_by_tag(game: "Game", tag: str) -> List["Minion"]:
+    """【兼容】获取场上所有带某标签的存活异象（双方）。"""
+    return get_minions(game, tag=tag)  # type: ignore
 
 
 # =============================================================================
@@ -554,17 +600,6 @@ def has_tag(obj: Any, tag: str) -> bool:
     if tags is None and hasattr(obj, "source_card"):
         tags = getattr(obj.source_card, "tags", None)
     return tag in tags if tags else False
-
-
-def get_enemy_minions_by_tag(game: "Game", player: "Player", tag: str) -> List["Minion"]:
-    """获取敌方场上所有带某标签的存活异象。"""
-    enemy = game.p2 if player == game.p1 else game.p1
-    return get_minions_by_tag(game, tag, player=enemy, friendly_only=True)
-
-
-def get_all_minions_by_tag(game: "Game", tag: str) -> List["Minion"]:
-    """获取场上所有带某标签的存活异象（双方）。"""
-    return get_minions_by_tag(game, tag)
 
 
 def get_card_defs_by_tag(tag: str) -> List[Any]:
@@ -595,40 +630,6 @@ def get_frontmost_enemy(
     自动过滤潜水/潜行异象（结算阶段）。
     """
     return board.get_front_minion(column, owner, attacker)
-
-
-def get_minions_by_tag(
-    game: "Game",
-    tag: str,
-    player: Optional["Player"] = None,
-    friendly_only: bool = False,
-    enemy_only: bool = False,
-    alive_only: bool = True,
-) -> List["Minion"]:
-    """按标签筛选场上异象。
-
-    Args:
-        game: 当前 Game 实例。
-        tag: 要匹配的标签（如 "友好", "地狱", "非生命", "飞禽" 等）。
-        player: 若指定，配合 friendly_only/enemy_only 过滤阵营。
-        friendly_only: 为 True 时只返回属于 player 的异象。
-        enemy_only: 为 True 时只返回敌方异象。
-        alive_only: 为 True 时只返回存活异象（默认）。
-
-    Returns:
-        符合条件的 Minion 列表。
-    """
-    result: List["Minion"] = []
-    for m in game.board.minion_place.values():
-        if alive_only and not m.is_alive():
-            continue
-        if friendly_only and player and m.owner is not player:
-            continue
-        if enemy_only and player and m.owner is player:
-            continue
-        if tag in getattr(m, "tags", []):
-            result.append(m)
-    return result
 
 
 # =============================================================================
