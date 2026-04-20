@@ -85,6 +85,10 @@ def extract_keyword_definitions():
                 sep = "：" if "：" in line else ":"
                 name, desc = line.split(sep, 1)
                 name = name.strip()
+                # Filter out non-keyword lines (explanatory text, section headers)
+                # Valid keyword names: 2-8 Chinese chars, optionally ending with X
+                if not re.match(r'^[\u4e00-\u9fa5]{2,8}[Xx]?$', name):
+                    continue
                 # Strip X suffix for base name
                 base_name = re.sub(r'[Xx]\s*$', '', name).strip()
                 keywords[base_name] = desc.strip()
