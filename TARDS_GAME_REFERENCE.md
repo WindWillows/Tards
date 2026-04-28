@@ -24,6 +24,7 @@
   - `cost.py` — `Cost` 类：T/C/B/S/CT/矿物费用解析与支付
   - `targets.py` — 预设目标选择器（`target_friendly_positions`、`target_none`、`target_any_minion` 等）
   - `constants.py` — 事件类型常量、`GENERAL_KEYWORDS` 列表
+  - `assets.py` — **美术资源管理器**：`AssetManager` 统一加载/缓存/缩放图像，零资源时自动回退到文本/几何渲染
 - **卡包池**：`card_pools/` 由 `translate_packs.py` 自动生成
   - `discrete.py` — 182 张（离散卡包）
   - `underworld.py` — 164 张（冥刻卡包）
@@ -32,7 +33,7 @@
   - `underworld_effects.py` — 冥刻卡包复杂效果手动实现（雕像对 + 5 张特殊卡）
   - `effect_utils.py` — **标准效果工具库**（人工编写 special_fn 必须优先使用）
   - `effect_decorator.py` — **格式校验装饰器** `@special`
-- **客户端**：`gui_client.py`（~1500 行）— 主菜单、卡组构筑器、联机大厅、对战界面
+- **客户端**：`gui_client.py`（~2400 行）— 主菜单、卡组构筑器、联机大厅、对战界面（含美术资源接口）
 - **翻译器**：`translate_packs.py` — 从 `.txt` 卡包文本自动生成 `card_pools/*.py`
 
 ---
@@ -427,17 +428,22 @@ effect_fn(player, target, game, extras=None)
 - `LocalDuel` / `NetworkDuel`
 
 ### 9.2 对战界面
-- 棋盘：500×500 Canvas，5×5 格子。
-- 异象渲染：蓝色（己方）、红色（敌方），边框颜色根据状态变化。
-- 手牌区：横向 Canvas + Scrollbar。
-- 信息面板：HP、T/C/B/S、手牌/卡组/弃牌/阴谋数量。
-- 弹窗：`BluffDialog`、`SacrificeDialog`、`DiscoverDialog`。
+- **棋盘**：500×500 Canvas，5×5 格子，整体居中偏移（`BOARD_OFFSET_X=50`, `BOARD_OFFSET_Y=40`）。列名标签位于棋盘底部，不遮挡格子。
+- **异象渲染**：优先显示缩略图肖像（`AssetManager.get_thumbnail`），无图时回退到蓝色（己方）/红色（敌方）矩形。保留边框颜色（恐惧紫、冰冻青、眩晕橙、成长绿）。
+- **手牌区**：横向 Canvas + Scrollbar，每张手牌为固定尺寸 `tk.Canvas`（90×120）。优先显示卡面图像（`AssetManager.get_card_face`），无图时回退到按卡牌类型着色的矩形 + 文字覆盖。
+- **牌堆/弃牌堆视觉化**：每个玩家下方显示 50×70 的 Canvas，显示卡背图像（`AssetManager.get_card_back`）+ 数量角标。
+- **卡牌详情大图**：右侧新增 160×220 Canvas，悬停手牌时显示大图或文字信息。
+- **信息面板**：HP、T/C/B/S、手牌/卡组/弃牌/阴谋数量。
+- **操作历史**：Listbox 记录回合/阶段/动作。
+- **弹窗**：`BluffDialog`、`SacrificeDialog`、`DiscoverDialog`、`ChoiceDialog`（全部带颜色/字体样式）。
 
 ### 9.3 统一指向交互
 - 所有指向操作通过 `process_targeting_request(req)` 进入指向模式。
 - `_on_canvas_click()` 在指向模式下将点击委托给 `TargetPicker.select()`。
-- 支持多阶段嵌套：部署位置 → 额外目标 → 确认。
+- 支持多阶段嵌套：部署位置 → 额外目标 → 确认，**支持 Back 按钮回退到上一阶段**。
 - 支持多选和重复选择（通过 `count` 和 `allow_repeat` 控制）。
+- **单目标自动确认**：若合法目标唯一，自动选中并进入下一阶段。
+- **非法目标反馈**：点击非法格子时闪烁红色矩形 + 提示文字变红。
 
 ### 9.4 测试卡组模式（Test Deck）
 - `Deck.is_test_deck = True` 时，`validate()` **跳过所有构筑限制**（40张、沉浸度、卡包数量、稀有度）。
@@ -553,6 +559,7 @@ def _xxx_special(minion, player, game, extras=None):
 | 12 | **AI 使用错误卡组** | 本地测试 AI 使用 `make_gui_deck` 而非玩家选择的卡组 | 改为 `deck.to_game_deck(None)` 并同步沉浸度 |
 | 13 | **额外目标序列化缺失** | `net_protocol.py` 未处理 `extra_targets` 字段 | 补充 `extra_targets` 的序列化/反序列化 |
 | 14 | **attack_target 中 event 为 None 崩溃** | `game.emit_event(EVENT_BEFORE_ATTACK)` 在 `game_over=True` 时返回 `None`，后续直接 `event.get(...)` | `cards.py:attack_target()` 添加 `if event is None: return` 防护 |
+| 20 | **金牙齿消灭目标后未触发抽牌+1T** | `deal_damage_to_minion` → `take_damage` → `minion_death` 将实际移除操作放入 `effect_queue` 延迟执行，伤害结束后 `is_alive()` 仍为 `True` | `_jin_yachi_strategy` 中判断条件从 `not target.is_alive()` 改为 `target.current_health <= 0 or getattr(target, "_pending_death", False)` |
 | 15 | **underworld_effects.py 变量/参数错误** | 多处 `MinionCard(cost=0, targets="none")` 传错类型；`Minion(card=...)` 参数名错误；`player.minions_on_board` 属性不存在 | 统一改用 `summon_token()` 和 `Cost()`；补充缺失的 `effect_utils` 导入 |
 
 **注意**：Bug #2（B费用异象无法出牌）和 Bug #11（献祭后鲜血未正确扣除）已在**献祭重构**（Bug #18）中被新的架构取代，旧问题不再存在。
@@ -592,18 +599,60 @@ def _xxx_special(minion, player, game, extras=None):
 - [ ] `set_attack_targets` 多目标序列化需完整对局测试验证。
 
 ### 13.6 GUI 层
-- [ ] 弃牌堆 / 卡组详情查看
+- [x] **美术资源接口**：AssetManager + 全渲染层图像钩子（手牌/棋盘/关键词/牌堆/拖拽/详情面板/地形纹理）
+- [x] **棋盘居中**：整体偏移，列名标签移到底部
+- [x] **手牌 Canvas 化**：固定尺寸 Canvas 替代 tk.Button
+- [x] **牌堆/弃牌堆视觉化**：卡背图像 + 数量角标
+- [x] **卡牌详情大图面板**：160×220 悬停显示
+- [x] **拖拽出牌**：支持从手牌拖拽到棋盘部署（简化版）
+- [x] **操作历史面板**：Listbox 记录回合/阶段/动作
+- [x] **引导提示文本**：动态上下文敏感提示
+- [x] **目标高亮与非法反馈**：黄色边框高亮合法目标，红色闪烁提示非法点击
+- [ ] 弃牌堆 / 卡组详情查看（点击展开列表）
 - [ ] 更丰富的状态提示（光环来源、先攻等级数值）
 - [ ] 悔棋 / 撤销（仅限本地测试）
 - [ ] 对战日志导出
-- [ ] 目标高亮视觉反馈未在 live Tkinter 中充分测试
 
 ### 13.7 未实现的关键词
 - 护盾、嘲讽、圣盾、战吼、沉默、吸血、连击、超杀、冻结（区别于冰冻）、无法攻击、魔免、复生、剧毒、激励、发现（区别于开发）
 
 ---
 
-## 十六、本轮对话（2026-04-19）核心交付
+## 十六、本轮对话（2026-04-28）核心交付
+
+### 16.1 美术资源接口（全渲染层）
+1. **AssetManager**（`tards/assets.py`）：统一加载/缓存/缩放图像。支持 `get_card_face`、`get_card_back`、`get_thumbnail`、`get_icon`、`get_board_tile`。Pillow 未安装或文件缺失时自动返回 `None`。
+2. **数据层扩展**：`CardDefinition` / `Card` / `Minion` 新增 `asset_id`、`asset_back_id` 字段；`register_card()` 支持 `asset_id` 参数。
+3. **手牌 Canvas 化**：`tk.Button` → `tk.Canvas`（90×120），有图显示卡面，无图回退到类型色矩形 + 文字覆盖。
+4. **棋盘异象肖像**：优先显示 56×56 缩略图，保留边框/阴影/文字覆盖。
+5. **关键词图标**：优先加载 `kw_xxx.png`，无图回退色块+单字。
+6. **牌堆/弃牌堆视觉化**：50×70 Canvas 显示卡背 + 数量角标。
+7. **拖拽幽灵**：有 asset_id 时显示 80×110 缩略图，无图回退文字标签。
+8. **卡牌详情大图**：右侧 160×220 Canvas，悬停显示大图或文字。
+9. **棋盘地形纹理**：支持 `terrain_enemy` / `terrain_neutral` / `terrain_friendly`。
+
+### 16.2 UI/UX 改进
+1. **棋盘居中**：`BOARD_OFFSET_X=50`, `BOARD_OFFSET_Y=40`，所有绘制/点击/拖拽坐标同步调整。
+2. **列名标签移到底部**：避免遮挡第一行棋盘格子。
+3. **分阶段指向回退**：`stage_history` + Back 按钮，提示显示阶段计数器。
+4. **双击拍铃/拉闸**：防止误触。
+5. **可出牌高亮**：手牌绿色边框。
+6. **引导提示文本**：动态上下文敏感提示。
+7. **非法目标反馈**：红色矩形闪烁 + 提示文字变红。
+8. **操作历史面板**：Listbox 记录回合/阶段/动作。
+9. **攻击目标自动填充**：`A` 键一键填充；单目标自动确认。
+10. **弹窗样式**：颜色/字体统一。
+
+### 16.3 Bug 修复
+- **金牙齿效果未触发**：`is_alive()` 在 `effect_queue` 延迟移除前仍为 `True`，改为检查 `current_health <= 0` 或 `_pending_death`。
+
+### 16.4 项目整理
+- 临时脚本/测试文件清理。
+- docx 游戏文件归入 `docs/` 文件夹。
+
+---
+
+## 十七、上一轮对话（2026-04-19）核心交付
 
 ### 16.1 架构/引擎改动
 1. **献祭机制重构**：
@@ -638,7 +687,7 @@ def _xxx_special(minion, player, game, extras=None):
 
 ---
 
-## 十七、上一轮对话（2026-04-17）核心交付
+## 十八、上上一轮对话（2026-04-17）核心交付
 
 ### 17.1 架构/引擎改动
 1. **Rule 3 强化**：`game.py` / `player.py` 中所有卡牌名字硬编码（信标、流浪商人、附魔台、耕殖）已全部移除，迁移为 event-driven 实现。

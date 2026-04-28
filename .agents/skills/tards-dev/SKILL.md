@@ -89,6 +89,50 @@ MinionCard.effect() 内部：
 - 仅本地可用，联机大厅禁止加载。
 - GUI 构筑界面有复选框，save/load 持久化。
 
+## 美术资源接口（2026-04-28 新增）
+
+### AssetManager 使用
+```python
+from tards.assets import get_asset_manager
+
+am = get_asset_manager()  # 单例，base_path="assets"
+am.available()  # Pillow 是否可用且目录存在
+
+# 加载图像（返回 ImageTk.PhotoImage 或 None）
+img = am.get_card_face(asset_id, width, height)
+img = am.get_card_back("default", width, height)
+img = am.get_thumbnail(asset_id, width, height)  # 无缩略图时自动回退到卡面
+img = am.get_icon(f"kw_关键词名", size)
+img = am.get_board_tile("terrain_enemy", size)
+```
+
+**目录约定**（相对于 `assets/`）：
+- `cards/faces/{asset_id}.png` — 卡面
+- `cards/backs/{asset_id}.png` — 卡背
+- `cards/thumbnails/{asset_id}.png` — 缩略图（棋盘/阴谋区）
+- `icons/keywords/kw_关键词名.png` — 关键词图标
+- `board/tiles/terrain_*.png` — 棋盘地形纹理
+- `config.json` — 可选：自定义 asset_id → 路径映射
+
+**零资源兼容**：所有渲染代码必须先检查返回值，为 `None` 时回退到现有文本/几何渲染。禁止因缺少资源文件而报错。
+
+### 注册卡牌时指定资源
+```python
+register_card(
+    name="金牙齿",
+    asset_id="jin_yachi",  # 可选，留空则无图像
+    asset_back_id="default",  # 可选
+    ...
+)
+```
+
+## GUI 渲染规范
+
+- **手牌**：`tk.Canvas`，尺寸 `BattleFrame.HAND_CARD_WIDTH × HAND_CARD_HEIGHT`（当前 90×120）。图像层叠顺序：卡面图 → 类型角标 → 费用/名称/攻防文字。
+- **棋盘异象**：肖像图占格子 70%（56×56），居中显示。边框/阴影/文字覆盖在图像之上。
+- **坐标偏移**：棋盘整体有 `BOARD_OFFSET_X/Y` 偏移。所有绘制和点击坐标计算必须考虑偏移。
+- **图像引用防 GC**：Tkinter 的 `PhotoImage` 必须保存在 Python 对象属性中（如 `self._minion_image_refs`、`cvs.image`），否则会被垃圾回收导致图像消失。
+
 ## 参考文件导航
 
 | 文件 | 内容 | 何时读取 |
