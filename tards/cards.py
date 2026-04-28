@@ -719,9 +719,13 @@ class Minion:
         if fragile and isinstance(tough, int) and tough == 0:
             tough = -1
         if source_minion:
-            armor_break = source_minion.keywords.get("破甲", 0)
-            if isinstance(armor_break, int) and armor_break > 0 and isinstance(tough, int):
-                tough = max(0, tough - armor_break)
+            # 通用标记：来源异象无视坚韧（如恶魂）
+            if getattr(source_minion, "_ignore_toughness", False):
+                tough = 0
+            else:
+                armor_break = source_minion.keywords.get("破甲", 0)
+                if isinstance(armor_break, int) and armor_break > 0 and isinstance(tough, int):
+                    tough = max(0, tough - armor_break)
         actual = max(0, damage - tough) if isinstance(tough, int) else damage
 
         # 冰冻：受到攻击伤害时削减一层，若因此归零则本次伤害翻倍

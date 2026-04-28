@@ -186,8 +186,6 @@ class Game:
             conspiracy._listener_owner_id = None
 
     _EVENT_ATTR_MAP = {
-        EVENT_TURN_START: "on_turn_start",
-        EVENT_TURN_END: "on_turn_end",
         EVENT_PHASE_START: "on_phase_start",
         EVENT_PHASE_END: "on_phase_end",
         EVENT_DRAW: "on_drawn",
@@ -197,62 +195,82 @@ class Game:
     _EVENT_SPECIFIC_TARGET = {EVENT_DRAW}
 
     def _trigger_auto_effects(self, event_type: str, event_data: Dict[str, Any]):
-        """触发场上异象、手牌、玩家的自动化时间节点效果。"""
-        attr_name = self._EVENT_ATTR_MAP.get(event_type)
-        if not attr_name:
-            return
+        """触发场上异象、手牌、玩家的自动化时间节点效果。
 
-        specific_only = event_type in self._EVENT_SPECIFIC_TARGET
-        specific_target = event_data.get("card") if specific_only else None
+        规则："回合开始/结束" 等价于 "结算阶段开始/结束"（PHASE_RESOLVE）。
+        """
+        attrs_to_trigger = []
+        trigger_injected_start = False
+        trigger_injected_end = False
 
-        # 场上存活异象
-        for m in list(self.board.minion_place.values()):
-            if not m.is_alive():
+        normal_attr = self._EVENT_ATTR_MAP.get(event_type)
+        if normal_attr:
+            attrs_to_trigger.append(normal_attr)
+
+        # 结算阶段开始 = 回合开始
+        if event_type == EVENT_PHASE_START and event_data.get("phase") == self.PHASE_RESOLVE:
+            attrs_to_trigger.append("on_turn_start")
+            trigger_injected_start = True
+        # 结算阶段结束 = 回合结束
+        elif event_type == EVENT_PHASE_END and event_data.get("phase") == self.PHASE_RESOLVE:
+            attrs_to_trigger.append("on_turn_end")
+            trigger_injected_end = True
+
+        for attr_name in attrs_to_trigger:
+            if not attr_name:
                 continue
-            if specific_target is not None and m is not specific_target:
-                continue
-            fn = getattr(m, attr_name, None)
-            if fn:
-                self.effect_queue.queue(
-                    f"{m.name} 的 {event_type}",
-                    lambda m=m, fn=fn: fn(self, event_data, m),
-                )
-            # 注入的动态效果（金西瓜片、重生锚等赋予的额外回合效果）
-            if event_type == EVENT_TURN_START:
-                for inj_fn in list(getattr(m, "_injected_turn_start", [])):
-                    self.effect_queue.queue(
-                        f"{m.name} 的注入回合开始效果",
-                        lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
-                    )
-            elif event_type == EVENT_TURN_END:
-                for inj_fn in list(getattr(m, "_injected_turn_end", [])):
-                    self.effect_queue.queue(
-                        f"{m.name} 的注入回合结束效果",
-                        lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
-                    )
 
-        # 双方手牌
-        for p in self.players:
-            for card in list(p.card_hand):
-                if specific_target is not None and card is not specific_target:
+            specific_only = event_type in self._EVENT_SPECIFIC_TARGET
+            specific_target = event_data.get("card") if specific_only else None
+
+            # 场上存活异象
+            for m in list(self.board.minion_place.values()):
+                if not m.is_alive():
                     continue
-                fn = getattr(card, attr_name, None)
+                if specific_target is not None and m is not specific_target:
+                    continue
+                fn = getattr(m, attr_name, None)
                 if fn:
                     self.effect_queue.queue(
-                        f"{card.name} 的 {event_type}",
-                        lambda c=card, fn=fn: fn(self, event_data, c),
+                        f"{m.name} 的 {event_type}",
+                        lambda m=m, fn=fn: fn(self, event_data, m),
                     )
+                # 注入的动态效果（金西瓜片、重生锚等赋予的额外回合效果）
+                if trigger_injected_start and attr_name == "on_turn_start":
+                    for inj_fn in list(getattr(m, "_injected_turn_start", [])):
+                        self.effect_queue.queue(
+                            f"{m.name} 的注入回合开始效果",
+                            lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
+                        )
+                elif trigger_injected_end and attr_name == "on_turn_end":
+                    for inj_fn in list(getattr(m, "_injected_turn_end", [])):
+                        self.effect_queue.queue(
+                            f"{m.name} 的注入回合结束效果",
+                            lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
+                        )
 
-        # 玩家自身
-        for p in self.players:
-            if specific_target is not None and p is not specific_target:
-                continue
-            fn = getattr(p, attr_name, None)
-            if fn:
-                self.effect_queue.queue(
-                    f"{p.name} 的 {event_type}",
-                    lambda pl=p, fn=fn: fn(self, event_data, pl),
-                )
+            # 双方手牌
+            for p in self.players:
+                for card in list(p.card_hand):
+                    if specific_target is not None and card is not specific_target:
+                        continue
+                    fn = getattr(card, attr_name, None)
+                    if fn:
+                        self.effect_queue.queue(
+                            f"{card.name} 的 {event_type}",
+                            lambda c=card, fn=fn: fn(self, event_data, c),
+                        )
+
+            # 玩家自身
+            for p in self.players:
+                if specific_target is not None and p is not specific_target:
+                    continue
+                fn = getattr(p, attr_name, None)
+                if fn:
+                    self.effect_queue.queue(
+                        f"{p.name} 的 {event_type}",
+                        lambda pl=p, fn=fn: fn(self, event_data, pl),
+                    )
 
     def refresh_all_auras(self):
         """刷新全场异象的临时光环（具有）效果。"""
@@ -734,6 +752,12 @@ class Game:
         return str(target)
 
     def resolve_phase(self, first: Player, second: Player):
+        # 清空本回合状态追踪（"回合"等价于结算阶段）
+        self._deployed_this_turn.clear()
+        self._damage_dealt_to_players_this_turn.clear()
+        self.p1._cards_played_this_phase = 0
+        self.p2._cards_played_this_phase = 0
+
         self.current_phase = self.PHASE_RESOLVE
         self.current_player = first
         self.emit_event(EVENT_PHASE_START, phase=self.PHASE_RESOLVE, first=first, second=second)
@@ -758,6 +782,8 @@ class Game:
                     continue
                 from card_pools.effect_utils import can_minion_attack
                 if not can_minion_attack(m, self):
+                    continue
+                if getattr(m, "_skip_resolve_attack", False):
                     continue
 
                 if m not in attacker_swings:

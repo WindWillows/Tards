@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
-from .constants import EVENT_DRAW
+from .constants import EVENT_DRAW, EVENT_MILLED
 from .cost import Cost
 from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy
 
@@ -58,6 +58,7 @@ class Player:
         self.immersion_points: Dict["Pack", int] = {}
         self.squirrel_deck: List[Card] = []
         self.squirrel_exchanged_this_turn: bool = False
+        self._cards_played_this_phase: int = 0
         self._underworld_candle_20_given: bool = False
         self._underworld_candle_10_given: bool = False
 
@@ -206,6 +207,8 @@ class Player:
                 self.card_dis.append(card)
                 amount -= 1
                 print(f"  {self.name} 手牌已满，{card.name} 被弃置")
+                if game:
+                    game.emit_event(EVENT_MILLED, player=self, card=card)
                 continue
             card = self.card_deck.pop()
             self.card_hand.append(card)
@@ -316,6 +319,7 @@ class Player:
         cost = self._get_play_cost(card)
         if not cost.pay(self):
             return False
+        self._cards_played_this_phase += 1
 
         if isinstance(card, MinionCard):
             def deploy_fn():
@@ -350,7 +354,12 @@ class Player:
             is_mineral = isinstance(card, MineralCard)
 
             def play_fn():
-                effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
+                prev = getattr(game, "_current_strategy_player", None)
+                game._current_strategy_player = self
+                try:
+                    effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
+                finally:
+                    game._current_strategy_player = prev
                 if effect:
                     if card in self.card_hand:
                         self.card_hand.remove(card)

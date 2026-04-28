@@ -33,6 +33,31 @@ description: |
 8. 运行 python demo.py 测试
 ```
 
+## 关键语义映射
+
+| 规则书原文 | 引擎实际时机 | 说明 |
+|-----------|------------|------|
+| **回合开始** | `EVENT_PHASE_START` + `phase == PHASE_RESOLVE` | 结算阶段开始时触发。禁止用 `EVENT_TURN_START` 或 `on_turn_start` 实现"回合开始"效果。 |
+| **回合结束** | `EVENT_PHASE_END` + `phase == PHASE_RESOLVE` | 结算阶段结束时触发。禁止用 `EVENT_TURN_END` 或 `on_turn_end` 实现"回合结束"效果。 |
+
+### 槽位与资源点的区别
+
+**获得槽位（T槽/C槽）≠ 获得资源点。** 增加槽位上限不会自动获得可使用的资源点。
+
+| 效果描述 | 正确实现 | 错误实现 |
+|---------|---------|---------|
+| "获得1个T槽" | `player.t_point_max += 1` | `player.t_point_max += 1; player.t_point_change(1)` ❌ |
+| "获得1个C槽" | `player.c_point_max += 1` | `player.c_point_max += 1; player.c_point_change(1)` ❌ |
+
+- 资源点（`t_point` / `c_point`）在每回合特定阶段由引擎根据上限自动补充。
+- 若效果明确说"获得X点T/C"，才使用 `t_point_change(X)` / `c_point_change(X)`。
+
+**核心引擎修改（2026-04-20）**：
+- `_EVENT_ATTR_MAP` 已移除 `EVENT_TURN_START` → `on_turn_start` 和 `EVENT_TURN_END` → `on_turn_end` 的映射。
+- `minion.on_turn_start` / `minion.on_turn_end` 回调现在仅在**结算阶段**开始/结束时触发。
+- `effect_utils.py` 中的 `on_turn_start()` / `on_turn_end()` 函数已改为监听 `phase_start` / `phase_end` 并过滤 `phase == PHASE_RESOLVE`。
+- 若某张卡的效果确实需要在**完整回合**开始/结束时触发（目前没有），应使用 `on("turn_start", ...)` 或 `on("turn_end", ...)` 显式注册 EventBus 监听器。
+
 ## 指向系统速查
 
 - 所有指向操作统一走 `TargetingRequest` + `process_targeting_request()`。

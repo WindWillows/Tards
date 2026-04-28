@@ -23,6 +23,40 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
+# 附魔书开发卡池（离散卡包）
+# =============================================================================
+
+ENCHANTED_BOOK_POOL = [
+    "多重射击",
+    "冰霜行者",
+    "火矢",
+    "横扫之刃",
+    "饵钓",
+    "锋利",
+    "忠诚",
+    "击退",
+    "时运",
+    "深海探索者",
+    "耐久",
+    "保护",
+    "精准采集",
+    "效率",
+    "经验修补",
+]
+
+
+def get_enchanted_book_definitions() -> List[Any]:
+    """获取附魔书开发池中的所有卡牌定义（已过滤掉注册表中不存在的）。"""
+    from tards.card_db import DEFAULT_REGISTRY
+    result = []
+    for name in ENCHANTED_BOOK_POOL:
+        card_def = DEFAULT_REGISTRY.get(name)
+        if card_def:
+            result.append(card_def)
+    return result
+
+
+# =============================================================================
 # 1. 伤害与治疗
 # =============================================================================
 
@@ -1006,6 +1040,23 @@ def deploy_card_copy(player: "Player", game: "Game", card: "Card", target_pos: O
     return card.effect(player, target_pos, game)
 
 
+def auto_attack(minion: "Minion", game: "Game") -> bool:
+    """让异象执行一次自动攻击：选择本列最前排敌方目标，没有则攻击敌方玩家。"""
+    col = minion.position[1]
+    # 视野偏移
+    attack_col = col
+    vision_range = minion.keywords.get("视野", 0)
+    if vision_range > 0 and hasattr(minion, "_resolve_target_col") and minion._resolve_target_col is not None:
+        attack_col = minion._resolve_target_col
+    target = game.board.get_front_minion(attack_col, minion.owner, attacker=minion)
+    if target and target.is_alive():
+        minion.attack_target(target)
+        return True
+    opponent = game.p2 if minion.owner == game.p1 else game.p1
+    minion.attack_target(opponent)
+    return True
+
+
 # =============================================================================
 # 13. 延迟效果（基于 EventBus）
 # =============================================================================
@@ -1255,14 +1306,24 @@ def on_card_played_global(minion: "Minion", game: "Game", callback: Callable,
 
 def on_turn_start_global(minion: "Minion", game: "Game", callback: Callable,
                          priority: int = 0) -> int:
-    """【兼容】监听全局回合开始事件。"""
-    return on("turn_start", callback, game, minion, priority)
+    """【兼容】监听全局回合开始事件。
+    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""
+    def _wrapper(event):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        callback(event)
+    return on("phase_start", _wrapper, game, minion, priority)
 
 
 def on_turn_end_global(minion: "Minion", game: "Game", callback: Callable,
                        priority: int = 0) -> int:
-    """【兼容】监听全局回合结束事件。"""
-    return on("turn_end", callback, game, minion, priority)
+    """【兼容】监听全局回合结束事件。
+    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""
+    def _wrapper(event):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        callback(event)
+    return on("phase_end", _wrapper, game, minion, priority)
 
 
 def on_before_damage_global(minion: "Minion", game: "Game", callback: Callable,
@@ -1781,14 +1842,24 @@ def on_sacrifice(minion: "Minion", game: "Game", callback: Callable,
 
 def on_turn_start(minion: "Minion", game: "Game", callback: Callable,
                   priority: int = 0) -> int:
-    """【兼容】注册 turn_start 监听器。"""
-    return on("turn_start", callback, game, minion, priority)
+    """【兼容】注册 turn_start 监听器。
+    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""
+    def _wrapper(event):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        callback(event)
+    return on("phase_start", _wrapper, game, minion, priority)
 
 
 def on_turn_end(minion: "Minion", game: "Game", callback: Callable,
                 priority: int = 0) -> int:
-    """【兼容】注册 turn_end 监听器。"""
-    return on("turn_end", callback, game, minion, priority)
+    """【兼容】注册 turn_end 监听器。
+    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""
+    def _wrapper(event):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        callback(event)
+    return on("phase_end", _wrapper, game, minion, priority)
 
 
 def on_discarded(minion: "Minion", game: "Game", callback: Callable,
@@ -2085,4 +2156,12 @@ def can_minion_attack(minion: "Minion", game: "Game") -> bool:
         if fn(minion):
             return False
     return True
+
+
+# =============================================================================
+# 28. 猪灵掉落物卡池（用户手动添加衍生卡牌定义）
+# =============================================================================
+
+DROP_POOL: List[Any] = []
+"""猪灵掉落物卡池：存放 CardDefinition 对象，首次使用金锭时随机抽取一张加入手牌。"""
 

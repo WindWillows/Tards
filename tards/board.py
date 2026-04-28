@@ -59,6 +59,8 @@ class Board:
             return False
         if "高地" in card.keywords and c != 0:
             return False
+        if "河岸" in card.keywords and c != 3:
+            return False
         if "独行" in card.keywords:
             friendlies = self.get_minions_in_column(c, friendly_to=player)
             if friendlies:
@@ -306,6 +308,10 @@ class Board:
         # 恐惧：无法被异象选中（仅对异象攻击生效）
         if attacker:
             enemies = [m for m in enemies if not getattr(m, '_fear_active', False)]
+
+        # 通用攻击目标过滤（如活塞城槌跳过低攻异象）
+        if attacker and hasattr(attacker, '_attack_target_filter'):
+            enemies = [m for m in enemies if attacker._attack_target_filter(m)]
 
         # 空袭：优先攻击具有防空的异象，否则跳过所有异象直击英雄
         if attacker and attacker.keywords.get("空袭", False):
