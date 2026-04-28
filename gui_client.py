@@ -904,6 +904,10 @@ class BattleFrame(tk.Frame):
     COL_NAMES = ["高地", "山脊", "中路", "河岸", "水路"]
     HAND_CARD_WIDTH = 90
     HAND_CARD_HEIGHT = 120
+    BOARD_COLS = 5
+    BOARD_ROWS = 5
+    BOARD_OFFSET_X = 50
+    BOARD_OFFSET_Y = 40
 
     def __init__(self, parent, app: TardsApp, duel: Any, local_player: Player, opponent: Player):
         super().__init__(parent)
@@ -1059,8 +1063,8 @@ class BattleFrame(tk.Frame):
             self._dragging_serial = None
             return
         # 判断释放位置是否在棋盘内
-        canvas_x = event.x_root - self.canvas.winfo_rootx()
-        canvas_y = event.y_root - self.canvas.winfo_rooty()
+        canvas_x = event.x_root - self.canvas.winfo_rootx() - self.BOARD_OFFSET_X
+        canvas_y = event.y_root - self.canvas.winfo_rooty() - self.BOARD_OFFSET_Y
         board_w = self.BOARD_COLS * self.CELL_SIZE
         board_h = self.BOARD_ROWS * self.CELL_SIZE
         if 0 <= canvas_x < board_w and 0 <= canvas_y < board_h:
@@ -1260,8 +1264,8 @@ class BattleFrame(tk.Frame):
         self._tile_image_refs = {}
         for r in range(5):
             for c in range(5):
-                x1 = c * self.CELL_SIZE
-                y1 = r * self.CELL_SIZE
+                x1 = c * self.CELL_SIZE + self.BOARD_OFFSET_X
+                y1 = r * self.CELL_SIZE + self.BOARD_OFFSET_Y
                 x2 = x1 + self.CELL_SIZE
                 y2 = y1 + self.CELL_SIZE
                 color = "#e0f7fa"
@@ -1284,11 +1288,11 @@ class BattleFrame(tk.Frame):
                         self.canvas.create_image(x1 + self.CELL_SIZE // 2, y1 + self.CELL_SIZE // 2,
                                                  image=tile, tags=f"cell_{r}_{c}")
         for c, name in enumerate(self.COL_NAMES):
-            x1 = c * self.CELL_SIZE
+            x1 = c * self.CELL_SIZE + self.BOARD_OFFSET_X
             x2 = x1 + self.CELL_SIZE
-            label_y = 5 * self.CELL_SIZE
+            label_y = 5 * self.CELL_SIZE + self.BOARD_OFFSET_Y
             self.canvas.create_rectangle(x1, label_y, x2, label_y + 20, fill="#cfd8dc", outline="black", tags="board_grid")
-            self.canvas.create_text(c * self.CELL_SIZE + self.CELL_SIZE // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
+            self.canvas.create_text(x1 + self.CELL_SIZE // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
@@ -1396,8 +1400,8 @@ class BattleFrame(tk.Frame):
         am = get_asset_manager()
         self._minion_image_refs = {}
         for (r, c), m in self.duel.game.board.minion_place.items():
-            cx = c * self.CELL_SIZE + self.CELL_SIZE // 2
-            cy = r * self.CELL_SIZE + self.CELL_SIZE // 2
+            cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
+            cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
             color = "#42a5f5" if m.owner.side == self.local_player.side else "#ef5350"
             tag = f"minion_{r}_{c}"
             # 根据关键词决定边框颜色
@@ -1509,8 +1513,8 @@ class BattleFrame(tk.Frame):
             for t in self.valid_targets:
                 if isinstance(t, tuple) and len(t) == 2:
                     vr, vc = t
-                    vcx = vc * self.CELL_SIZE + self.CELL_SIZE // 2
-                    vcy = vr * self.CELL_SIZE + self.CELL_SIZE // 2
+                    vcx = vc * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
+                    vcy = vr * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
                     self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
                                                  outline="#ffd600", width=4,
                                                  fill="#fff59d", stipple="gray50",
@@ -1955,8 +1959,8 @@ class BattleFrame(tk.Frame):
         # 网络对战中，只能操作本地玩家；本地测试中，当前回合玩家均可操作
         if isinstance(self.duel, NetworkDuel) and active != self.local_player:
             return
-        c = event.x // self.CELL_SIZE
-        r = event.y // self.CELL_SIZE
+        c = (event.x - self.BOARD_OFFSET_X) // self.CELL_SIZE
+        r = (event.y - self.BOARD_OFFSET_Y) // self.CELL_SIZE
         target = (r, c)
 
         # 1. 如果有目标选择器进行中，优先处理目标选择
