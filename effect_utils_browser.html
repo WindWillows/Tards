@@ -465,7 +465,7 @@
   <div class="func-card unused compat" data-name="on_before_damage_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_before_damage_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1329</span>
+      <span class="func-line">行 1324</span>
     </div>
     <div class="func-brief">【兼容】监听全局 before_damage 事件。</div>
     <div class="func-meta">
@@ -477,14 +477,14 @@
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局 before_damage 事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1329</span>def on_before_damage_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1330</span>                            priority: int = 0) -&gt; int:<br><span class="line-num">1331</span>    """【兼容】监听全局 before_damage 事件。"""<br><span class="line-num">1332</span>    return on("before_damage", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1324</span>def on_before_damage_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1325</span>                            priority: int = 0) -&gt; int:<br><span class="line-num">1326</span>    """【兼容】监听全局 before_damage 事件。"""<br><span class="line-num">1327</span>    return on("before_damage", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_damaged_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_damaged_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1335</span>
+      <span class="func-line">行 1330</span>
     </div>
     <div class="func-brief">【兼容】监听全局 damaged 事件。</div>
     <div class="func-meta">
@@ -496,14 +496,14 @@
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局 damaged 事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1335</span>def on_damaged_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1336</span>                      priority: int = 0) -&gt; int:<br><span class="line-num">1337</span>    """【兼容】监听全局 damaged 事件。"""<br><span class="line-num">1338</span>    return on("damaged", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1330</span>def on_damaged_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1331</span>                      priority: int = 0) -&gt; int:<br><span class="line-num">1332</span>    """【兼容】监听全局 damaged 事件。"""<br><span class="line-num">1333</span>    return on("damaged", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="damage_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">damage_all_enemies(game, player, amount, source)</span>
-      <span class="func-line">行 1345</span>
+      <span class="func-line">行 1340</span>
     </div>
     <div class="func-brief">对所有存活敌方异象造成伤害。返回实际造成的总伤害。</div>
     <div class="func-meta">
@@ -515,14 +515,14 @@
       <strong>完整文档：</strong>
       <pre>对所有存活敌方异象造成伤害。返回实际造成的总伤害。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1345</span>def damage_all_enemies(<br><span class="line-num">1346</span>    game: "Game",<br><span class="line-num">1347</span>    player: "Player",<br><span class="line-num">1348</span>    amount: int,<br><span class="line-num">1349</span>    source: Optional["Minion"] = None,<br><span class="line-num">1350</span>) -&gt; int:<br><span class="line-num">1351</span>    """对所有存活敌方异象造成伤害。返回实际造成的总伤害。"""<br><span class="line-num">1352</span>    if amount &lt;= 0:<br><span class="line-num">1353</span>        return 0<br><span class="line-num">1354</span>    total = 0<br><span class="line-num">1355</span>    for m in all_enemy_minions(game, player):<br><span class="line-num">1356</span>        total += deal_damage_to_minion(m, amount, source=source, game=game)<br><span class="line-num">1357</span>    return total<br></div>
+      <div class="code-block"><span class="line-num">1340</span>def damage_all_enemies(<br><span class="line-num">1341</span>    game: "Game",<br><span class="line-num">1342</span>    player: "Player",<br><span class="line-num">1343</span>    amount: int,<br><span class="line-num">1344</span>    source: Optional["Minion"] = None,<br><span class="line-num">1345</span>) -&gt; int:<br><span class="line-num">1346</span>    """对所有存活敌方异象造成伤害。返回实际造成的总伤害。"""<br><span class="line-num">1347</span>    if amount &lt;= 0:<br><span class="line-num">1348</span>        return 0<br><span class="line-num">1349</span>    total = 0<br><span class="line-num">1350</span>    for m in all_enemy_minions(game, player):<br><span class="line-num">1351</span>        total += deal_damage_to_minion(m, amount, source=source, game=game)<br><span class="line-num">1352</span>    return total<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="damage_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">damage_all_friendly(game, player, amount, source)</span>
-      <span class="func-line">行 1360</span>
+      <span class="func-line">行 1355</span>
     </div>
     <div class="func-brief">对所有存活友方异象造成伤害。返回实际造成的总伤害。</div>
     <div class="func-meta">
@@ -534,14 +534,14 @@
       <strong>完整文档：</strong>
       <pre>对所有存活友方异象造成伤害。返回实际造成的总伤害。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1360</span>def damage_all_friendly(<br><span class="line-num">1361</span>    game: "Game",<br><span class="line-num">1362</span>    player: "Player",<br><span class="line-num">1363</span>    amount: int,<br><span class="line-num">1364</span>    source: Optional["Minion"] = None,<br><span class="line-num">1365</span>) -&gt; int:<br><span class="line-num">1366</span>    """对所有存活友方异象造成伤害。返回实际造成的总伤害。"""<br><span class="line-num">1367</span>    if amount &lt;= 0:<br><span class="line-num">1368</span>        return 0<br><span class="line-num">1369</span>    total = 0<br><span class="line-num">1370</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1371</span>        total += deal_damage_to_minion(m, amount, source=source, game=game)<br><span class="line-num">1372</span>    return total<br></div>
+      <div class="code-block"><span class="line-num">1355</span>def damage_all_friendly(<br><span class="line-num">1356</span>    game: "Game",<br><span class="line-num">1357</span>    player: "Player",<br><span class="line-num">1358</span>    amount: int,<br><span class="line-num">1359</span>    source: Optional["Minion"] = None,<br><span class="line-num">1360</span>) -&gt; int:<br><span class="line-num">1361</span>    """对所有存活友方异象造成伤害。返回实际造成的总伤害。"""<br><span class="line-num">1362</span>    if amount &lt;= 0:<br><span class="line-num">1363</span>        return 0<br><span class="line-num">1364</span>    total = 0<br><span class="line-num">1365</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1366</span>        total += deal_damage_to_minion(m, amount, source=source, game=game)<br><span class="line-num">1367</span>    return total<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="heal_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">heal_all_friendly(game, player, amount)</span>
-      <span class="func-line">行 1375</span>
+      <span class="func-line">行 1370</span>
     </div>
     <div class="func-brief">治疗所有存活友方异象。返回实际治疗的总生命值。</div>
     <div class="func-meta">
@@ -553,14 +553,14 @@
       <strong>完整文档：</strong>
       <pre>治疗所有存活友方异象。返回实际治疗的总生命值。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1375</span>def heal_all_friendly(<br><span class="line-num">1376</span>    game: "Game",<br><span class="line-num">1377</span>    player: "Player",<br><span class="line-num">1378</span>    amount: int,<br><span class="line-num">1379</span>) -&gt; int:<br><span class="line-num">1380</span>    """治疗所有存活友方异象。返回实际治疗的总生命值。"""<br><span class="line-num">1381</span>    if amount &lt;= 0:<br><span class="line-num">1382</span>        return 0<br><span class="line-num">1383</span>    total = 0<br><span class="line-num">1384</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1385</span>        before = m.health<br><span class="line-num">1386</span>        heal_minion(m, amount)<br><span class="line-num">1387</span>        total += max(0, m.health - before)<br><span class="line-num">1388</span>    return total<br></div>
+      <div class="code-block"><span class="line-num">1370</span>def heal_all_friendly(<br><span class="line-num">1371</span>    game: "Game",<br><span class="line-num">1372</span>    player: "Player",<br><span class="line-num">1373</span>    amount: int,<br><span class="line-num">1374</span>) -&gt; int:<br><span class="line-num">1375</span>    """治疗所有存活友方异象。返回实际治疗的总生命值。"""<br><span class="line-num">1376</span>    if amount &lt;= 0:<br><span class="line-num">1377</span>        return 0<br><span class="line-num">1378</span>    total = 0<br><span class="line-num">1379</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1380</span>        before = m.health<br><span class="line-num">1381</span>        heal_minion(m, amount)<br><span class="line-num">1382</span>        total += max(0, m.health - before)<br><span class="line-num">1383</span>    return total<br></div>
     </div>
   </div>
 
   <div class="func-card used" data-name="redirect_damage" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_hu_special"}]'>
     <div class="func-header">
       <span class="func-name">redirect_damage(minion, when, to, reason)</span>
-      <span class="func-line">行 2094</span>
+      <span class="func-line">行 2089</span>
     </div>
     <div class="func-brief">通用伤害重定向/替换。</div>
     <div class="func-meta">
@@ -575,7 +575,7 @@
 when: (damage, source) -> bool，返回 True 时触发替换
 to: 替换后的伤害值（int 或 callable），默认 0 表示取消伤害</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2094</span>def redirect_damage(<br><span class="line-num">2095</span>    minion: "Minion",<br><span class="line-num">2096</span>    when: Callable[[int, Optional["Minion"]], bool],<br><span class="line-num">2097</span>    to: Union[int, Callable[[int], int]] = 0,<br><span class="line-num">2098</span>    reason: str = "",<br><span class="line-num">2099</span>) -&gt; None:<br><span class="line-num">2100</span>    """通用伤害重定向/替换。<br><span class="line-num">2101</span><br><span class="line-num">2102</span>    when: (damage, source) -&gt; bool，返回 True 时触发替换<br><span class="line-num">2103</span>    to: 替换后的伤害值（int 或 callable），默认 0 表示取消伤害<br><span class="line-num">2104</span>    """<br><span class="line-num">2105</span>    game = getattr(minion.board, "game_ref", None)<br><span class="line-num">2106</span>    if not game:<br><span class="line-num">2107</span>        return<br><span class="line-num">2108</span><br><span class="line-num">2109</span>    replace_fn = to if callable(to) else lambda d: to<br><span class="line-num">2110</span><br><span class="line-num">2111</span>    def filter_fn(target, damage, source):<br><span class="line-num">2112</span>        if target is not minion or not minion.is_alive() or damage &lt;= 0:<br><span class="line-num">2113</span>            return False<br><span class="line-num">2114</span>        return when(damage, source)<br><span class="line-num">2115</span><br><span class="line-num">2116</span>    game.register_damage_replacement(filter_fn, replace_fn, once=False, reason=reason)<br></div>
+      <div class="code-block"><span class="line-num">2089</span>def redirect_damage(<br><span class="line-num">2090</span>    minion: "Minion",<br><span class="line-num">2091</span>    when: Callable[[int, Optional["Minion"]], bool],<br><span class="line-num">2092</span>    to: Union[int, Callable[[int], int]] = 0,<br><span class="line-num">2093</span>    reason: str = "",<br><span class="line-num">2094</span>) -&gt; None:<br><span class="line-num">2095</span>    """通用伤害重定向/替换。<br><span class="line-num">2096</span><br><span class="line-num">2097</span>    when: (damage, source) -&gt; bool，返回 True 时触发替换<br><span class="line-num">2098</span>    to: 替换后的伤害值（int 或 callable），默认 0 表示取消伤害<br><span class="line-num">2099</span>    """<br><span class="line-num">2100</span>    game = getattr(minion.board, "game_ref", None)<br><span class="line-num">2101</span>    if not game:<br><span class="line-num">2102</span>        return<br><span class="line-num">2103</span><br><span class="line-num">2104</span>    replace_fn = to if callable(to) else lambda d: to<br><span class="line-num">2105</span><br><span class="line-num">2106</span>    def filter_fn(target, damage, source):<br><span class="line-num">2107</span>        if target is not minion or not minion.is_alive() or damage &lt;= 0:<br><span class="line-num">2108</span>            return False<br><span class="line-num">2109</span>        return when(damage, source)<br><span class="line-num">2110</span><br><span class="line-num">2111</span>    game.register_damage_replacement(filter_fn, replace_fn, once=False, reason=reason)<br></div>
     </div>
   </div>
 </div></div>
@@ -842,7 +842,7 @@ callback 签名: (game, event_data, card) -> None，
   <div class="func-card unused compat" data-name="on_draw_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_draw_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1295</span>
+      <span class="func-line">行 1290</span>
     </div>
     <div class="func-brief">【兼容】监听全局抽牌事件。</div>
     <div class="func-meta">
@@ -854,14 +854,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局抽牌事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1295</span>def on_draw_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1296</span>                   priority: int = 0) -&gt; int:<br><span class="line-num">1297</span>    """【兼容】监听全局抽牌事件。"""<br><span class="line-num">1298</span>    return on("drawn", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1290</span>def on_draw_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1291</span>                   priority: int = 0) -&gt; int:<br><span class="line-num">1292</span>    """【兼容】监听全局抽牌事件。"""<br><span class="line-num">1293</span>    return on("drawn", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="reveal_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">reveal_top_of_deck(player, amount)</span>
-      <span class="func-line">行 1773</span>
+      <span class="func-line">行 1768</span>
     </div>
     <div class="func-brief">揭示牌库顶的 amount 张牌（只读，不修改牌库）。</div>
     <div class="func-meta">
@@ -875,14 +875,14 @@ callback 签名: (game, event_data, card) -> None，
 
 返回卡牌列表（从顶到底）。牌库不足时返回实际能揭示的张数。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1773</span>def reveal_top_of_deck(<br><span class="line-num">1774</span>    player: "Player",<br><span class="line-num">1775</span>    amount: int,<br><span class="line-num">1776</span>) -&gt; List["Card"]:<br><span class="line-num">1777</span>    """揭示牌库顶的 amount 张牌（只读，不修改牌库）。<br><span class="line-num">1778</span><br><span class="line-num">1779</span>    返回卡牌列表（从顶到底）。牌库不足时返回实际能揭示的张数。<br><span class="line-num">1780</span>    """<br><span class="line-num">1781</span>    if amount &lt;= 0:<br><span class="line-num">1782</span>        return []<br><span class="line-num">1783</span>    revealed = []<br><span class="line-num">1784</span>    # 牌库顶是列表末尾<br><span class="line-num">1785</span>    for i in range(1, amount + 1):<br><span class="line-num">1786</span>        if len(player.card_deck) &lt; i:<br><span class="line-num">1787</span>            break<br><span class="line-num">1788</span>        revealed.append(player.card_deck[-i])<br><span class="line-num">1789</span>    return revealed<br></div>
+      <div class="code-block"><span class="line-num">1768</span>def reveal_top_of_deck(<br><span class="line-num">1769</span>    player: "Player",<br><span class="line-num">1770</span>    amount: int,<br><span class="line-num">1771</span>) -&gt; List["Card"]:<br><span class="line-num">1772</span>    """揭示牌库顶的 amount 张牌（只读，不修改牌库）。<br><span class="line-num">1773</span><br><span class="line-num">1774</span>    返回卡牌列表（从顶到底）。牌库不足时返回实际能揭示的张数。<br><span class="line-num">1775</span>    """<br><span class="line-num">1776</span>    if amount &lt;= 0:<br><span class="line-num">1777</span>        return []<br><span class="line-num">1778</span>    revealed = []<br><span class="line-num">1779</span>    # 牌库顶是列表末尾<br><span class="line-num">1780</span>    for i in range(1, amount + 1):<br><span class="line-num">1781</span>        if len(player.card_deck) &lt; i:<br><span class="line-num">1782</span>            break<br><span class="line-num">1783</span>        revealed.append(player.card_deck[-i])<br><span class="line-num">1784</span>    return revealed<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="put_on_top_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">put_on_top_of_deck(player, card)</span>
-      <span class="func-line">行 1792</span>
+      <span class="func-line">行 1787</span>
     </div>
     <div class="func-brief">将一张牌放到牌库顶（列表末尾）。</div>
     <div class="func-meta">
@@ -894,14 +894,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>将一张牌放到牌库顶（列表末尾）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1792</span>def put_on_top_of_deck(<br><span class="line-num">1793</span>    player: "Player",<br><span class="line-num">1794</span>    card: "Card",<br><span class="line-num">1795</span>) -&gt; None:<br><span class="line-num">1796</span>    """将一张牌放到牌库顶（列表末尾）。"""<br><span class="line-num">1797</span>    player.card_deck.append(card)<br><span class="line-num">1798</span>    print(f"  {card.name} 被放到 {player.name} 牌库顶")<br></div>
+      <div class="code-block"><span class="line-num">1787</span>def put_on_top_of_deck(<br><span class="line-num">1788</span>    player: "Player",<br><span class="line-num">1789</span>    card: "Card",<br><span class="line-num">1790</span>) -&gt; None:<br><span class="line-num">1791</span>    """将一张牌放到牌库顶（列表末尾）。"""<br><span class="line-num">1792</span>    player.card_deck.append(card)<br><span class="line-num">1793</span>    print(f"  {card.name} 被放到 {player.name} 牌库顶")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="put_on_bottom_of_deck" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">put_on_bottom_of_deck(player, card)</span>
-      <span class="func-line">行 1801</span>
+      <span class="func-line">行 1796</span>
     </div>
     <div class="func-brief">将一张牌放到牌库底（列表开头）。</div>
     <div class="func-meta">
@@ -913,14 +913,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>将一张牌放到牌库底（列表开头）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1801</span>def put_on_bottom_of_deck(<br><span class="line-num">1802</span>    player: "Player",<br><span class="line-num">1803</span>    card: "Card",<br><span class="line-num">1804</span>) -&gt; None:<br><span class="line-num">1805</span>    """将一张牌放到牌库底（列表开头）。"""<br><span class="line-num">1806</span>    player.card_deck.insert(0, card)<br><span class="line-num">1807</span>    print(f"  {card.name} 被放到 {player.name} 牌库底")<br></div>
+      <div class="code-block"><span class="line-num">1796</span>def put_on_bottom_of_deck(<br><span class="line-num">1797</span>    player: "Player",<br><span class="line-num">1798</span>    card: "Card",<br><span class="line-num">1799</span>) -&gt; None:<br><span class="line-num">1800</span>    """将一张牌放到牌库底（列表开头）。"""<br><span class="line-num">1801</span>    player.card_deck.insert(0, card)<br><span class="line-num">1802</span>    print(f"  {card.name} 被放到 {player.name} 牌库底")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="search_deck" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">search_deck(player, predicate)</span>
-      <span class="func-line">行 1810</span>
+      <span class="func-line">行 1805</span>
     </div>
     <div class="func-brief">搜索牌库中满足条件的所有牌。返回列表（从顶到底）。</div>
     <div class="func-meta">
@@ -934,14 +934,14 @@ callback 签名: (game, event_data, card) -> None，
 
 不修改牌库顺序。仅用于读取/检查。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1810</span>def search_deck(<br><span class="line-num">1811</span>    player: "Player",<br><span class="line-num">1812</span>    predicate: Callable[["Card"], bool],<br><span class="line-num">1813</span>) -&gt; List["Card"]:<br><span class="line-num">1814</span>    """搜索牌库中满足条件的所有牌。返回列表（从顶到底）。<br><span class="line-num">1815</span><br><span class="line-num">1816</span>    不修改牌库顺序。仅用于读取/检查。<br><span class="line-num">1817</span>    """<br><span class="line-num">1818</span>    return [c for c in reversed(player.card_deck) if predicate(c)]<br></div>
+      <div class="code-block"><span class="line-num">1805</span>def search_deck(<br><span class="line-num">1806</span>    player: "Player",<br><span class="line-num">1807</span>    predicate: Callable[["Card"], bool],<br><span class="line-num">1808</span>) -&gt; List["Card"]:<br><span class="line-num">1809</span>    """搜索牌库中满足条件的所有牌。返回列表（从顶到底）。<br><span class="line-num">1810</span><br><span class="line-num">1811</span>    不修改牌库顺序。仅用于读取/检查。<br><span class="line-num">1812</span>    """<br><span class="line-num">1813</span>    return [c for c in reversed(player.card_deck) if predicate(c)]<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_discarded" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_discarded(minion, game, callback, priority)</span>
-      <span class="func-line">行 1865</span>
+      <span class="func-line">行 1860</span>
     </div>
     <div class="func-brief">【兼容】注册 discarded 监听器。</div>
     <div class="func-meta">
@@ -953,14 +953,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>【兼容】注册 discarded 监听器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1865</span>def on_discarded(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1866</span>                 priority: int = 0) -&gt; int:<br><span class="line-num">1867</span>    """【兼容】注册 discarded 监听器。"""<br><span class="line-num">1868</span>    return on("discarded", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1860</span>def on_discarded(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1861</span>                 priority: int = 0) -&gt; int:<br><span class="line-num">1862</span>    """【兼容】注册 discarded 监听器。"""<br><span class="line-num">1863</span>    return on("discarded", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card used compat" data-name="on_milled" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_moyingxiang_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "on_milled"}]'>
     <div class="func-header">
       <span class="func-name">on_milled(minion, game, callback, priority)</span>
-      <span class="func-line">行 1871</span>
+      <span class="func-line">行 1866</span>
     </div>
     <div class="func-brief">【兼容】注册 milled 监听器。</div>
     <div class="func-meta">
@@ -972,14 +972,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>【兼容】注册 milled 监听器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1871</span>def on_milled(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1872</span>              priority: int = 0) -&gt; int:<br><span class="line-num">1873</span>    """【兼容】注册 milled 监听器。"""<br><span class="line-num">1874</span>    return on("milled", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1866</span>def on_milled(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1867</span>              priority: int = 0) -&gt; int:<br><span class="line-num">1868</span>    """【兼容】注册 milled 监听器。"""<br><span class="line-num">1869</span>    return on("milled", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="peek_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">peek_deck_top(player, n)</span>
-      <span class="func-line">行 1974</span>
+      <span class="func-line">行 1969</span>
     </div>
     <div class="func-brief">查看卡组顶 n 张牌（不移除）。</div>
     <div class="func-meta">
@@ -991,14 +991,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>查看卡组顶 n 张牌（不移除）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1974</span>def peek_deck_top(player: "Player", n: int) -&gt; List[Any]:<br><span class="line-num">1975</span>    """查看卡组顶 n 张牌（不移除）。"""<br><span class="line-num">1976</span>    return list(player.card_deck[:n])<br></div>
+      <div class="code-block"><span class="line-num">1969</span>def peek_deck_top(player: "Player", n: int) -&gt; List[Any]:<br><span class="line-num">1970</span>    """查看卡组顶 n 张牌（不移除）。"""<br><span class="line-num">1971</span>    return list(player.card_deck[:n])<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="place_at_deck_bottom" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">place_at_deck_bottom(player, cards)</span>
-      <span class="func-line">行 1979</span>
+      <span class="func-line">行 1974</span>
     </div>
     <div class="func-brief">将若干张牌放置到卡组底部。</div>
     <div class="func-meta">
@@ -1010,14 +1010,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>将若干张牌放置到卡组底部。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1979</span>def place_at_deck_bottom(player: "Player", cards: List[Any]) -&gt; None:<br><span class="line-num">1980</span>    """将若干张牌放置到卡组底部。"""<br><span class="line-num">1981</span>    for c in cards:<br><span class="line-num">1982</span>        player.card_deck.append(c)<br></div>
+      <div class="code-block"><span class="line-num">1974</span>def place_at_deck_bottom(player: "Player", cards: List[Any]) -&gt; None:<br><span class="line-num">1975</span>    """将若干张牌放置到卡组底部。"""<br><span class="line-num">1976</span>    for c in cards:<br><span class="line-num">1977</span>        player.card_deck.append(c)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="place_at_deck_top" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">place_at_deck_top(player, cards)</span>
-      <span class="func-line">行 1985</span>
+      <span class="func-line">行 1980</span>
     </div>
     <div class="func-brief">将若干张牌放置到卡组顶部。</div>
     <div class="func-meta">
@@ -1029,14 +1029,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>将若干张牌放置到卡组顶部。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1985</span>def place_at_deck_top(player: "Player", cards: List[Any]) -&gt; None:<br><span class="line-num">1986</span>    """将若干张牌放置到卡组顶部。"""<br><span class="line-num">1987</span>    for c in reversed(cards):<br><span class="line-num">1988</span>        player.card_deck.insert(0, c)<br></div>
+      <div class="code-block"><span class="line-num">1980</span>def place_at_deck_top(player: "Player", cards: List[Any]) -&gt; None:<br><span class="line-num">1981</span>    """将若干张牌放置到卡组顶部。"""<br><span class="line-num">1982</span>    for c in reversed(cards):<br><span class="line-num">1983</span>        player.card_deck.insert(0, c)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="shuffle_deck" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">shuffle_deck(player)</span>
-      <span class="func-line">行 1991</span>
+      <span class="func-line">行 1986</span>
     </div>
     <div class="func-brief">洗切玩家的牌堆。</div>
     <div class="func-meta">
@@ -1048,14 +1048,14 @@ callback 签名: (game, event_data, card) -> None，
       <strong>完整文档：</strong>
       <pre>洗切玩家的牌堆。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1991</span>def shuffle_deck(player: "Player") -&gt; None:<br><span class="line-num">1992</span>    """洗切玩家的牌堆。"""<br><span class="line-num">1993</span>    import random<br><span class="line-num">1994</span>    random.shuffle(player.card_deck)<br><span class="line-num">1995</span>    print(f"  {player.name} 的牌堆已被洗切")<br></div>
+      <div class="code-block"><span class="line-num">1986</span>def shuffle_deck(player: "Player") -&gt; None:<br><span class="line-num">1987</span>    """洗切玩家的牌堆。"""<br><span class="line-num">1988</span>    import random<br><span class="line-num">1989</span>    random.shuffle(player.card_deck)<br><span class="line-num">1990</span>    print(f"  {player.name} 的牌堆已被洗切")<br></div>
     </div>
   </div>
 
   <div class="func-card used" data-name="discover_from_deck_top" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_haitun_special"}]'>
     <div class="func-header">
       <span class="func-name">discover_from_deck_top(player, n, game, title)</span>
-      <span class="func-line">行 1998</span>
+      <span class="func-line">行 1993</span>
     </div>
     <div class="func-brief">展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。</div>
     <div class="func-meta">
@@ -1070,14 +1070,14 @@ callback 签名: (game, event_data, card) -> None，
 利用 game.request_choice 实现跨 GUI/CLI/网络 的通用选择。
 返回被选中的 Card，若无则返回 None。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1998</span>def discover_from_deck_top(<br><span class="line-num">1999</span>    player: "Player",<br><span class="line-num">2000</span>    n: int,<br><span class="line-num">2001</span>    game: "Game",<br><span class="line-num">2002</span>    title: str = "展示卡组顶",<br><span class="line-num">2003</span>) -&gt; Optional[Any]:<br><span class="line-num">2004</span>    """展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。<br><span class="line-num">2005</span><br><span class="line-num">2006</span>    利用 game.request_choice 实现跨 GUI/CLI/网络 的通用选择。<br><span class="line-num">2007</span>    返回被选中的 Card，若无则返回 None。<br><span class="line-num">2008</span>    """<br><span class="line-num">2009</span>    candidates = peek_deck_top(player, n)<br><span class="line-num">2010</span>    if not candidates:<br><span class="line-num">2011</span>        print(f"  {player.name} 的牌库为空，无法展示")<br><span class="line-num">2012</span>        return None<br><span class="line-num">2013</span><br><span class="line-num">2014</span>    options = [f"{i+1}. {c.name}" for i, c in enumerate(candidates)]<br><span class="line-num">2015</span>    chosen = game.request_choice(player, options, title=title)<br><span class="line-num">2016</span>    if not chosen:<br><span class="line-num">2017</span>        # 其余置底<br><span class="line-num">2018</span>        place_at_deck_bottom(player, candidates)<br><span class="line-num">2019</span>        return None<br><span class="line-num">2020</span><br><span class="line-num">2021</span>    idx = int(chosen.split('.')[0]) - 1<br><span class="line-num">2022</span>    if idx &lt; 0 or idx &gt;= len(candidates):<br><span class="line-num">2023</span>        idx = 0<br><span class="line-num">2024</span>    chosen_card = candidates[idx]<br><span class="line-num">2025</span><br><span class="line-num">2026</span>    # 从牌库移除并加入手牌<br><span class="line-num">2027</span>    player.card_deck.remove(chosen_card)<br><span class="line-num">2028</span>    if len(player.card_hand) &lt; player.card_hand_max:<br><span class="line-num">2029</span>        player.card_hand.append(chosen_card)<br><span class="line-num">2030</span>        print(f"  {player.name} 展示了卡组顶 {len(candidates)} 张，选择了 {chosen_card.name} 加入手牌")<br><span class="line-num">2031</span>    else:<br><span class="line-num">2032</span>        player.card_dis.append(chosen_card)<br><span class="line-num">2033</span>        print(f"  {player.name} 手牌已满，{chosen_card.name} 被弃置")<br><span class="line-num">2034</span><br><span class="line-num">2035</span>    # 其余置底<br><span class="line-num">2036</span>    remaining = [c for c in candidates if c is not chosen_card]<br><span class="line-num">2037</span>    if remaining:<br><span class="line-num">2038</span>        place_at_deck_bottom(player, remaining)<br><span class="line-num">2039</span><br><span class="line-num">2040</span>    return chosen_card<br></div>
+      <div class="code-block"><span class="line-num">1993</span>def discover_from_deck_top(<br><span class="line-num">1994</span>    player: "Player",<br><span class="line-num">1995</span>    n: int,<br><span class="line-num">1996</span>    game: "Game",<br><span class="line-num">1997</span>    title: str = "展示卡组顶",<br><span class="line-num">1998</span>) -&gt; Optional[Any]:<br><span class="line-num">1999</span>    """展示玩家卡组顶的 n 张牌，让玩家选择 1 张加入手牌，其余置底。<br><span class="line-num">2000</span><br><span class="line-num">2001</span>    利用 game.request_choice 实现跨 GUI/CLI/网络 的通用选择。<br><span class="line-num">2002</span>    返回被选中的 Card，若无则返回 None。<br><span class="line-num">2003</span>    """<br><span class="line-num">2004</span>    candidates = peek_deck_top(player, n)<br><span class="line-num">2005</span>    if not candidates:<br><span class="line-num">2006</span>        print(f"  {player.name} 的牌库为空，无法展示")<br><span class="line-num">2007</span>        return None<br><span class="line-num">2008</span><br><span class="line-num">2009</span>    options = [f"{i+1}. {c.name}" for i, c in enumerate(candidates)]<br><span class="line-num">2010</span>    chosen = game.request_choice(player, options, title=title)<br><span class="line-num">2011</span>    if not chosen:<br><span class="line-num">2012</span>        # 其余置底<br><span class="line-num">2013</span>        place_at_deck_bottom(player, candidates)<br><span class="line-num">2014</span>        return None<br><span class="line-num">2015</span><br><span class="line-num">2016</span>    idx = int(chosen.split('.')[0]) - 1<br><span class="line-num">2017</span>    if idx &lt; 0 or idx &gt;= len(candidates):<br><span class="line-num">2018</span>        idx = 0<br><span class="line-num">2019</span>    chosen_card = candidates[idx]<br><span class="line-num">2020</span><br><span class="line-num">2021</span>    # 从牌库移除并加入手牌<br><span class="line-num">2022</span>    player.card_deck.remove(chosen_card)<br><span class="line-num">2023</span>    if len(player.card_hand) &lt; player.card_hand_max:<br><span class="line-num">2024</span>        player.card_hand.append(chosen_card)<br><span class="line-num">2025</span>        print(f"  {player.name} 展示了卡组顶 {len(candidates)} 张，选择了 {chosen_card.name} 加入手牌")<br><span class="line-num">2026</span>    else:<br><span class="line-num">2027</span>        player.card_dis.append(chosen_card)<br><span class="line-num">2028</span>        print(f"  {player.name} 手牌已满，{chosen_card.name} 被弃置")<br><span class="line-num">2029</span><br><span class="line-num">2030</span>    # 其余置底<br><span class="line-num">2031</span>    remaining = [c for c in candidates if c is not chosen_card]<br><span class="line-num">2032</span>    if remaining:<br><span class="line-num">2033</span>        place_at_deck_bottom(player, remaining)<br><span class="line-num">2034</span><br><span class="line-num">2035</span>    return chosen_card<br></div>
     </div>
   </div>
 
   <div class="func-card used" data-name="draw_cards_of_type" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_conglin_shendian_strategy"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_shamo_shendian_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_linshu_special"}]'>
     <div class="func-header">
       <span class="func-name">draw_cards_of_type(player, amount, card_type, game)</span>
-      <span class="func-line">行 2047</span>
+      <span class="func-line">行 2042</span>
     </div>
     <div class="func-brief">从牌库中抽取指定类型的牌。</div>
     <div class="func-meta">
@@ -1093,7 +1093,7 @@ callback 签名: (game, event_data, card) -> None，
 若牌库中该类型不足 amount 张，抽多少算多少。
 返回实际抽到的牌列表。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2047</span>def draw_cards_of_type(<br><span class="line-num">2048</span>    player: "Player",<br><span class="line-num">2049</span>    amount: int,<br><span class="line-num">2050</span>    card_type: type,<br><span class="line-num">2051</span>    game: Optional["Game"] = None,<br><span class="line-num">2052</span>) -&gt; List[Any]:<br><span class="line-num">2053</span>    """从牌库中抽取指定类型的牌。<br><span class="line-num">2054</span><br><span class="line-num">2055</span>    从牌库顶部开始按顺序搜索，遇到指定类型的牌即抽入手牌。<br><span class="line-num">2056</span>    若牌库中该类型不足 amount 张，抽多少算多少。<br><span class="line-num">2057</span>    返回实际抽到的牌列表。<br><span class="line-num">2058</span>    """<br><span class="line-num">2059</span>    drawn: List[Any] = []<br><span class="line-num">2060</span>    i = 0<br><span class="line-num">2061</span>    while amount &gt; 0 and i &lt; len(player.card_deck):<br><span class="line-num">2062</span>        card = player.card_deck[i]<br><span class="line-num">2063</span>        if isinstance(card, card_type):<br><span class="line-num">2064</span>            if game and game.game_over:<br><span class="line-num">2065</span>                break<br><span class="line-num">2066</span>            # 移除这张牌<br><span class="line-num">2067</span>            player.card_deck.pop(i)<br><span class="line-num">2068</span>            if len(player.card_hand) &gt;= player.card_hand_max:<br><span class="line-num">2069</span>                player.card_dis.append(card)<br><span class="line-num">2070</span>                print(f"  {player.name} 手牌已满，{card.name} 被弃置")<br><span class="line-num">2071</span>                amount -= 1<br><span class="line-num">2072</span>                continue<br><span class="line-num">2073</span>            player.card_hand.append(card)<br><span class="line-num">2074</span>            drawn.append(card)<br><span class="line-num">2075</span>            amount -= 1<br><span class="line-num">2076</span>            if game:<br><span class="line-num">2077</span>                from tards.constants import EVENT_DRAW<br><span class="line-num">2078</span>                game.emit_event(EVENT_DRAW, player=player, card=card)<br><span class="line-num">2079</span>            # 不移 i，因为 pop 后下一个元素前移<br><span class="line-num">2080</span>        else:<br><span class="line-num">2081</span>            i += 1<br><span class="line-num">2082</span><br><span class="line-num">2083</span>    if drawn:<br><span class="line-num">2084</span>        print(f"  {player.name} 抽取了: {', '.join(c.name for c in drawn)}")<br><span class="line-num">2085</span>    else:<br><span class="line-num">2086</span>        print(f"  {player.name} 牌库中没有指定类型的牌")<br><span class="line-num">2087</span>    return drawn<br></div>
+      <div class="code-block"><span class="line-num">2042</span>def draw_cards_of_type(<br><span class="line-num">2043</span>    player: "Player",<br><span class="line-num">2044</span>    amount: int,<br><span class="line-num">2045</span>    card_type: type,<br><span class="line-num">2046</span>    game: Optional["Game"] = None,<br><span class="line-num">2047</span>) -&gt; List[Any]:<br><span class="line-num">2048</span>    """从牌库中抽取指定类型的牌。<br><span class="line-num">2049</span><br><span class="line-num">2050</span>    从牌库顶部开始按顺序搜索，遇到指定类型的牌即抽入手牌。<br><span class="line-num">2051</span>    若牌库中该类型不足 amount 张，抽多少算多少。<br><span class="line-num">2052</span>    返回实际抽到的牌列表。<br><span class="line-num">2053</span>    """<br><span class="line-num">2054</span>    drawn: List[Any] = []<br><span class="line-num">2055</span>    i = 0<br><span class="line-num">2056</span>    while amount &gt; 0 and i &lt; len(player.card_deck):<br><span class="line-num">2057</span>        card = player.card_deck[i]<br><span class="line-num">2058</span>        if isinstance(card, card_type):<br><span class="line-num">2059</span>            if game and game.game_over:<br><span class="line-num">2060</span>                break<br><span class="line-num">2061</span>            # 移除这张牌<br><span class="line-num">2062</span>            player.card_deck.pop(i)<br><span class="line-num">2063</span>            if len(player.card_hand) &gt;= player.card_hand_max:<br><span class="line-num">2064</span>                player.card_dis.append(card)<br><span class="line-num">2065</span>                print(f"  {player.name} 手牌已满，{card.name} 被弃置")<br><span class="line-num">2066</span>                amount -= 1<br><span class="line-num">2067</span>                continue<br><span class="line-num">2068</span>            player.card_hand.append(card)<br><span class="line-num">2069</span>            drawn.append(card)<br><span class="line-num">2070</span>            amount -= 1<br><span class="line-num">2071</span>            if game:<br><span class="line-num">2072</span>                from tards.constants import EVENT_DRAW<br><span class="line-num">2073</span>                game.emit_event(EVENT_DRAW, player=player, card=card)<br><span class="line-num">2074</span>            # 不移 i，因为 pop 后下一个元素前移<br><span class="line-num">2075</span>        else:<br><span class="line-num">2076</span>            i += 1<br><span class="line-num">2077</span><br><span class="line-num">2078</span>    if drawn:<br><span class="line-num">2079</span>        print(f"  {player.name} 抽取了: {', '.join(c.name for c in drawn)}")<br><span class="line-num">2080</span>    else:<br><span class="line-num">2081</span>        print(f"  {player.name} 牌库中没有指定类型的牌")<br><span class="line-num">2082</span>    return drawn<br></div>
     </div>
   </div>
 </div></div>
@@ -1370,7 +1370,7 @@ Returns:
   <div class="func-card unused" data-name="buff_all_friendly" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">buff_all_friendly(game, player, atk_delta, hp_delta, permanent)</span>
-      <span class="func-line">行 1391</span>
+      <span class="func-line">行 1386</span>
     </div>
     <div class="func-brief">为所有存活友方异象提供 buff。返回被 buff 的异象数。</div>
     <div class="func-meta">
@@ -1382,14 +1382,14 @@ Returns:
       <strong>完整文档：</strong>
       <pre>为所有存活友方异象提供 buff。返回被 buff 的异象数。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1391</span>def buff_all_friendly(<br><span class="line-num">1392</span>    game: "Game",<br><span class="line-num">1393</span>    player: "Player",<br><span class="line-num">1394</span>    atk_delta: int = 0,<br><span class="line-num">1395</span>    hp_delta: int = 0,<br><span class="line-num">1396</span>    permanent: bool = True,<br><span class="line-num">1397</span>) -&gt; int:<br><span class="line-num">1398</span>    """为所有存活友方异象提供 buff。返回被 buff 的异象数。"""<br><span class="line-num">1399</span>    count = 0<br><span class="line-num">1400</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1401</span>        buff_minion(m, atk_delta, hp_delta, permanent=permanent)<br><span class="line-num">1402</span>        count += 1<br><span class="line-num">1403</span>    return count<br></div>
+      <div class="code-block"><span class="line-num">1386</span>def buff_all_friendly(<br><span class="line-num">1387</span>    game: "Game",<br><span class="line-num">1388</span>    player: "Player",<br><span class="line-num">1389</span>    atk_delta: int = 0,<br><span class="line-num">1390</span>    hp_delta: int = 0,<br><span class="line-num">1391</span>    permanent: bool = True,<br><span class="line-num">1392</span>) -&gt; int:<br><span class="line-num">1393</span>    """为所有存活友方异象提供 buff。返回被 buff 的异象数。"""<br><span class="line-num">1394</span>    count = 0<br><span class="line-num">1395</span>    for m in all_friendly_minions(game, player):<br><span class="line-num">1396</span>        buff_minion(m, atk_delta, hp_delta, permanent=permanent)<br><span class="line-num">1397</span>        count += 1<br><span class="line-num">1398</span>    return count<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="get_minions_by_cost" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_minions_by_cost(game, player, cost_type, max_cost, friendly)</span>
-      <span class="func-line">行 1906</span>
+      <span class="func-line">行 1901</span>
     </div>
     <div class="func-brief">按费用筛选场上异象（基于 source_card 的费用）。</div>
     <div class="func-meta">
@@ -1405,7 +1405,7 @@ cost_type: 't' 或 'c'。
 max_cost: 最大费用上限（含），None 表示不限。
 friendly: True 只选友方，False 只选敌方。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1906</span>def get_minions_by_cost(<br><span class="line-num">1907</span>    game: "Game",<br><span class="line-num">1908</span>    player: "Player",<br><span class="line-num">1909</span>    cost_type: str = "t",<br><span class="line-num">1910</span>    max_cost: Optional[int] = None,<br><span class="line-num">1911</span>    friendly: bool = True,<br><span class="line-num">1912</span>) -&gt; List["Minion"]:<br><span class="line-num">1913</span>    """按费用筛选场上异象（基于 source_card 的费用）。<br><span class="line-num">1914</span><br><span class="line-num">1915</span>    cost_type: 't' 或 'c'。<br><span class="line-num">1916</span>    max_cost: 最大费用上限（含），None 表示不限。<br><span class="line-num">1917</span>    friendly: True 只选友方，False 只选敌方。<br><span class="line-num">1918</span>    """<br><span class="line-num">1919</span>    pool = all_friendly_minions(game, player) if friendly else all_enemy_minions(game, player)<br><span class="line-num">1920</span>    result = []<br><span class="line-num">1921</span>    for m in pool:<br><span class="line-num">1922</span>        sc = getattr(m, "source_card", None)<br><span class="line-num">1923</span>        if not sc:<br><span class="line-num">1924</span>            continue<br><span class="line-num">1925</span>        cost = getattr(sc, "cost", None)<br><span class="line-num">1926</span>        if not cost:<br><span class="line-num">1927</span>            continue<br><span class="line-num">1928</span>        val = getattr(cost, f"{cost_type}_point", 0)<br><span class="line-num">1929</span>        if max_cost is None or val &lt;= max_cost:<br><span class="line-num">1930</span>            result.append(m)<br><span class="line-num">1931</span>    return result<br></div>
+      <div class="code-block"><span class="line-num">1901</span>def get_minions_by_cost(<br><span class="line-num">1902</span>    game: "Game",<br><span class="line-num">1903</span>    player: "Player",<br><span class="line-num">1904</span>    cost_type: str = "t",<br><span class="line-num">1905</span>    max_cost: Optional[int] = None,<br><span class="line-num">1906</span>    friendly: bool = True,<br><span class="line-num">1907</span>) -&gt; List["Minion"]:<br><span class="line-num">1908</span>    """按费用筛选场上异象（基于 source_card 的费用）。<br><span class="line-num">1909</span><br><span class="line-num">1910</span>    cost_type: 't' 或 'c'。<br><span class="line-num">1911</span>    max_cost: 最大费用上限（含），None 表示不限。<br><span class="line-num">1912</span>    friendly: True 只选友方，False 只选敌方。<br><span class="line-num">1913</span>    """<br><span class="line-num">1914</span>    pool = all_friendly_minions(game, player) if friendly else all_enemy_minions(game, player)<br><span class="line-num">1915</span>    result = []<br><span class="line-num">1916</span>    for m in pool:<br><span class="line-num">1917</span>        sc = getattr(m, "source_card", None)<br><span class="line-num">1918</span>        if not sc:<br><span class="line-num">1919</span>            continue<br><span class="line-num">1920</span>        cost = getattr(sc, "cost", None)<br><span class="line-num">1921</span>        if not cost:<br><span class="line-num">1922</span>            continue<br><span class="line-num">1923</span>        val = getattr(cost, f"{cost_type}_point", 0)<br><span class="line-num">1924</span>        if max_cost is None or val &lt;= max_cost:<br><span class="line-num">1925</span>            result.append(m)<br><span class="line-num">1926</span>    return result<br></div>
     </div>
   </div>
 </div></div>
@@ -1641,7 +1641,7 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
   <div class="func-card unused" data-name="silence_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">silence_all_enemies(game, player)</span>
-      <span class="func-line">行 1418</span>
+      <span class="func-line">行 1413</span>
     </div>
     <div class="func-brief">沉默所有存活敌方异象。返回沉默的异象数。</div>
     <div class="func-meta">
@@ -1653,14 +1653,14 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
       <strong>完整文档：</strong>
       <pre>沉默所有存活敌方异象。返回沉默的异象数。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1418</span>def silence_all_enemies(<br><span class="line-num">1419</span>    game: "Game",<br><span class="line-num">1420</span>    player: "Player",<br><span class="line-num">1421</span>) -&gt; int:<br><span class="line-num">1422</span>    """沉默所有存活敌方异象。返回沉默的异象数。"""<br><span class="line-num">1423</span>    count = 0<br><span class="line-num">1424</span>    for m in all_enemy_minions(game, player):<br><span class="line-num">1425</span>        silence_minion(m)<br><span class="line-num">1426</span>        count += 1<br><span class="line-num">1427</span>    return count<br></div>
+      <div class="code-block"><span class="line-num">1413</span>def silence_all_enemies(<br><span class="line-num">1414</span>    game: "Game",<br><span class="line-num">1415</span>    player: "Player",<br><span class="line-num">1416</span>) -&gt; int:<br><span class="line-num">1417</span>    """沉默所有存活敌方异象。返回沉默的异象数。"""<br><span class="line-num">1418</span>    count = 0<br><span class="line-num">1419</span>    for m in all_enemy_minions(game, player):<br><span class="line-num">1420</span>        silence_minion(m)<br><span class="line-num">1421</span>        count += 1<br><span class="line-num">1422</span>    return count<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="give_temp_keyword_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">give_temp_keyword_until_turn_end(minion, keyword, value)</span>
-      <span class="func-line">行 1716</span>
+      <span class="func-line">行 1711</span>
     </div>
     <div class="func-brief">为异象赋予一个临时关键词，当前回合结束时自动清除。</div>
     <div class="func-meta">
@@ -1674,14 +1674,14 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
 
 通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1716</span>def give_temp_keyword_until_turn_end(<br><span class="line-num">1717</span>    minion: "Minion",<br><span class="line-num">1718</span>    keyword: str,<br><span class="line-num">1719</span>    value: Any = True,<br><span class="line-num">1720</span>) -&gt; None:<br><span class="line-num">1721</span>    """为异象赋予一个临时关键词，当前回合结束时自动清除。<br><span class="line-num">1722</span><br><span class="line-num">1723</span>    通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。<br><span class="line-num">1724</span>    """<br><span class="line-num">1725</span>    gain_keyword(minion, keyword, value, permanent=False)<br></div>
+      <div class="code-block"><span class="line-num">1711</span>def give_temp_keyword_until_turn_end(<br><span class="line-num">1712</span>    minion: "Minion",<br><span class="line-num">1713</span>    keyword: str,<br><span class="line-num">1714</span>    value: Any = True,<br><span class="line-num">1715</span>) -&gt; None:<br><span class="line-num">1716</span>    """为异象赋予一个临时关键词，当前回合结束时自动清除。<br><span class="line-num">1717</span><br><span class="line-num">1718</span>    通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。<br><span class="line-num">1719</span>    """<br><span class="line-num">1720</span>    gain_keyword(minion, keyword, value, permanent=False)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="give_temp_buff_until_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">give_temp_buff_until_turn_end(minion, atk_delta, hp_delta)</span>
-      <span class="func-line">行 1728</span>
+      <span class="func-line">行 1723</span>
     </div>
     <div class="func-brief">为异象提供临时 buff，当前回合结束时自动清除。</div>
     <div class="func-meta">
@@ -1693,14 +1693,14 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
       <strong>完整文档：</strong>
       <pre>为异象提供临时 buff，当前回合结束时自动清除。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1728</span>def give_temp_buff_until_turn_end(<br><span class="line-num">1729</span>    minion: "Minion",<br><span class="line-num">1730</span>    atk_delta: int = 0,<br><span class="line-num">1731</span>    hp_delta: int = 0,<br><span class="line-num">1732</span>) -&gt; None:<br><span class="line-num">1733</span>    """为异象提供临时 buff，当前回合结束时自动清除。"""<br><span class="line-num">1734</span>    buff_minion(minion, atk_delta, hp_delta, permanent=False)<br></div>
+      <div class="code-block"><span class="line-num">1723</span>def give_temp_buff_until_turn_end(<br><span class="line-num">1724</span>    minion: "Minion",<br><span class="line-num">1725</span>    atk_delta: int = 0,<br><span class="line-num">1726</span>    hp_delta: int = 0,<br><span class="line-num">1727</span>) -&gt; None:<br><span class="line-num">1728</span>    """为异象提供临时 buff，当前回合结束时自动清除。"""<br><span class="line-num">1729</span>    buff_minion(minion, atk_delta, hp_delta, permanent=False)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="count_keyword_on_board" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">count_keyword_on_board(game, keyword, player)</span>
-      <span class="func-line">行 1881</span>
+      <span class="func-line">行 1876</span>
     </div>
     <div class="func-brief">统计场上具有指定关键词的存活异象数量。</div>
     <div class="func-meta">
@@ -1714,14 +1714,14 @@ hp_delta 作用于最大生命值（current_max_health），当前生命值不�
 
 player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1881</span>def count_keyword_on_board(<br><span class="line-num">1882</span>    game: "Game",<br><span class="line-num">1883</span>    keyword: str,<br><span class="line-num">1884</span>    player: Optional["Player"] = None,<br><span class="line-num">1885</span>) -&gt; int:<br><span class="line-num">1886</span>    """统计场上具有指定关键词的存活异象数量。<br><span class="line-num">1887</span><br><span class="line-num">1888</span>    player 为 None 时统计双方，否则只统计该玩家的异象。<br><span class="line-num">1889</span>    """<br><span class="line-num">1890</span>    minions = get_all_minions(game)<br><span class="line-num">1891</span>    if player:<br><span class="line-num">1892</span>        minions = [m for m in minions if m.owner == player]<br><span class="line-num">1893</span>    return sum(1 for m in minions if m.keywords.get(keyword))<br></div>
+      <div class="code-block"><span class="line-num">1876</span>def count_keyword_on_board(<br><span class="line-num">1877</span>    game: "Game",<br><span class="line-num">1878</span>    keyword: str,<br><span class="line-num">1879</span>    player: Optional["Player"] = None,<br><span class="line-num">1880</span>) -&gt; int:<br><span class="line-num">1881</span>    """统计场上具有指定关键词的存活异象数量。<br><span class="line-num">1882</span><br><span class="line-num">1883</span>    player 为 None 时统计双方，否则只统计该玩家的异象。<br><span class="line-num">1884</span>    """<br><span class="line-num">1885</span>    minions = get_all_minions(game)<br><span class="line-num">1886</span>    if player:<br><span class="line-num">1887</span>        minions = [m for m in minions if m.owner == player]<br><span class="line-num">1888</span>    return sum(1 for m in minions if m.keywords.get(keyword))<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="has_keyword" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">has_keyword(minion, keyword)</span>
-      <span class="func-line">行 1896</span>
+      <span class="func-line">行 1891</span>
     </div>
     <div class="func-brief">检查异象是否拥有指定关键词（含临时和基础）。</div>
     <div class="func-meta">
@@ -1733,7 +1733,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>检查异象是否拥有指定关键词（含临时和基础）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1896</span>def has_keyword(minion: "Minion", keyword: str) -&gt; bool:<br><span class="line-num">1897</span>    """检查异象是否拥有指定关键词（含临时和基础）。"""<br><span class="line-num">1898</span>    return bool(minion.keywords.get(keyword))<br></div>
+      <div class="code-block"><span class="line-num">1891</span>def has_keyword(minion: "Minion", keyword: str) -&gt; bool:<br><span class="line-num">1892</span>    """检查异象是否拥有指定关键词（含临时和基础）。"""<br><span class="line-num">1893</span>    return bool(minion.keywords.get(keyword))<br></div>
     </div>
   </div>
 </div></div>
@@ -1744,7 +1744,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
   <div class="func-card many" data-name="initiate_combat" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_jiangshizhuren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_guaiwulieren_strategy"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xiao_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_on_before_attack"}]'>
     <div class="func-header">
       <span class="func-name">initiate_combat(a, b, game)</span>
-      <span class="func-line">行 1247</span>
+      <span class="func-line">行 1242</span>
     </div>
     <div class="func-brief">使两个指定异象互相攻击一次（对战）。</div>
     <div class="func-meta">
@@ -1759,7 +1759,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
 双方各攻击一次，走完整的 attack_target 事件链。
 若任一方已死亡，则直接返回。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1247</span>def initiate_combat(a: "Minion", b: "Minion", game: "Game") -&gt; None:<br><span class="line-num">1248</span>    """使两个指定异象互相攻击一次（对战）。<br><span class="line-num">1249</span><br><span class="line-num">1250</span>    双方各攻击一次，走完整的 attack_target 事件链。<br><span class="line-num">1251</span>    若任一方已死亡，则直接返回。<br><span class="line-num">1252</span>    """<br><span class="line-num">1253</span>    if not a.is_alive() or not b.is_alive():<br><span class="line-num">1254</span>        return<br><span class="line-num">1255</span><br><span class="line-num">1256</span>    # 防止递归标志（供攻击前监听器识别）<br><span class="line-num">1257</span>    a._in_initiate_combat = True<br><span class="line-num">1258</span>    b._in_initiate_combat = True<br><span class="line-num">1259</span><br><span class="line-num">1260</span>    try:<br><span class="line-num">1261</span>        # A 攻击 B<br><span class="line-num">1262</span>        a.attack_target(b)<br><span class="line-num">1263</span>        if game.check_game_over():<br><span class="line-num">1264</span>            return<br><span class="line-num">1265</span><br><span class="line-num">1266</span>        # B 攻击 A<br><span class="line-num">1267</span>        b.attack_target(a)<br><span class="line-num">1268</span>        if game.check_game_over():<br><span class="line-num">1269</span>            return<br><span class="line-num">1270</span>    finally:<br><span class="line-num">1271</span>        a._in_initiate_combat = False<br><span class="line-num">1272</span>        b._in_initiate_combat = False<br></div>
+      <div class="code-block"><span class="line-num">1242</span>def initiate_combat(a: "Minion", b: "Minion", game: "Game") -&gt; None:<br><span class="line-num">1243</span>    """使两个指定异象互相攻击一次（对战）。<br><span class="line-num">1244</span><br><span class="line-num">1245</span>    双方各攻击一次，走完整的 attack_target 事件链。<br><span class="line-num">1246</span>    若任一方已死亡，则直接返回。<br><span class="line-num">1247</span>    """<br><span class="line-num">1248</span>    if not a.is_alive() or not b.is_alive():<br><span class="line-num">1249</span>        return<br><span class="line-num">1250</span><br><span class="line-num">1251</span>    # 防止递归标志（供攻击前监听器识别）<br><span class="line-num">1252</span>    a._in_initiate_combat = True<br><span class="line-num">1253</span>    b._in_initiate_combat = True<br><span class="line-num">1254</span><br><span class="line-num">1255</span>    try:<br><span class="line-num">1256</span>        # A 攻击 B<br><span class="line-num">1257</span>        a.attack_target(b)<br><span class="line-num">1258</span>        if game.check_game_over():<br><span class="line-num">1259</span>            return<br><span class="line-num">1260</span><br><span class="line-num">1261</span>        # B 攻击 A<br><span class="line-num">1262</span>        b.attack_target(a)<br><span class="line-num">1263</span>        if game.check_game_over():<br><span class="line-num">1264</span>            return<br><span class="line-num">1265</span>    finally:<br><span class="line-num">1266</span>        a._in_initiate_combat = False<br><span class="line-num">1267</span>        b._in_initiate_combat = False<br></div>
     </div>
   </div>
 </div></div>
@@ -1770,7 +1770,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
   <div class="func-card unused" data-name="destroy_all_enemies" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">destroy_all_enemies(game, player)</span>
-      <span class="func-line">行 1406</span>
+      <span class="func-line">行 1401</span>
     </div>
     <div class="func-brief">消灭所有存活敌方异象。返回消灭的异象数。</div>
     <div class="func-meta">
@@ -1782,7 +1782,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>消灭所有存活敌方异象。返回消灭的异象数。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1406</span>def destroy_all_enemies(<br><span class="line-num">1407</span>    game: "Game",<br><span class="line-num">1408</span>    player: "Player",<br><span class="line-num">1409</span>) -&gt; int:<br><span class="line-num">1410</span>    """消灭所有存活敌方异象。返回消灭的异象数。"""<br><span class="line-num">1411</span>    count = 0<br><span class="line-num">1412</span>    for m in list(all_enemy_minions(game, player)):<br><span class="line-num">1413</span>        destroy_minion(m, game)<br><span class="line-num">1414</span>        count += 1<br><span class="line-num">1415</span>    return count<br></div>
+      <div class="code-block"><span class="line-num">1401</span>def destroy_all_enemies(<br><span class="line-num">1402</span>    game: "Game",<br><span class="line-num">1403</span>    player: "Player",<br><span class="line-num">1404</span>) -&gt; int:<br><span class="line-num">1405</span>    """消灭所有存活敌方异象。返回消灭的异象数。"""<br><span class="line-num">1406</span>    count = 0<br><span class="line-num">1407</span>    for m in list(all_enemy_minions(game, player)):<br><span class="line-num">1408</span>        destroy_minion(m, game)<br><span class="line-num">1409</span>        count += 1<br><span class="line-num">1410</span>    return count<br></div>
     </div>
   </div>
 </div></div>
@@ -1793,7 +1793,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
   <div class="func-card unused" data-name="is_untargetable_by_minions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">is_untargetable_by_minions(minion)</span>
-      <span class="func-line">行 2137</span>
+      <span class="func-line">行 2132</span>
     </div>
     <div class="func-brief">检查异象是否设置了"无法被异象选中"。</div>
     <div class="func-meta">
@@ -1805,7 +1805,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>检查异象是否设置了"无法被异象选中"。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2137</span>def is_untargetable_by_minions(minion: "Minion") -&gt; bool:<br><span class="line-num">2138</span>    """检查异象是否设置了"无法被异象选中"。"""<br><span class="line-num">2139</span>    return getattr(minion, "_untargetable_by_minions", False)<br></div>
+      <div class="code-block"><span class="line-num">2132</span>def is_untargetable_by_minions(minion: "Minion") -&gt; bool:<br><span class="line-num">2133</span>    """检查异象是否设置了"无法被异象选中"。"""<br><span class="line-num">2134</span>    return getattr(minion, "_untargetable_by_minions", False)<br></div>
     </div>
   </div>
 </div></div>
@@ -1957,7 +1957,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
   <div class="func-card unused" data-name="track_event_per_turn" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">track_event_per_turn(minion, game, key, event_type, filter_fn)</span>
-      <span class="func-line">行 1203</span>
+      <span class="func-line">行 1198</span>
     </div>
     <div class="func-brief">自动追踪某事件每回合的发生次数，并在回合结束时清零。</div>
     <div class="func-meta">
@@ -1976,14 +1976,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
     track_event_per_turn(minion, game, "turn_deploys", EVENT_DEPLOYED,
                    lambda e: e.data.get("minion", {}).owner == minion.owner)</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1203</span>def track_event_per_turn(<br><span class="line-num">1204</span>    minion: "Minion",<br><span class="line-num">1205</span>    game: "Game",<br><span class="line-num">1206</span>    key: str,<br><span class="line-num">1207</span>    event_type: str,<br><span class="line-num">1208</span>    filter_fn: Optional[Callable[[Any], bool]] = None,<br><span class="line-num">1209</span>) -&gt; int:<br><span class="line-num">1210</span>    """自动追踪某事件每回合的发生次数，并在回合结束时清零。<br><span class="line-num">1211</span><br><span class="line-num">1212</span>    注册一个 event_type 的全局监听器，满足 filter_fn 时计数 +1。<br><span class="line-num">1213</span>    返回 owner_id（可用于手动注销）。<br><span class="line-num">1214</span><br><span class="line-num">1215</span>    使用示例：<br><span class="line-num">1216</span>        track_event_per_turn(minion, game, "turn_deploys", EVENT_DEPLOYED,<br><span class="line-num">1217</span>                       lambda e: e.data.get("minion", {}).owner == minion.owner)<br><span class="line-num">1218</span>    """<br><span class="line-num">1219</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1220</span>    turn = getattr(game, "current_turn", 0)<br><span class="line-num">1221</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1222</span>    tracker[full_key] = 0<br><span class="line-num">1223</span><br><span class="line-num">1224</span>    def _on_event(event):<br><span class="line-num">1225</span>        if filter_fn and not filter_fn(event):<br><span class="line-num">1226</span>            return<br><span class="line-num">1227</span>        current_turn = getattr(game, "current_turn", 0)<br><span class="line-num">1228</span>        current_key = f"{key}_turn_{current_turn}"<br><span class="line-num">1229</span>        tracker[current_key] = tracker.get(current_key, 0) + 1<br><span class="line-num">1230</span><br><span class="line-num">1231</span>    def _on_turn_end(event):<br><span class="line-num">1232</span>        turn_to_clear = event.data.get("turn", getattr(game, "current_turn", 0))<br><span class="line-num">1233</span>        key_to_clear = f"{key}_turn_{turn_to_clear}"<br><span class="line-num">1234</span>        if key_to_clear in tracker:<br><span class="line-num">1235</span>            del tracker[key_to_clear]<br><span class="line-num">1236</span><br><span class="line-num">1237</span>    oid1 = add_event_listener(minion, game, event_type, _on_event)<br><span class="line-num">1238</span>    from tards.constants import EVENT_TURN_END<br><span class="line-num">1239</span>    add_event_listener(minion, game, EVENT_TURN_END, _on_turn_end)<br><span class="line-num">1240</span>    return oid1<br></div>
+      <div class="code-block"><span class="line-num">1198</span>def track_event_per_turn(<br><span class="line-num">1199</span>    minion: "Minion",<br><span class="line-num">1200</span>    game: "Game",<br><span class="line-num">1201</span>    key: str,<br><span class="line-num">1202</span>    event_type: str,<br><span class="line-num">1203</span>    filter_fn: Optional[Callable[[Any], bool]] = None,<br><span class="line-num">1204</span>) -&gt; int:<br><span class="line-num">1205</span>    """自动追踪某事件每回合的发生次数，并在回合结束时清零。<br><span class="line-num">1206</span><br><span class="line-num">1207</span>    注册一个 event_type 的全局监听器，满足 filter_fn 时计数 +1。<br><span class="line-num">1208</span>    返回 owner_id（可用于手动注销）。<br><span class="line-num">1209</span><br><span class="line-num">1210</span>    使用示例：<br><span class="line-num">1211</span>        track_event_per_turn(minion, game, "turn_deploys", EVENT_DEPLOYED,<br><span class="line-num">1212</span>                       lambda e: e.data.get("minion", {}).owner == minion.owner)<br><span class="line-num">1213</span>    """<br><span class="line-num">1214</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1215</span>    turn = getattr(game, "current_turn", 0)<br><span class="line-num">1216</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1217</span>    tracker[full_key] = 0<br><span class="line-num">1218</span><br><span class="line-num">1219</span>    def _on_event(event):<br><span class="line-num">1220</span>        if filter_fn and not filter_fn(event):<br><span class="line-num">1221</span>            return<br><span class="line-num">1222</span>        current_turn = getattr(game, "current_turn", 0)<br><span class="line-num">1223</span>        current_key = f"{key}_turn_{current_turn}"<br><span class="line-num">1224</span>        tracker[current_key] = tracker.get(current_key, 0) + 1<br><span class="line-num">1225</span><br><span class="line-num">1226</span>    def _on_turn_end(event):<br><span class="line-num">1227</span>        turn_to_clear = event.data.get("turn", getattr(game, "current_turn", 0))<br><span class="line-num">1228</span>        key_to_clear = f"{key}_turn_{turn_to_clear}"<br><span class="line-num">1229</span>        if key_to_clear in tracker:<br><span class="line-num">1230</span>            del tracker[key_to_clear]<br><span class="line-num">1231</span><br><span class="line-num">1232</span>    oid1 = add_event_listener(minion, game, event_type, _on_event)<br><span class="line-num">1233</span>    from tards.constants import EVENT_TURN_END<br><span class="line-num">1234</span>    add_event_listener(minion, game, EVENT_TURN_END, _on_turn_end)<br><span class="line-num">1235</span>    return oid1<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_deploy_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_deploy_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1283</span>
+      <span class="func-line">行 1278</span>
     </div>
     <div class="func-brief">【兼容】监听全局部署事件。</div>
     <div class="func-meta">
@@ -1995,14 +1995,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局部署事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1283</span>def on_deploy_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1284</span>                     priority: int = 0) -&gt; int:<br><span class="line-num">1285</span>    """【兼容】监听全局部署事件。"""<br><span class="line-num">1286</span>    return on("deployed", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1278</span>def on_deploy_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1279</span>                     priority: int = 0) -&gt; int:<br><span class="line-num">1280</span>    """【兼容】监听全局部署事件。"""<br><span class="line-num">1281</span>    return on("deployed", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_sacrifice_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_sacrifice_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1289</span>
+      <span class="func-line">行 1284</span>
     </div>
     <div class="func-brief">【兼容】监听全局献祭事件。</div>
     <div class="func-meta">
@@ -2014,14 +2014,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局献祭事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1289</span>def on_sacrifice_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1290</span>                        priority: int = 0) -&gt; int:<br><span class="line-num">1291</span>    """【兼容】监听全局献祭事件。"""<br><span class="line-num">1292</span>    return on("sacrifice", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1284</span>def on_sacrifice_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1285</span>                        priority: int = 0) -&gt; int:<br><span class="line-num">1286</span>    """【兼容】监听全局献祭事件。"""<br><span class="line-num">1287</span>    return on("sacrifice", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_card_played_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_card_played_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1301</span>
+      <span class="func-line">行 1296</span>
     </div>
     <div class="func-brief">【兼容】监听全局卡牌打出事件。</div>
     <div class="func-meta">
@@ -2033,14 +2033,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】监听全局卡牌打出事件。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1301</span>def on_card_played_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1302</span>                          priority: int = 0) -&gt; int:<br><span class="line-num">1303</span>    """【兼容】监听全局卡牌打出事件。"""<br><span class="line-num">1304</span>    return on("played", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1296</span>def on_card_played_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1297</span>                          priority: int = 0) -&gt; int:<br><span class="line-num">1298</span>    """【兼容】监听全局卡牌打出事件。"""<br><span class="line-num">1299</span>    return on("played", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_turn_start_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_turn_start_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1307</span>
+      <span class="func-line">行 1302</span>
     </div>
     <div class="func-brief">【兼容】监听全局回合开始事件。</div>
     <div class="func-meta">
@@ -2053,14 +2053,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <pre>【兼容】监听全局回合开始事件。
 规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1307</span>def on_turn_start_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1308</span>                         priority: int = 0) -&gt; int:<br><span class="line-num">1309</span>    """【兼容】监听全局回合开始事件。<br><span class="line-num">1310</span>    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""<br><span class="line-num">1311</span>    def _wrapper(event):<br><span class="line-num">1312</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1313</span>            return<br><span class="line-num">1314</span>        callback(event)<br><span class="line-num">1315</span>    return on("phase_start", _wrapper, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1302</span>def on_turn_start_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1303</span>                         priority: int = 0) -&gt; int:<br><span class="line-num">1304</span>    """【兼容】监听全局回合开始事件。<br><span class="line-num">1305</span>    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""<br><span class="line-num">1306</span>    def _wrapper(event):<br><span class="line-num">1307</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1308</span>            return<br><span class="line-num">1309</span>        callback(event)<br><span class="line-num">1310</span>    return on("phase_start", _wrapper, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_turn_end_global" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_turn_end_global(minion, game, callback, priority)</span>
-      <span class="func-line">行 1318</span>
+      <span class="func-line">行 1313</span>
     </div>
     <div class="func-brief">【兼容】监听全局回合结束事件。</div>
     <div class="func-meta">
@@ -2073,14 +2073,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <pre>【兼容】监听全局回合结束事件。
 规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1318</span>def on_turn_end_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1319</span>                       priority: int = 0) -&gt; int:<br><span class="line-num">1320</span>    """【兼容】监听全局回合结束事件。<br><span class="line-num">1321</span>    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""<br><span class="line-num">1322</span>    def _wrapper(event):<br><span class="line-num">1323</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1324</span>            return<br><span class="line-num">1325</span>        callback(event)<br><span class="line-num">1326</span>    return on("phase_end", _wrapper, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1313</span>def on_turn_end_global(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1314</span>                       priority: int = 0) -&gt; int:<br><span class="line-num">1315</span>    """【兼容】监听全局回合结束事件。<br><span class="line-num">1316</span>    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""<br><span class="line-num">1317</span>    def _wrapper(event):<br><span class="line-num">1318</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1319</span>            return<br><span class="line-num">1320</span>        callback(event)<br><span class="line-num">1321</span>    return on("phase_end", _wrapper, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_after_deploy" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_after_deploy(minion, game, callback, priority)</span>
-      <span class="func-line">行 1825</span>
+      <span class="func-line">行 1820</span>
     </div>
     <div class="func-brief">【兼容】注册 after_deploy 监听器。</div>
     <div class="func-meta">
@@ -2092,14 +2092,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】注册 after_deploy 监听器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1825</span>def on_after_deploy(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1826</span>                      priority: int = 0) -&gt; int:<br><span class="line-num">1827</span>    """【兼容】注册 after_deploy 监听器。"""<br><span class="line-num">1828</span>    return on("after_deploy", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1820</span>def on_after_deploy(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1821</span>                      priority: int = 0) -&gt; int:<br><span class="line-num">1822</span>    """【兼容】注册 after_deploy 监听器。"""<br><span class="line-num">1823</span>    return on("after_deploy", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card used compat" data-name="on_card_played" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_yingwu_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhuling_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "on_card_played"}]'>
     <div class="func-header">
       <span class="func-name">on_card_played(minion, game, callback, priority)</span>
-      <span class="func-line">行 1831</span>
+      <span class="func-line">行 1826</span>
     </div>
     <div class="func-brief">【兼容】注册 played 监听器。</div>
     <div class="func-meta">
@@ -2111,14 +2111,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】注册 played 监听器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1831</span>def on_card_played(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1832</span>                   priority: int = 0) -&gt; int:<br><span class="line-num">1833</span>    """【兼容】注册 played 监听器。"""<br><span class="line-num">1834</span>    return on("played", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1826</span>def on_card_played(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1827</span>                   priority: int = 0) -&gt; int:<br><span class="line-num">1828</span>    """【兼容】注册 played 监听器。"""<br><span class="line-num">1829</span>    return on("played", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused compat" data-name="on_sacrifice" data-usage="unused" data-compat="true" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">on_sacrifice(minion, game, callback, priority)</span>
-      <span class="func-line">行 1837</span>
+      <span class="func-line">行 1832</span>
     </div>
     <div class="func-brief">【兼容】注册 sacrifice 监听器。</div>
     <div class="func-meta">
@@ -2130,14 +2130,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>【兼容】注册 sacrifice 监听器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1837</span>def on_sacrifice(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1838</span>                 priority: int = 0) -&gt; int:<br><span class="line-num">1839</span>    """【兼容】注册 sacrifice 监听器。"""<br><span class="line-num">1840</span>    return on("sacrifice", callback, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1832</span>def on_sacrifice(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1833</span>                 priority: int = 0) -&gt; int:<br><span class="line-num">1834</span>    """【兼容】注册 sacrifice 监听器。"""<br><span class="line-num">1835</span>    return on("sacrifice", callback, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card many compat" data-name="on_turn_start" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhuling_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_zhulinggongbing_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_huanmozhe_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_liulangshangren_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "on_turn_start"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_start"}]'>
     <div class="func-header">
       <span class="func-name">on_turn_start(minion, game, callback, priority)</span>
-      <span class="func-line">行 1843</span>
+      <span class="func-line">行 1838</span>
     </div>
     <div class="func-brief">【兼容】注册 turn_start 监听器。</div>
     <div class="func-meta">
@@ -2150,14 +2150,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <pre>【兼容】注册 turn_start 监听器。
 规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1843</span>def on_turn_start(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1844</span>                  priority: int = 0) -&gt; int:<br><span class="line-num">1845</span>    """【兼容】注册 turn_start 监听器。<br><span class="line-num">1846</span>    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""<br><span class="line-num">1847</span>    def _wrapper(event):<br><span class="line-num">1848</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1849</span>            return<br><span class="line-num">1850</span>        callback(event)<br><span class="line-num">1851</span>    return on("phase_start", _wrapper, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1838</span>def on_turn_start(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1839</span>                  priority: int = 0) -&gt; int:<br><span class="line-num">1840</span>    """【兼容】注册 turn_start 监听器。<br><span class="line-num">1841</span>    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""<br><span class="line-num">1842</span>    def _wrapper(event):<br><span class="line-num">1843</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1844</span>            return<br><span class="line-num">1845</span>        callback(event)<br><span class="line-num">1846</span>    return on("phase_start", _wrapper, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card many compat" data-name="on_turn_end" data-usage="used" data-compat="true" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_diaoyugan_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_yang_special"}, {"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_qianyingbei_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_jijuxie_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_tianniu_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "_xinge_special"}, {"type": "effect", "pack": "\u51a5\u523b\u6548\u679c", "name": "on_turn_end"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "_bishop_special"}, {"type": "effect", "pack": "\u8840\u5951\u6548\u679c", "name": "on_turn_end"}]'>
     <div class="func-header">
       <span class="func-name">on_turn_end(minion, game, callback, priority)</span>
-      <span class="func-line">行 1854</span>
+      <span class="func-line">行 1849</span>
     </div>
     <div class="func-brief">【兼容】注册 turn_end 监听器。</div>
     <div class="func-meta">
@@ -2170,14 +2170,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <pre>【兼容】注册 turn_end 监听器。
 规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1854</span>def on_turn_end(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1855</span>                priority: int = 0) -&gt; int:<br><span class="line-num">1856</span>    """【兼容】注册 turn_end 监听器。<br><span class="line-num">1857</span>    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""<br><span class="line-num">1858</span>    def _wrapper(event):<br><span class="line-num">1859</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1860</span>            return<br><span class="line-num">1861</span>        callback(event)<br><span class="line-num">1862</span>    return on("phase_end", _wrapper, game, minion, priority)<br></div>
+      <div class="code-block"><span class="line-num">1849</span>def on_turn_end(minion: "Minion", game: "Game", callback: Callable,<br><span class="line-num">1850</span>                priority: int = 0) -&gt; int:<br><span class="line-num">1851</span>    """【兼容】注册 turn_end 监听器。<br><span class="line-num">1852</span>    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""<br><span class="line-num">1853</span>    def _wrapper(event):<br><span class="line-num">1854</span>        if event.data.get("phase") != game.PHASE_RESOLVE:<br><span class="line-num">1855</span>            return<br><span class="line-num">1856</span>        callback(event)<br><span class="line-num">1857</span>    return on("phase_end", _wrapper, game, minion, priority)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="can_minion_attack" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">can_minion_attack(minion, game)</span>
-      <span class="func-line">行 2152</span>
+      <span class="func-line">行 2147</span>
     </div>
     <div class="func-brief">检查异象是否被全局攻击限制禁止攻击。</div>
     <div class="func-meta">
@@ -2189,7 +2189,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
       <strong>完整文档：</strong>
       <pre>检查异象是否被全局攻击限制禁止攻击。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2152</span>def can_minion_attack(minion: "Minion", game: "Game") -&gt; bool:<br><span class="line-num">2153</span>    """检查异象是否被全局攻击限制禁止攻击。"""<br><span class="line-num">2154</span>    restrictions = getattr(game, "_attack_restrictions", [])<br><span class="line-num">2155</span>    for fn in restrictions:<br><span class="line-num">2156</span>        if fn(minion):<br><span class="line-num">2157</span>            return False<br><span class="line-num">2158</span>    return True<br></div>
+      <div class="code-block"><span class="line-num">2147</span>def can_minion_attack(minion: "Minion", game: "Game") -&gt; bool:<br><span class="line-num">2148</span>    """检查异象是否被全局攻击限制禁止攻击。"""<br><span class="line-num">2149</span>    restrictions = getattr(game, "_attack_restrictions", [])<br><span class="line-num">2150</span>    for fn in restrictions:<br><span class="line-num">2151</span>        if fn(minion):<br><span class="line-num">2152</span>            return False<br><span class="line-num">2153</span>    return True<br></div>
     </div>
   </div>
 </div></div>
@@ -2200,7 +2200,7 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
   <div class="func-card unused" data-name="delay_to_next_turn" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">delay_to_next_turn(minion, game, callback, once)</span>
-      <span class="func-line">行 1064</span>
+      <span class="func-line">行 1059</span>
     </div>
     <div class="func-brief">注册一个在下一回合开始时执行的回调。</div>
     <div class="func-meta">
@@ -2216,14 +2216,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
 避免在同一回合内重复执行。
 返回 owner_id（可用于手动注销）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1064</span>def delay_to_next_turn(<br><span class="line-num">1065</span>    minion: "Minion",<br><span class="line-num">1066</span>    game: "Game",<br><span class="line-num">1067</span>    callback: Callable[[Any], None],<br><span class="line-num">1068</span>    once: bool = True,<br><span class="line-num">1069</span>) -&gt; int:<br><span class="line-num">1070</span>    """注册一个在下一回合开始时执行的回调。<br><span class="line-num">1071</span><br><span class="line-num">1072</span>    自动过滤：只在 game.current_turn &gt; 注册时的回合数 时触发，<br><span class="line-num">1073</span>    避免在同一回合内重复执行。<br><span class="line-num">1074</span>    返回 owner_id（可用于手动注销）。<br><span class="line-num">1075</span>    """<br><span class="line-num">1076</span>    from tards.constants import EVENT_TURN_START<br><span class="line-num">1077</span><br><span class="line-num">1078</span>    turn_registered = game.current_turn<br><span class="line-num">1079</span><br><span class="line-num">1080</span>    def _wrapper(event):<br><span class="line-num">1081</span>        if game.current_turn &lt;= turn_registered:<br><span class="line-num">1082</span>            return<br><span class="line-num">1083</span>        if not minion.is_alive():<br><span class="line-num">1084</span>            if once:<br><span class="line-num">1085</span>                game.unregister_listener(EVENT_TURN_START, _wrapper)<br><span class="line-num">1086</span>            return<br><span class="line-num">1087</span>        try:<br><span class="line-num">1088</span>            callback(event)<br><span class="line-num">1089</span>        except Exception as e:<br><span class="line-num">1090</span>            print(f"  [警告] delay_to_next_turn 回调异常: {e}")<br><span class="line-num">1091</span>        if once:<br><span class="line-num">1092</span>            game.unregister_listener(EVENT_TURN_START, _wrapper)<br><span class="line-num">1093</span><br><span class="line-num">1094</span>    return add_event_listener(minion, game, EVENT_TURN_START, _wrapper)<br></div>
+      <div class="code-block"><span class="line-num">1059</span>def delay_to_next_turn(<br><span class="line-num">1060</span>    minion: "Minion",<br><span class="line-num">1061</span>    game: "Game",<br><span class="line-num">1062</span>    callback: Callable[[Any], None],<br><span class="line-num">1063</span>    once: bool = True,<br><span class="line-num">1064</span>) -&gt; int:<br><span class="line-num">1065</span>    """注册一个在下一回合开始时执行的回调。<br><span class="line-num">1066</span><br><span class="line-num">1067</span>    自动过滤：只在 game.current_turn &gt; 注册时的回合数 时触发，<br><span class="line-num">1068</span>    避免在同一回合内重复执行。<br><span class="line-num">1069</span>    返回 owner_id（可用于手动注销）。<br><span class="line-num">1070</span>    """<br><span class="line-num">1071</span>    from tards.constants import EVENT_TURN_START<br><span class="line-num">1072</span><br><span class="line-num">1073</span>    turn_registered = game.current_turn<br><span class="line-num">1074</span><br><span class="line-num">1075</span>    def _wrapper(event):<br><span class="line-num">1076</span>        if game.current_turn &lt;= turn_registered:<br><span class="line-num">1077</span>            return<br><span class="line-num">1078</span>        if not minion.is_alive():<br><span class="line-num">1079</span>            if once:<br><span class="line-num">1080</span>                game.unregister_listener(EVENT_TURN_START, _wrapper)<br><span class="line-num">1081</span>            return<br><span class="line-num">1082</span>        try:<br><span class="line-num">1083</span>            callback(event)<br><span class="line-num">1084</span>        except Exception as e:<br><span class="line-num">1085</span>            print(f"  [警告] delay_to_next_turn 回调异常: {e}")<br><span class="line-num">1086</span>        if once:<br><span class="line-num">1087</span>            game.unregister_listener(EVENT_TURN_START, _wrapper)<br><span class="line-num">1088</span><br><span class="line-num">1089</span>    return add_event_listener(minion, game, EVENT_TURN_START, _wrapper)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="delay_to_phase_start" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">delay_to_phase_start(minion, game, phase, callback, once)</span>
-      <span class="func-line">行 1097</span>
+      <span class="func-line">行 1092</span>
     </div>
     <div class="func-brief">注册一个在指定 phase_start 时执行的回调。</div>
     <div class="func-meta">
@@ -2237,14 +2237,14 @@ player 为 None 时统计双方，否则只统计该玩家的异象。</pre>
 
 phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1097</span>def delay_to_phase_start(<br><span class="line-num">1098</span>    minion: "Minion",<br><span class="line-num">1099</span>    game: "Game",<br><span class="line-num">1100</span>    phase: str,<br><span class="line-num">1101</span>    callback: Callable[[Any], None],<br><span class="line-num">1102</span>    once: bool = True,<br><span class="line-num">1103</span>) -&gt; int:<br><span class="line-num">1104</span>    """注册一个在指定 phase_start 时执行的回调。<br><span class="line-num">1105</span><br><span class="line-num">1106</span>    phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。<br><span class="line-num">1107</span>    """<br><span class="line-num">1108</span>    from tards.constants import EVENT_PHASE_START<br><span class="line-num">1109</span><br><span class="line-num">1110</span>    def _wrapper(event):<br><span class="line-num">1111</span>        if event.data.get("phase") != phase:<br><span class="line-num">1112</span>            return<br><span class="line-num">1113</span>        if not minion.is_alive():<br><span class="line-num">1114</span>            if once:<br><span class="line-num">1115</span>                game.unregister_listener(EVENT_PHASE_START, _wrapper)<br><span class="line-num">1116</span>            return<br><span class="line-num">1117</span>        try:<br><span class="line-num">1118</span>            callback(event)<br><span class="line-num">1119</span>        except Exception as e:<br><span class="line-num">1120</span>            print(f"  [警告] delay_to_phase_start 回调异常: {e}")<br><span class="line-num">1121</span>        if once:<br><span class="line-num">1122</span>            game.unregister_listener(EVENT_PHASE_START, _wrapper)<br><span class="line-num">1123</span><br><span class="line-num">1124</span>    return add_event_listener(minion, game, EVENT_PHASE_START, _wrapper)<br></div>
+      <div class="code-block"><span class="line-num">1092</span>def delay_to_phase_start(<br><span class="line-num">1093</span>    minion: "Minion",<br><span class="line-num">1094</span>    game: "Game",<br><span class="line-num">1095</span>    phase: str,<br><span class="line-num">1096</span>    callback: Callable[[Any], None],<br><span class="line-num">1097</span>    once: bool = True,<br><span class="line-num">1098</span>) -&gt; int:<br><span class="line-num">1099</span>    """注册一个在指定 phase_start 时执行的回调。<br><span class="line-num">1100</span><br><span class="line-num">1101</span>    phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。<br><span class="line-num">1102</span>    """<br><span class="line-num">1103</span>    from tards.constants import EVENT_PHASE_START<br><span class="line-num">1104</span><br><span class="line-num">1105</span>    def _wrapper(event):<br><span class="line-num">1106</span>        if event.data.get("phase") != phase:<br><span class="line-num">1107</span>            return<br><span class="line-num">1108</span>        if not minion.is_alive():<br><span class="line-num">1109</span>            if once:<br><span class="line-num">1110</span>                game.unregister_listener(EVENT_PHASE_START, _wrapper)<br><span class="line-num">1111</span>            return<br><span class="line-num">1112</span>        try:<br><span class="line-num">1113</span>            callback(event)<br><span class="line-num">1114</span>        except Exception as e:<br><span class="line-num">1115</span>            print(f"  [警告] delay_to_phase_start 回调异常: {e}")<br><span class="line-num">1116</span>        if once:<br><span class="line-num">1117</span>            game.unregister_listener(EVENT_PHASE_START, _wrapper)<br><span class="line-num">1118</span><br><span class="line-num">1119</span>    return add_event_listener(minion, game, EVENT_PHASE_START, _wrapper)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="delay_to_turn_end" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">delay_to_turn_end(minion, game, callback, once)</span>
-      <span class="func-line">行 1127</span>
+      <span class="func-line">行 1122</span>
     </div>
     <div class="func-brief">注册一个在当前回合结束时执行的回调。</div>
     <div class="func-meta">
@@ -2256,14 +2256,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <strong>完整文档：</strong>
       <pre>注册一个在当前回合结束时执行的回调。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1127</span>def delay_to_turn_end(<br><span class="line-num">1128</span>    minion: "Minion",<br><span class="line-num">1129</span>    game: "Game",<br><span class="line-num">1130</span>    callback: Callable[[Any], None],<br><span class="line-num">1131</span>    once: bool = True,<br><span class="line-num">1132</span>) -&gt; int:<br><span class="line-num">1133</span>    """注册一个在当前回合结束时执行的回调。"""<br><span class="line-num">1134</span>    from tards.constants import EVENT_TURN_END<br><span class="line-num">1135</span><br><span class="line-num">1136</span>    turn_registered = game.current_turn<br><span class="line-num">1137</span><br><span class="line-num">1138</span>    def _wrapper(event):<br><span class="line-num">1139</span>        if game.current_turn != turn_registered:<br><span class="line-num">1140</span>            return<br><span class="line-num">1141</span>        if not minion.is_alive():<br><span class="line-num">1142</span>            if once:<br><span class="line-num">1143</span>                game.unregister_listener(EVENT_TURN_END, _wrapper)<br><span class="line-num">1144</span>            return<br><span class="line-num">1145</span>        try:<br><span class="line-num">1146</span>            callback(event)<br><span class="line-num">1147</span>        except Exception as e:<br><span class="line-num">1148</span>            print(f"  [警告] delay_to_turn_end 回调异常: {e}")<br><span class="line-num">1149</span>        if once:<br><span class="line-num">1150</span>            game.unregister_listener(EVENT_TURN_END, _wrapper)<br><span class="line-num">1151</span><br><span class="line-num">1152</span>    return add_event_listener(minion, game, EVENT_TURN_END, _wrapper)<br></div>
+      <div class="code-block"><span class="line-num">1122</span>def delay_to_turn_end(<br><span class="line-num">1123</span>    minion: "Minion",<br><span class="line-num">1124</span>    game: "Game",<br><span class="line-num">1125</span>    callback: Callable[[Any], None],<br><span class="line-num">1126</span>    once: bool = True,<br><span class="line-num">1127</span>) -&gt; int:<br><span class="line-num">1128</span>    """注册一个在当前回合结束时执行的回调。"""<br><span class="line-num">1129</span>    from tards.constants import EVENT_TURN_END<br><span class="line-num">1130</span><br><span class="line-num">1131</span>    turn_registered = game.current_turn<br><span class="line-num">1132</span><br><span class="line-num">1133</span>    def _wrapper(event):<br><span class="line-num">1134</span>        if game.current_turn != turn_registered:<br><span class="line-num">1135</span>            return<br><span class="line-num">1136</span>        if not minion.is_alive():<br><span class="line-num">1137</span>            if once:<br><span class="line-num">1138</span>                game.unregister_listener(EVENT_TURN_END, _wrapper)<br><span class="line-num">1139</span>            return<br><span class="line-num">1140</span>        try:<br><span class="line-num">1141</span>            callback(event)<br><span class="line-num">1142</span>        except Exception as e:<br><span class="line-num">1143</span>            print(f"  [警告] delay_to_turn_end 回调异常: {e}")<br><span class="line-num">1144</span>        if once:<br><span class="line-num">1145</span>            game.unregister_listener(EVENT_TURN_END, _wrapper)<br><span class="line-num">1146</span><br><span class="line-num">1147</span>    return add_event_listener(minion, game, EVENT_TURN_END, _wrapper)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="_get_state_tracker" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">_get_state_tracker(game)</span>
-      <span class="func-line">行 1159</span>
+      <span class="func-line">行 1154</span>
     </div>
     <div class="func-brief">获取或惰性初始化游戏的状态追踪器。</div>
     <div class="func-meta">
@@ -2275,14 +2275,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <strong>完整文档：</strong>
       <pre>获取或惰性初始化游戏的状态追踪器。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1159</span>def _get_state_tracker(game: "Game") -&gt; Dict[str, Any]:<br><span class="line-num">1160</span>    """获取或惰性初始化游戏的状态追踪器。"""<br><span class="line-num">1161</span>    if not hasattr(game, "_state_tracker"):<br><span class="line-num">1162</span>        game._state_tracker = {}<br><span class="line-num">1163</span>    return game._state_tracker<br></div>
+      <div class="code-block"><span class="line-num">1154</span>def _get_state_tracker(game: "Game") -&gt; Dict[str, Any]:<br><span class="line-num">1155</span>    """获取或惰性初始化游戏的状态追踪器。"""<br><span class="line-num">1156</span>    if not hasattr(game, "_state_tracker"):<br><span class="line-num">1157</span>        game._state_tracker = {}<br><span class="line-num">1158</span>    return game._state_tracker<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="track_stat" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">track_stat(game, key, value)</span>
-      <span class="func-line">行 1166</span>
+      <span class="func-line">行 1161</span>
     </div>
     <div class="func-brief">记录一个全局状态值（跨回合持久）。</div>
     <div class="func-meta">
@@ -2294,14 +2294,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <strong>完整文档：</strong>
       <pre>记录一个全局状态值（跨回合持久）。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1166</span>def track_stat(game: "Game", key: str, value: Any) -&gt; None:<br><span class="line-num">1167</span>    """记录一个全局状态值（跨回合持久）。"""<br><span class="line-num">1168</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1169</span>    tracker[key] = value<br></div>
+      <div class="code-block"><span class="line-num">1161</span>def track_stat(game: "Game", key: str, value: Any) -&gt; None:<br><span class="line-num">1162</span>    """记录一个全局状态值（跨回合持久）。"""<br><span class="line-num">1163</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1164</span>    tracker[key] = value<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="get_stat" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_stat(game, key, default)</span>
-      <span class="func-line">行 1172</span>
+      <span class="func-line">行 1167</span>
     </div>
     <div class="func-brief">读取状态追踪器中的值。</div>
     <div class="func-meta">
@@ -2313,14 +2313,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <strong>完整文档：</strong>
       <pre>读取状态追踪器中的值。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1172</span>def get_stat(game: "Game", key: str, default: Any = None) -&gt; Any:<br><span class="line-num">1173</span>    """读取状态追踪器中的值。"""<br><span class="line-num">1174</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1175</span>    return tracker.get(key, default)<br></div>
+      <div class="code-block"><span class="line-num">1167</span>def get_stat(game: "Game", key: str, default: Any = None) -&gt; Any:<br><span class="line-num">1168</span>    """读取状态追踪器中的值。"""<br><span class="line-num">1169</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1170</span>    return tracker.get(key, default)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="increment_stat" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">increment_stat(game, key, delta)</span>
-      <span class="func-line">行 1178</span>
+      <span class="func-line">行 1173</span>
     </div>
     <div class="func-brief">累加状态值，返回新值。</div>
     <div class="func-meta">
@@ -2332,14 +2332,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <strong>完整文档：</strong>
       <pre>累加状态值，返回新值。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1178</span>def increment_stat(game: "Game", key: str, delta: int = 1) -&gt; int:<br><span class="line-num">1179</span>    """累加状态值，返回新值。"""<br><span class="line-num">1180</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1181</span>    tracker[key] = tracker.get(key, 0) + delta<br><span class="line-num">1182</span>    return tracker[key]<br></div>
+      <div class="code-block"><span class="line-num">1173</span>def increment_stat(game: "Game", key: str, delta: int = 1) -&gt; int:<br><span class="line-num">1174</span>    """累加状态值，返回新值。"""<br><span class="line-num">1175</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1176</span>    tracker[key] = tracker.get(key, 0) + delta<br><span class="line-num">1177</span>    return tracker[key]<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="track_per_turn" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">track_per_turn(game, key, value, turn_offset)</span>
-      <span class="func-line">行 1185</span>
+      <span class="func-line">行 1180</span>
     </div>
     <div class="func-brief">记录当前回合（或偏移回合）的状态。</div>
     <div class="func-meta">
@@ -2352,14 +2352,14 @@ phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。</
       <pre>记录当前回合（或偏移回合）的状态。
 key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1185</span>def track_per_turn(game: "Game", key: str, value: Any, turn_offset: int = 0) -&gt; None:<br><span class="line-num">1186</span>    """记录当前回合（或偏移回合）的状态。<br><span class="line-num">1187</span>    key 会自动附加回合后缀，回合结束时由 game.py 自动清理。<br><span class="line-num">1188</span>    """<br><span class="line-num">1189</span>    turn = game.current_turn + turn_offset<br><span class="line-num">1190</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1191</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1192</span>    tracker[full_key] = value<br></div>
+      <div class="code-block"><span class="line-num">1180</span>def track_per_turn(game: "Game", key: str, value: Any, turn_offset: int = 0) -&gt; None:<br><span class="line-num">1181</span>    """记录当前回合（或偏移回合）的状态。<br><span class="line-num">1182</span>    key 会自动附加回合后缀，回合结束时由 game.py 自动清理。<br><span class="line-num">1183</span>    """<br><span class="line-num">1184</span>    turn = game.current_turn + turn_offset<br><span class="line-num">1185</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1186</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1187</span>    tracker[full_key] = value<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="get_per_turn" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_per_turn(game, key, turn_offset, default)</span>
-      <span class="func-line">行 1195</span>
+      <span class="func-line">行 1190</span>
     </div>
     <div class="func-brief">读取某回合的状态值。</div>
     <div class="func-meta">
@@ -2371,14 +2371,14 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
       <strong>完整文档：</strong>
       <pre>读取某回合的状态值。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1195</span>def get_per_turn(game: "Game", key: str, turn_offset: int = 0, default: Any = None) -&gt; Any:<br><span class="line-num">1196</span>    """读取某回合的状态值。"""<br><span class="line-num">1197</span>    turn = game.current_turn + turn_offset<br><span class="line-num">1198</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1199</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1200</span>    return tracker.get(full_key, default)<br></div>
+      <div class="code-block"><span class="line-num">1190</span>def get_per_turn(game: "Game", key: str, turn_offset: int = 0, default: Any = None) -&gt; Any:<br><span class="line-num">1191</span>    """读取某回合的状态值。"""<br><span class="line-num">1192</span>    turn = game.current_turn + turn_offset<br><span class="line-num">1193</span>    full_key = f"{key}_turn_{turn}"<br><span class="line-num">1194</span>    tracker = _get_state_tracker(game)<br><span class="line-num">1195</span>    return tracker.get(full_key, default)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="if_possible_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">if_possible_then(condition_fn, then_fn)</span>
-      <span class="func-line">行 1541</span>
+      <span class="func-line">行 1536</span>
     </div>
     <div class="func-brief">如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
@@ -2397,7 +2397,7 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
   - if_possible_then 强调"前提条件不满足则效果完全失效"；
   - conditional_effect 是通用的 if/else 分支。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1541</span>def if_possible_then(<br><span class="line-num">1542</span>    condition_fn: Callable[[], bool],<br><span class="line-num">1543</span>    then_fn: Callable[[], None],<br><span class="line-num">1544</span>) -&gt; bool:<br><span class="line-num">1545</span>    """如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。<br><span class="line-num">1546</span><br><span class="line-num">1547</span>    返回 True 表示条件满足并已执行，False 表示条件不满足、效果未执行。<br><span class="line-num">1548</span>    用于"如可能，..."类效果（如"如可能，消耗1S，对对手造成2点伤害"）。<br><span class="line-num">1549</span><br><span class="line-num">1550</span>    与 conditional_effect 的区别：<br><span class="line-num">1551</span>      - if_possible_then 强调"前提条件不满足则效果完全失效"；<br><span class="line-num">1552</span>      - conditional_effect 是通用的 if/else 分支。<br><span class="line-num">1553</span>    """<br><span class="line-num">1554</span>    try:<br><span class="line-num">1555</span>        if condition_fn():<br><span class="line-num">1556</span>            then_fn()<br><span class="line-num">1557</span>            return True<br><span class="line-num">1558</span>        return False<br><span class="line-num">1559</span>    except Exception as e:<br><span class="line-num">1560</span>        print(f"  [警告] if_possible_then 执行异常: {e}")<br><span class="line-num">1561</span>        return False<br></div>
+      <div class="code-block"><span class="line-num">1536</span>def if_possible_then(<br><span class="line-num">1537</span>    condition_fn: Callable[[], bool],<br><span class="line-num">1538</span>    then_fn: Callable[[], None],<br><span class="line-num">1539</span>) -&gt; bool:<br><span class="line-num">1540</span>    """如可能：当 condition_fn 返回 True 时执行 then_fn，否则效果失效。<br><span class="line-num">1541</span><br><span class="line-num">1542</span>    返回 True 表示条件满足并已执行，False 表示条件不满足、效果未执行。<br><span class="line-num">1543</span>    用于"如可能，..."类效果（如"如可能，消耗1S，对对手造成2点伤害"）。<br><span class="line-num">1544</span><br><span class="line-num">1545</span>    与 conditional_effect 的区别：<br><span class="line-num">1546</span>      - if_possible_then 强调"前提条件不满足则效果完全失效"；<br><span class="line-num">1547</span>      - conditional_effect 是通用的 if/else 分支。<br><span class="line-num">1548</span>    """<br><span class="line-num">1549</span>    try:<br><span class="line-num">1550</span>        if condition_fn():<br><span class="line-num">1551</span>            then_fn()<br><span class="line-num">1552</span>            return True<br><span class="line-num">1553</span>        return False<br><span class="line-num">1554</span>    except Exception as e:<br><span class="line-num">1555</span>        print(f"  [警告] if_possible_then 执行异常: {e}")<br><span class="line-num">1556</span>        return False<br></div>
     </div>
   </div>
 </div></div>
@@ -2408,7 +2408,7 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
   <div class="func-card unused" data-name="get_terrain_at" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_terrain_at(game, position, default)</span>
-      <span class="func-line">行 2123</span>
+      <span class="func-line">行 2118</span>
     </div>
     <div class="func-brief">获取指定格子的当前地形类型，优先返回覆盖值。</div>
     <div class="func-meta">
@@ -2420,14 +2420,14 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
       <strong>完整文档：</strong>
       <pre>获取指定格子的当前地形类型，优先返回覆盖值。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2123</span>def get_terrain_at(<br><span class="line-num">2124</span>    game: "Game",<br><span class="line-num">2125</span>    position: Tuple[int, int],<br><span class="line-num">2126</span>    default: Optional[str] = None,<br><span class="line-num">2127</span>) -&gt; Optional[str]:<br><span class="line-num">2128</span>    """获取指定格子的当前地形类型，优先返回覆盖值。"""<br><span class="line-num">2129</span>    overrides = getattr(game, "_terrain_overrides", {})<br><span class="line-num">2130</span>    return overrides.get(position, default)<br></div>
+      <div class="code-block"><span class="line-num">2118</span>def get_terrain_at(<br><span class="line-num">2119</span>    game: "Game",<br><span class="line-num">2120</span>    position: Tuple[int, int],<br><span class="line-num">2121</span>    default: Optional[str] = None,<br><span class="line-num">2122</span>) -&gt; Optional[str]:<br><span class="line-num">2123</span>    """获取指定格子的当前地形类型，优先返回覆盖值。"""<br><span class="line-num">2124</span>    overrides = getattr(game, "_terrain_overrides", {})<br><span class="line-num">2125</span>    return overrides.get(position, default)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="clear_attack_restrictions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">clear_attack_restrictions(game)</span>
-      <span class="func-line">行 2146</span>
+      <span class="func-line">行 2141</span>
     </div>
     <div class="func-brief">清除所有全局攻击限制。应在回合结束时调用。</div>
     <div class="func-meta">
@@ -2439,7 +2439,7 @@ key 会自动附加回合后缀，回合结束时由 game.py 自动清理。</pr
       <strong>完整文档：</strong>
       <pre>清除所有全局攻击限制。应在回合结束时调用。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">2146</span>def clear_attack_restrictions(game: "Game") -&gt; None:<br><span class="line-num">2147</span>    """清除所有全局攻击限制。应在回合结束时调用。"""<br><span class="line-num">2148</span>    if hasattr(game, "_attack_restrictions"):<br><span class="line-num">2149</span>        game._attack_restrictions.clear()<br></div>
+      <div class="code-block"><span class="line-num">2141</span>def clear_attack_restrictions(game: "Game") -&gt; None:<br><span class="line-num">2142</span>    """清除所有全局攻击限制。应在回合结束时调用。"""<br><span class="line-num">2143</span>    if hasattr(game, "_attack_restrictions"):<br><span class="line-num">2144</span>        game._attack_restrictions.clear()<br></div>
     </div>
   </div>
 </div></div>
@@ -2712,14 +2712,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>让异象执行一次自动攻击：选择本列最前排敌方目标，没有则攻击敌方玩家。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1043</span>def auto_attack(minion: "Minion", game: "Game") -&gt; bool:<br><span class="line-num">1044</span>    """让异象执行一次自动攻击：选择本列最前排敌方目标，没有则攻击敌方玩家。"""<br><span class="line-num">1045</span>    col = minion.position[1]<br><span class="line-num">1046</span>    # 视野偏移<br><span class="line-num">1047</span>    attack_col = col<br><span class="line-num">1048</span>    vision_range = minion.keywords.get("视野", 0)<br><span class="line-num">1049</span>    if vision_range &gt; 0 and hasattr(minion, "_resolve_target_col") and minion._resolve_target_col is not None:<br><span class="line-num">1050</span>        attack_col = minion._resolve_target_col<br><span class="line-num">1051</span>    target = game.board.get_front_minion(attack_col, minion.owner, attacker=minion)<br><span class="line-num">1052</span>    if target and target.is_alive():<br><span class="line-num">1053</span>        minion.attack_target(target)<br><span class="line-num">1054</span>        return True<br><span class="line-num">1055</span>    opponent = game.p2 if minion.owner == game.p1 else game.p1<br><span class="line-num">1056</span>    minion.attack_target(opponent)<br><span class="line-num">1057</span>    return True<br></div>
+      <div class="code-block"><span class="line-num">1043</span>def auto_attack(minion: "Minion", game: "Game") -&gt; bool:<br><span class="line-num">1044</span>    """让异象执行一次自动攻击：选择本列最前排敌方目标，没有则攻击敌方玩家。"""<br><span class="line-num">1045</span>    col = minion.position[1]<br><span class="line-num">1046</span>    target = game.board.get_front_minion(col, minion.owner, attacker=minion)<br><span class="line-num">1047</span>    if target and target.is_alive():<br><span class="line-num">1048</span>        minion.attack_target(target)<br><span class="line-num">1049</span>        return True<br><span class="line-num">1050</span>    opponent = game.p2 if minion.owner == game.p1 else game.p1<br><span class="line-num">1051</span>    minion.attack_target(opponent)<br><span class="line-num">1052</span>    return True<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="weakest_enemy_minion" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">weakest_enemy_minion(game, player)</span>
-      <span class="func-line">行 1434</span>
+      <span class="func-line">行 1429</span>
     </div>
     <div class="func-brief">返回当前生命值最低的存活敌方异象。平局时取先遍历到的。没有则 None。</div>
     <div class="func-meta">
@@ -2731,14 +2731,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回当前生命值最低的存活敌方异象。平局时取先遍历到的。没有则 None。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1434</span>def weakest_enemy_minion(<br><span class="line-num">1435</span>    game: "Game",<br><span class="line-num">1436</span>    player: "Player",<br><span class="line-num">1437</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1438</span>    """返回当前生命值最低的存活敌方异象。平局时取先遍历到的。没有则 None。"""<br><span class="line-num">1439</span>    enemies = all_enemy_minions(game, player)<br><span class="line-num">1440</span>    if not enemies:<br><span class="line-num">1441</span>        return None<br><span class="line-num">1442</span>    return min(enemies, key=lambda m: m.health)<br></div>
+      <div class="code-block"><span class="line-num">1429</span>def weakest_enemy_minion(<br><span class="line-num">1430</span>    game: "Game",<br><span class="line-num">1431</span>    player: "Player",<br><span class="line-num">1432</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1433</span>    """返回当前生命值最低的存活敌方异象。平局时取先遍历到的。没有则 None。"""<br><span class="line-num">1434</span>    enemies = all_enemy_minions(game, player)<br><span class="line-num">1435</span>    if not enemies:<br><span class="line-num">1436</span>        return None<br><span class="line-num">1437</span>    return min(enemies, key=lambda m: m.health)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="strongest_enemy_minion" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">strongest_enemy_minion(game, player)</span>
-      <span class="func-line">行 1445</span>
+      <span class="func-line">行 1440</span>
     </div>
     <div class="func-brief">返回当前攻击力最高的存活敌方异象。平局时取先遍历到的。没有则 None。</div>
     <div class="func-meta">
@@ -2750,14 +2750,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回当前攻击力最高的存活敌方异象。平局时取先遍历到的。没有则 None。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1445</span>def strongest_enemy_minion(<br><span class="line-num">1446</span>    game: "Game",<br><span class="line-num">1447</span>    player: "Player",<br><span class="line-num">1448</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1449</span>    """返回当前攻击力最高的存活敌方异象。平局时取先遍历到的。没有则 None。"""<br><span class="line-num">1450</span>    enemies = all_enemy_minions(game, player)<br><span class="line-num">1451</span>    if not enemies:<br><span class="line-num">1452</span>        return None<br><span class="line-num">1453</span>    return max(enemies, key=lambda m: m.attack)<br></div>
+      <div class="code-block"><span class="line-num">1440</span>def strongest_enemy_minion(<br><span class="line-num">1441</span>    game: "Game",<br><span class="line-num">1442</span>    player: "Player",<br><span class="line-num">1443</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1444</span>    """返回当前攻击力最高的存活敌方异象。平局时取先遍历到的。没有则 None。"""<br><span class="line-num">1445</span>    enemies = all_enemy_minions(game, player)<br><span class="line-num">1446</span>    if not enemies:<br><span class="line-num">1447</span>        return None<br><span class="line-num">1448</span>    return max(enemies, key=lambda m: m.attack)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="enemy_minions_in_column" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">enemy_minions_in_column(game, player, column)</span>
-      <span class="func-line">行 1456</span>
+      <span class="func-line">行 1451</span>
     </div>
     <div class="func-brief">返回指定列中的所有存活敌方异象。</div>
     <div class="func-meta">
@@ -2769,14 +2769,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回指定列中的所有存活敌方异象。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1456</span>def enemy_minions_in_column(<br><span class="line-num">1457</span>    game: "Game",<br><span class="line-num">1458</span>    player: "Player",<br><span class="line-num">1459</span>    column: int,<br><span class="line-num">1460</span>) -&gt; List["Minion"]:<br><span class="line-num">1461</span>    """返回指定列中的所有存活敌方异象。"""<br><span class="line-num">1462</span>    return [<br><span class="line-num">1463</span>        m for m in all_enemy_minions(game, player)<br><span class="line-num">1464</span>        if m.position[1] == column<br><span class="line-num">1465</span>    ]<br></div>
+      <div class="code-block"><span class="line-num">1451</span>def enemy_minions_in_column(<br><span class="line-num">1452</span>    game: "Game",<br><span class="line-num">1453</span>    player: "Player",<br><span class="line-num">1454</span>    column: int,<br><span class="line-num">1455</span>) -&gt; List["Minion"]:<br><span class="line-num">1456</span>    """返回指定列中的所有存活敌方异象。"""<br><span class="line-num">1457</span>    return [<br><span class="line-num">1458</span>        m for m in all_enemy_minions(game, player)<br><span class="line-num">1459</span>        if m.position[1] == column<br><span class="line-num">1460</span>    ]<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="adjacent_friendly_minions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">adjacent_friendly_minions(minion, game)</span>
-      <span class="func-line">行 1468</span>
+      <span class="func-line">行 1463</span>
     </div>
     <div class="func-brief">返回与指定异象相邻（上下左右）的存活友方异象。</div>
     <div class="func-meta">
@@ -2788,14 +2788,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回与指定异象相邻（上下左右）的存活友方异象。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1468</span>def adjacent_friendly_minions(<br><span class="line-num">1469</span>    minion: "Minion",<br><span class="line-num">1470</span>    game: "Game",<br><span class="line-num">1471</span>) -&gt; List["Minion"]:<br><span class="line-num">1472</span>    """返回与指定异象相邻（上下左右）的存活友方异象。"""<br><span class="line-num">1473</span>    result: List["Minion"] = []<br><span class="line-num">1474</span>    if not minion.is_alive():<br><span class="line-num">1475</span>        return result<br><span class="line-num">1476</span>    positions = get_adjacent_positions(minion.position, game.board)<br><span class="line-num">1477</span>    for pos in positions:<br><span class="line-num">1478</span>        m = game.board.get_minion_at(pos)<br><span class="line-num">1479</span>        if m and m.is_alive() and m.owner == minion.owner:<br><span class="line-num">1480</span>            result.append(m)<br><span class="line-num">1481</span>    return result<br></div>
+      <div class="code-block"><span class="line-num">1463</span>def adjacent_friendly_minions(<br><span class="line-num">1464</span>    minion: "Minion",<br><span class="line-num">1465</span>    game: "Game",<br><span class="line-num">1466</span>) -&gt; List["Minion"]:<br><span class="line-num">1467</span>    """返回与指定异象相邻（上下左右）的存活友方异象。"""<br><span class="line-num">1468</span>    result: List["Minion"] = []<br><span class="line-num">1469</span>    if not minion.is_alive():<br><span class="line-num">1470</span>        return result<br><span class="line-num">1471</span>    positions = get_adjacent_positions(minion.position, game.board)<br><span class="line-num">1472</span>    for pos in positions:<br><span class="line-num">1473</span>        m = game.board.get_minion_at(pos)<br><span class="line-num">1474</span>        if m and m.is_alive() and m.owner == minion.owner:<br><span class="line-num">1475</span>            result.append(m)<br><span class="line-num">1476</span>    return result<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="adjacent_enemy_minions" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">adjacent_enemy_minions(minion, game)</span>
-      <span class="func-line">行 1484</span>
+      <span class="func-line">行 1479</span>
     </div>
     <div class="func-brief">返回与指定异象相邻（上下左右）的存活敌方异象。</div>
     <div class="func-meta">
@@ -2807,14 +2807,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回与指定异象相邻（上下左右）的存活敌方异象。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1484</span>def adjacent_enemy_minions(<br><span class="line-num">1485</span>    minion: "Minion",<br><span class="line-num">1486</span>    game: "Game",<br><span class="line-num">1487</span>) -&gt; List["Minion"]:<br><span class="line-num">1488</span>    """返回与指定异象相邻（上下左右）的存活敌方异象。"""<br><span class="line-num">1489</span>    result: List["Minion"] = []<br><span class="line-num">1490</span>    if not minion.is_alive():<br><span class="line-num">1491</span>        return result<br><span class="line-num">1492</span>    positions = get_adjacent_positions(minion.position, game.board)<br><span class="line-num">1493</span>    for pos in positions:<br><span class="line-num">1494</span>        m = game.board.get_minion_at(pos)<br><span class="line-num">1495</span>        if m and m.is_alive() and m.owner != minion.owner:<br><span class="line-num">1496</span>            result.append(m)<br><span class="line-num">1497</span>    return result<br></div>
+      <div class="code-block"><span class="line-num">1479</span>def adjacent_enemy_minions(<br><span class="line-num">1480</span>    minion: "Minion",<br><span class="line-num">1481</span>    game: "Game",<br><span class="line-num">1482</span>) -&gt; List["Minion"]:<br><span class="line-num">1483</span>    """返回与指定异象相邻（上下左右）的存活敌方异象。"""<br><span class="line-num">1484</span>    result: List["Minion"] = []<br><span class="line-num">1485</span>    if not minion.is_alive():<br><span class="line-num">1486</span>        return result<br><span class="line-num">1487</span>    positions = get_adjacent_positions(minion.position, game.board)<br><span class="line-num">1488</span>    for pos in positions:<br><span class="line-num">1489</span>        m = game.board.get_minion_at(pos)<br><span class="line-num">1490</span>        if m and m.is_alive() and m.owner != minion.owner:<br><span class="line-num">1491</span>            result.append(m)<br><span class="line-num">1492</span>    return result<br></div>
     </div>
   </div>
 
   <div class="func-card used" data-name="nearest_enemy_minion" data-usage="used" data-compat="false" data-callers='[{"type": "effect", "pack": "\u79bb\u6563\u6548\u679c", "name": "_qianxingzhe_special"}]'>
     <div class="func-header">
       <span class="func-name">nearest_enemy_minion(minion, game)</span>
-      <span class="func-line">行 1500</span>
+      <span class="func-line">行 1495</span>
     </div>
     <div class="func-brief">返回距离指定异象最近的存活敌方异象（曼哈顿距离）。平局时取先遍历到的。</div>
     <div class="func-meta">
@@ -2826,14 +2826,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
       <strong>完整文档：</strong>
       <pre>返回距离指定异象最近的存活敌方异象（曼哈顿距离）。平局时取先遍历到的。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1500</span>def nearest_enemy_minion(<br><span class="line-num">1501</span>    minion: "Minion",<br><span class="line-num">1502</span>    game: "Game",<br><span class="line-num">1503</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1504</span>    """返回距离指定异象最近的存活敌方异象（曼哈顿距离）。平局时取先遍历到的。"""<br><span class="line-num">1505</span>    if not minion.is_alive():<br><span class="line-num">1506</span>        return None<br><span class="line-num">1507</span>    enemies = all_enemy_minions(game, minion.owner)<br><span class="line-num">1508</span>    if not enemies:<br><span class="line-num">1509</span>        return None<br><span class="line-num">1510</span>    r, c = minion.position<br><span class="line-num">1511</span>    return min(enemies, key=lambda m: abs(m.position[0] - r) + abs(m.position[1] - c))<br></div>
+      <div class="code-block"><span class="line-num">1495</span>def nearest_enemy_minion(<br><span class="line-num">1496</span>    minion: "Minion",<br><span class="line-num">1497</span>    game: "Game",<br><span class="line-num">1498</span>) -&gt; Optional["Minion"]:<br><span class="line-num">1499</span>    """返回距离指定异象最近的存活敌方异象（曼哈顿距离）。平局时取先遍历到的。"""<br><span class="line-num">1500</span>    if not minion.is_alive():<br><span class="line-num">1501</span>        return None<br><span class="line-num">1502</span>    enemies = all_enemy_minions(game, minion.owner)<br><span class="line-num">1503</span>    if not enemies:<br><span class="line-num">1504</span>        return None<br><span class="line-num">1505</span>    r, c = minion.position<br><span class="line-num">1506</span>    return min(enemies, key=lambda m: abs(m.position[0] - r) + abs(m.position[1] - c))<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="conditional_effect" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">conditional_effect(condition_fn, then_fn, else_fn)</span>
-      <span class="func-line">行 1518</span>
+      <span class="func-line">行 1513</span>
     </div>
     <div class="func-brief">条件执行效果函数。</div>
     <div class="func-meta">
@@ -2848,14 +2848,14 @@ minion 为 None 时，使用 callback 本身的 id 作为 owner_id。</pre>
 condition_fn: 无参函数，返回 bool。
 then_fn / else_fn: 无参函数，条件满足/不满足时执行。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1518</span>def conditional_effect(<br><span class="line-num">1519</span>    condition_fn: Callable[[], bool],<br><span class="line-num">1520</span>    then_fn: Callable[[], None],<br><span class="line-num">1521</span>    else_fn: Optional[Callable[[], None]] = None,<br><span class="line-num">1522</span>) -&gt; None:<br><span class="line-num">1523</span>    """条件执行效果函数。<br><span class="line-num">1524</span><br><span class="line-num">1525</span>    condition_fn: 无参函数，返回 bool。<br><span class="line-num">1526</span>    then_fn / else_fn: 无参函数，条件满足/不满足时执行。<br><span class="line-num">1527</span>    """<br><span class="line-num">1528</span>    try:<br><span class="line-num">1529</span>        if condition_fn():<br><span class="line-num">1530</span>            then_fn()<br><span class="line-num">1531</span>        elif else_fn:<br><span class="line-num">1532</span>            else_fn()<br><span class="line-num">1533</span>    except Exception as e:<br><span class="line-num">1534</span>        print(f"  [警告] conditional_effect 执行异常: {e}")<br></div>
+      <div class="code-block"><span class="line-num">1513</span>def conditional_effect(<br><span class="line-num">1514</span>    condition_fn: Callable[[], bool],<br><span class="line-num">1515</span>    then_fn: Callable[[], None],<br><span class="line-num">1516</span>    else_fn: Optional[Callable[[], None]] = None,<br><span class="line-num">1517</span>) -&gt; None:<br><span class="line-num">1518</span>    """条件执行效果函数。<br><span class="line-num">1519</span><br><span class="line-num">1520</span>    condition_fn: 无参函数，返回 bool。<br><span class="line-num">1521</span>    then_fn / else_fn: 无参函数，条件满足/不满足时执行。<br><span class="line-num">1522</span>    """<br><span class="line-num">1523</span>    try:<br><span class="line-num">1524</span>        if condition_fn():<br><span class="line-num">1525</span>            then_fn()<br><span class="line-num">1526</span>        elif else_fn:<br><span class="line-num">1527</span>            else_fn()<br><span class="line-num">1528</span>    except Exception as e:<br><span class="line-num">1529</span>        print(f"  [警告] conditional_effect 执行异常: {e}")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="if_resource_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">if_resource_then(player, resource, amount, then_fn)</span>
-      <span class="func-line">行 1564</span>
+      <span class="func-line">行 1559</span>
     </div>
     <div class="func-brief">如可能，消耗 resource：当玩家拥有足够资源时扣除并执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
@@ -2874,14 +2874,14 @@ amount: 需要消耗的正数
     if_resource_then(player, 's', 1, lambda: deal_damage_to_player(opponent, 2))
     # 如可能，消耗1S，对对手造成2点伤害</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1564</span>def if_resource_then(<br><span class="line-num">1565</span>    player: "Player",<br><span class="line-num">1566</span>    resource: str,<br><span class="line-num">1567</span>    amount: int,<br><span class="line-num">1568</span>    then_fn: Callable[[], None],<br><span class="line-num">1569</span>) -&gt; bool:<br><span class="line-num">1570</span>    """如可能，消耗 resource：当玩家拥有足够资源时扣除并执行 then_fn，否则效果失效。<br><span class="line-num">1571</span><br><span class="line-num">1572</span>    resource: 't'/'c'/'b'/'s'（大小写不敏感）<br><span class="line-num">1573</span>    amount: 需要消耗的正数<br><span class="line-num">1574</span><br><span class="line-num">1575</span>    示例：<br><span class="line-num">1576</span>        if_resource_then(player, 's', 1, lambda: deal_damage_to_player(opponent, 2))<br><span class="line-num">1577</span>        # 如可能，消耗1S，对对手造成2点伤害<br><span class="line-num">1578</span>    """<br><span class="line-num">1579</span>    if amount &lt;= 0:<br><span class="line-num">1580</span>        try:<br><span class="line-num">1581</span>            then_fn()<br><span class="line-num">1582</span>        except Exception as e:<br><span class="line-num">1583</span>            print(f"  [警告] if_resource_then 后续效果异常: {e}")<br><span class="line-num">1584</span>        return True<br><span class="line-num">1585</span>    r = resource.lower()<br><span class="line-num">1586</span>    current = {<br><span class="line-num">1587</span>        "t": player.t_point,<br><span class="line-num">1588</span>        "c": player.c_point,<br><span class="line-num">1589</span>        "b": player.b_point,<br><span class="line-num">1590</span>        "s": player.s_point,<br><span class="line-num">1591</span>    }.get(r, 0)<br><span class="line-num">1592</span>    if current &lt; amount:<br><span class="line-num">1593</span>        print(f"  {player.name} 的{r.upper()}点不足（当前{current}，需要{amount}），效果失效")<br><span class="line-num">1594</span>        return False<br><span class="line-num">1595</span>    try:<br><span class="line-num">1596</span>        # 扣除资源<br><span class="line-num">1597</span>        if r == "t":<br><span class="line-num">1598</span>            player.t_point_change(-amount)<br><span class="line-num">1599</span>        elif r == "c":<br><span class="line-num">1600</span>            player.c_point_change(-amount)<br><span class="line-num">1601</span>        elif r == "b":<br><span class="line-num">1602</span>            player.b_point = max(0, player.b_point - amount)<br><span class="line-num">1603</span>        elif r == "s":<br><span class="line-num">1604</span>            player.s_point = max(0, player.s_point - amount)<br><span class="line-num">1605</span>        else:<br><span class="line-num">1606</span>            print(f"  [警告] if_resource_then 未知资源类型: {resource}")<br><span class="line-num">1607</span>            return False<br><span class="line-num">1608</span>        print(f"  {player.name} 消耗了 {amount}{r.upper()}点")<br><span class="line-num">1609</span>        then_fn()<br><span class="line-num">1610</span>        return True<br><span class="line-num">1611</span>    except Exception as e:<br><span class="line-num">1612</span>        print(f"  [警告] if_resource_then 执行异常: {e}")<br><span class="line-num">1613</span>        return False<br></div>
+      <div class="code-block"><span class="line-num">1559</span>def if_resource_then(<br><span class="line-num">1560</span>    player: "Player",<br><span class="line-num">1561</span>    resource: str,<br><span class="line-num">1562</span>    amount: int,<br><span class="line-num">1563</span>    then_fn: Callable[[], None],<br><span class="line-num">1564</span>) -&gt; bool:<br><span class="line-num">1565</span>    """如可能，消耗 resource：当玩家拥有足够资源时扣除并执行 then_fn，否则效果失效。<br><span class="line-num">1566</span><br><span class="line-num">1567</span>    resource: 't'/'c'/'b'/'s'（大小写不敏感）<br><span class="line-num">1568</span>    amount: 需要消耗的正数<br><span class="line-num">1569</span><br><span class="line-num">1570</span>    示例：<br><span class="line-num">1571</span>        if_resource_then(player, 's', 1, lambda: deal_damage_to_player(opponent, 2))<br><span class="line-num">1572</span>        # 如可能，消耗1S，对对手造成2点伤害<br><span class="line-num">1573</span>    """<br><span class="line-num">1574</span>    if amount &lt;= 0:<br><span class="line-num">1575</span>        try:<br><span class="line-num">1576</span>            then_fn()<br><span class="line-num">1577</span>        except Exception as e:<br><span class="line-num">1578</span>            print(f"  [警告] if_resource_then 后续效果异常: {e}")<br><span class="line-num">1579</span>        return True<br><span class="line-num">1580</span>    r = resource.lower()<br><span class="line-num">1581</span>    current = {<br><span class="line-num">1582</span>        "t": player.t_point,<br><span class="line-num">1583</span>        "c": player.c_point,<br><span class="line-num">1584</span>        "b": player.b_point,<br><span class="line-num">1585</span>        "s": player.s_point,<br><span class="line-num">1586</span>    }.get(r, 0)<br><span class="line-num">1587</span>    if current &lt; amount:<br><span class="line-num">1588</span>        print(f"  {player.name} 的{r.upper()}点不足（当前{current}，需要{amount}），效果失效")<br><span class="line-num">1589</span>        return False<br><span class="line-num">1590</span>    try:<br><span class="line-num">1591</span>        # 扣除资源<br><span class="line-num">1592</span>        if r == "t":<br><span class="line-num">1593</span>            player.t_point_change(-amount)<br><span class="line-num">1594</span>        elif r == "c":<br><span class="line-num">1595</span>            player.c_point_change(-amount)<br><span class="line-num">1596</span>        elif r == "b":<br><span class="line-num">1597</span>            player.b_point = max(0, player.b_point - amount)<br><span class="line-num">1598</span>        elif r == "s":<br><span class="line-num">1599</span>            player.s_point = max(0, player.s_point - amount)<br><span class="line-num">1600</span>        else:<br><span class="line-num">1601</span>            print(f"  [警告] if_resource_then 未知资源类型: {resource}")<br><span class="line-num">1602</span>            return False<br><span class="line-num">1603</span>        print(f"  {player.name} 消耗了 {amount}{r.upper()}点")<br><span class="line-num">1604</span>        then_fn()<br><span class="line-num">1605</span>        return True<br><span class="line-num">1606</span>    except Exception as e:<br><span class="line-num">1607</span>        print(f"  [警告] if_resource_then 执行异常: {e}")<br><span class="line-num">1608</span>        return False<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="if_has_cards_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">if_has_cards_then(player, amount, then_fn)</span>
-      <span class="func-line">行 1616</span>
+      <span class="func-line">行 1611</span>
     </div>
     <div class="func-brief">如可能，弃置/使用手牌：当玩家手牌数不少于 amount 时执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
@@ -2893,14 +2893,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>如可能，弃置/使用手牌：当玩家手牌数不少于 amount 时执行 then_fn，否则效果失效。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1616</span>def if_has_cards_then(<br><span class="line-num">1617</span>    player: "Player",<br><span class="line-num">1618</span>    amount: int,<br><span class="line-num">1619</span>    then_fn: Callable[[], None],<br><span class="line-num">1620</span>) -&gt; bool:<br><span class="line-num">1621</span>    """如可能，弃置/使用手牌：当玩家手牌数不少于 amount 时执行 then_fn，否则效果失效。"""<br><span class="line-num">1622</span>    if len(player.card_hand) &lt; amount:<br><span class="line-num">1623</span>        print(f"  {player.name} 手牌不足（当前{len(player.card_hand)}张，需要{amount}张），效果失效")<br><span class="line-num">1624</span>        return False<br><span class="line-num">1625</span>    try:<br><span class="line-num">1626</span>        then_fn()<br><span class="line-num">1627</span>        return True<br><span class="line-num">1628</span>    except Exception as e:<br><span class="line-num">1629</span>        print(f"  [警告] if_has_cards_then 执行异常: {e}")<br><span class="line-num">1630</span>        return False<br></div>
+      <div class="code-block"><span class="line-num">1611</span>def if_has_cards_then(<br><span class="line-num">1612</span>    player: "Player",<br><span class="line-num">1613</span>    amount: int,<br><span class="line-num">1614</span>    then_fn: Callable[[], None],<br><span class="line-num">1615</span>) -&gt; bool:<br><span class="line-num">1616</span>    """如可能，弃置/使用手牌：当玩家手牌数不少于 amount 时执行 then_fn，否则效果失效。"""<br><span class="line-num">1617</span>    if len(player.card_hand) &lt; amount:<br><span class="line-num">1618</span>        print(f"  {player.name} 手牌不足（当前{len(player.card_hand)}张，需要{amount}张），效果失效")<br><span class="line-num">1619</span>        return False<br><span class="line-num">1620</span>    try:<br><span class="line-num">1621</span>        then_fn()<br><span class="line-num">1622</span>        return True<br><span class="line-num">1623</span>    except Exception as e:<br><span class="line-num">1624</span>        print(f"  [警告] if_has_cards_then 执行异常: {e}")<br><span class="line-num">1625</span>        return False<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="if_has_friendly_minions_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">if_has_friendly_minions_then(game, player, amount, then_fn)</span>
-      <span class="func-line">行 1633</span>
+      <span class="func-line">行 1628</span>
     </div>
     <div class="func-brief">如可能，献祭/选择友方异象：当场上有不少于 amount 个存活友方异象时执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
@@ -2912,14 +2912,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>如可能，献祭/选择友方异象：当场上有不少于 amount 个存活友方异象时执行 then_fn，否则效果失效。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1633</span>def if_has_friendly_minions_then(<br><span class="line-num">1634</span>    game: "Game",<br><span class="line-num">1635</span>    player: "Player",<br><span class="line-num">1636</span>    amount: int,<br><span class="line-num">1637</span>    then_fn: Callable[[], None],<br><span class="line-num">1638</span>) -&gt; bool:<br><span class="line-num">1639</span>    """如可能，献祭/选择友方异象：当场上有不少于 amount 个存活友方异象时执行 then_fn，否则效果失效。"""<br><span class="line-num">1640</span>    count = len(all_friendly_minions(game, player))<br><span class="line-num">1641</span>    if count &lt; amount:<br><span class="line-num">1642</span>        print(f"  {player.name} 友方异象不足（当前{count}个，需要{amount}个），效果失效")<br><span class="line-num">1643</span>        return False<br><span class="line-num">1644</span>    try:<br><span class="line-num">1645</span>        then_fn()<br><span class="line-num">1646</span>        return True<br><span class="line-num">1647</span>    except Exception as e:<br><span class="line-num">1648</span>        print(f"  [警告] if_has_friendly_minions_then 执行异常: {e}")<br><span class="line-num">1649</span>        return False<br></div>
+      <div class="code-block"><span class="line-num">1628</span>def if_has_friendly_minions_then(<br><span class="line-num">1629</span>    game: "Game",<br><span class="line-num">1630</span>    player: "Player",<br><span class="line-num">1631</span>    amount: int,<br><span class="line-num">1632</span>    then_fn: Callable[[], None],<br><span class="line-num">1633</span>) -&gt; bool:<br><span class="line-num">1634</span>    """如可能，献祭/选择友方异象：当场上有不少于 amount 个存活友方异象时执行 then_fn，否则效果失效。"""<br><span class="line-num">1635</span>    count = len(all_friendly_minions(game, player))<br><span class="line-num">1636</span>    if count &lt; amount:<br><span class="line-num">1637</span>        print(f"  {player.name} 友方异象不足（当前{count}个，需要{amount}个），效果失效")<br><span class="line-num">1638</span>        return False<br><span class="line-num">1639</span>    try:<br><span class="line-num">1640</span>        then_fn()<br><span class="line-num">1641</span>        return True<br><span class="line-num">1642</span>    except Exception as e:<br><span class="line-num">1643</span>        print(f"  [警告] if_has_friendly_minions_then 执行异常: {e}")<br><span class="line-num">1644</span>        return False<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="if_has_enemy_minions_then" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">if_has_enemy_minions_then(game, player, amount, then_fn)</span>
-      <span class="func-line">行 1652</span>
+      <span class="func-line">行 1647</span>
     </div>
     <div class="func-brief">如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。</div>
     <div class="func-meta">
@@ -2931,14 +2931,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1652</span>def if_has_enemy_minions_then(<br><span class="line-num">1653</span>    game: "Game",<br><span class="line-num">1654</span>    player: "Player",<br><span class="line-num">1655</span>    amount: int,<br><span class="line-num">1656</span>    then_fn: Callable[[], None],<br><span class="line-num">1657</span>) -&gt; bool:<br><span class="line-num">1658</span>    """如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。"""<br><span class="line-num">1659</span>    count = len(all_enemy_minions(game, player))<br><span class="line-num">1660</span>    if count &lt; amount:<br><span class="line-num">1661</span>        print(f"  {player.name} 敌方异象不足（当前{count}个，需要{amount}个），效果失效")<br><span class="line-num">1662</span>        return False<br><span class="line-num">1663</span>    try:<br><span class="line-num">1664</span>        then_fn()<br><span class="line-num">1665</span>        return True<br><span class="line-num">1666</span>    except Exception as e:<br><span class="line-num">1667</span>        print(f"  [警告] if_has_enemy_minions_then 执行异常: {e}")<br><span class="line-num">1668</span>        return False<br></div>
+      <div class="code-block"><span class="line-num">1647</span>def if_has_enemy_minions_then(<br><span class="line-num">1648</span>    game: "Game",<br><span class="line-num">1649</span>    player: "Player",<br><span class="line-num">1650</span>    amount: int,<br><span class="line-num">1651</span>    then_fn: Callable[[], None],<br><span class="line-num">1652</span>) -&gt; bool:<br><span class="line-num">1653</span>    """如可能，选择敌方异象：当场上有不少于 amount 个存活敌方异象时执行 then_fn，否则效果失效。"""<br><span class="line-num">1654</span>    count = len(all_enemy_minions(game, player))<br><span class="line-num">1655</span>    if count &lt; amount:<br><span class="line-num">1656</span>        print(f"  {player.name} 敌方异象不足（当前{count}个，需要{amount}个），效果失效")<br><span class="line-num">1657</span>        return False<br><span class="line-num">1658</span>    try:<br><span class="line-num">1659</span>        then_fn()<br><span class="line-num">1660</span>        return True<br><span class="line-num">1661</span>    except Exception as e:<br><span class="line-num">1662</span>        print(f"  [警告] if_has_enemy_minions_then 执行异常: {e}")<br><span class="line-num">1663</span>        return False<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="chain_effects" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">chain_effects(minion, game)</span>
-      <span class="func-line">行 1671</span>
+      <span class="func-line">行 1666</span>
     </div>
     <div class="func-brief">按顺序链式执行多个效果函数。</div>
     <div class="func-meta">
@@ -2954,14 +2954,14 @@ amount: 需要消耗的正数
 或 (minion, player, game, extras=None) -> None。
 遇到异常时打印警告并继续执行下一个。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1671</span>def chain_effects(<br><span class="line-num">1672</span>    minion: "Minion",<br><span class="line-num">1673</span>    game: "Game",<br><span class="line-num">1674</span>    *effect_fns: Callable,<br><span class="line-num">1675</span>) -&gt; None:<br><span class="line-num">1676</span>    """按顺序链式执行多个效果函数。<br><span class="line-num">1677</span><br><span class="line-num">1678</span>    每个 effect_fn 的签名为 (minion, player, game) -&gt; None，<br><span class="line-num">1679</span>    或 (minion, player, game, extras=None) -&gt; None。<br><span class="line-num">1680</span>    遇到异常时打印警告并继续执行下一个。<br><span class="line-num">1681</span>    """<br><span class="line-num">1682</span>    player = minion.owner<br><span class="line-num">1683</span>    for fn in effect_fns:<br><span class="line-num">1684</span>        try:<br><span class="line-num">1685</span>            if not minion.is_alive():<br><span class="line-num">1686</span>                print(f"  [警告] chain_effects 中断：{minion.name} 已死亡")<br><span class="line-num">1687</span>                return<br><span class="line-num">1688</span>            import inspect<br><span class="line-num">1689</span>            sig = inspect.signature(fn)<br><span class="line-num">1690</span>            if len(sig.parameters) &gt;= 4:<br><span class="line-num">1691</span>                fn(minion, player, game, None)<br><span class="line-num">1692</span>            else:<br><span class="line-num">1693</span>                fn(minion, player, game)<br><span class="line-num">1694</span>        except Exception as e:<br><span class="line-num">1695</span>            print(f"  [警告] chain_effects 中某效果异常: {e}")<br></div>
+      <div class="code-block"><span class="line-num">1666</span>def chain_effects(<br><span class="line-num">1667</span>    minion: "Minion",<br><span class="line-num">1668</span>    game: "Game",<br><span class="line-num">1669</span>    *effect_fns: Callable,<br><span class="line-num">1670</span>) -&gt; None:<br><span class="line-num">1671</span>    """按顺序链式执行多个效果函数。<br><span class="line-num">1672</span><br><span class="line-num">1673</span>    每个 effect_fn 的签名为 (minion, player, game) -&gt; None，<br><span class="line-num">1674</span>    或 (minion, player, game, extras=None) -&gt; None。<br><span class="line-num">1675</span>    遇到异常时打印警告并继续执行下一个。<br><span class="line-num">1676</span>    """<br><span class="line-num">1677</span>    player = minion.owner<br><span class="line-num">1678</span>    for fn in effect_fns:<br><span class="line-num">1679</span>        try:<br><span class="line-num">1680</span>            if not minion.is_alive():<br><span class="line-num">1681</span>                print(f"  [警告] chain_effects 中断：{minion.name} 已死亡")<br><span class="line-num">1682</span>                return<br><span class="line-num">1683</span>            import inspect<br><span class="line-num">1684</span>            sig = inspect.signature(fn)<br><span class="line-num">1685</span>            if len(sig.parameters) &gt;= 4:<br><span class="line-num">1686</span>                fn(minion, player, game, None)<br><span class="line-num">1687</span>            else:<br><span class="line-num">1688</span>                fn(minion, player, game)<br><span class="line-num">1689</span>        except Exception as e:<br><span class="line-num">1690</span>            print(f"  [警告] chain_effects 中某效果异常: {e}")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="repeat_effect" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">repeat_effect(n, effect_fn)</span>
-      <span class="func-line">行 1698</span>
+      <span class="func-line">行 1693</span>
     </div>
     <div class="func-brief">重复执行某个无参效果函数 n 次。</div>
     <div class="func-meta">
@@ -2973,14 +2973,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>重复执行某个无参效果函数 n 次。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1698</span>def repeat_effect(<br><span class="line-num">1699</span>    n: int,<br><span class="line-num">1700</span>    effect_fn: Callable[[], None],<br><span class="line-num">1701</span>) -&gt; None:<br><span class="line-num">1702</span>    """重复执行某个无参效果函数 n 次。"""<br><span class="line-num">1703</span>    if n &lt;= 0:<br><span class="line-num">1704</span>        return<br><span class="line-num">1705</span>    for i in range(n):<br><span class="line-num">1706</span>        try:<br><span class="line-num">1707</span>            effect_fn()<br><span class="line-num">1708</span>        except Exception as e:<br><span class="line-num">1709</span>            print(f"  [警告] repeat_effect 第 {i+1} 次执行异常: {e}")<br></div>
+      <div class="code-block"><span class="line-num">1693</span>def repeat_effect(<br><span class="line-num">1694</span>    n: int,<br><span class="line-num">1695</span>    effect_fn: Callable[[], None],<br><span class="line-num">1696</span>) -&gt; None:<br><span class="line-num">1697</span>    """重复执行某个无参效果函数 n 次。"""<br><span class="line-num">1698</span>    if n &lt;= 0:<br><span class="line-num">1699</span>        return<br><span class="line-num">1700</span>    for i in range(n):<br><span class="line-num">1701</span>        try:<br><span class="line-num">1702</span>            effect_fn()<br><span class="line-num">1703</span>        except Exception as e:<br><span class="line-num">1704</span>            print(f"  [警告] repeat_effect 第 {i+1} 次执行异常: {e}")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="inject_temporary_deathrattle" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">inject_temporary_deathrattle(minion, game, deathrattle_fn)</span>
-      <span class="func-line">行 1737</span>
+      <span class="func-line">行 1732</span>
     </div>
     <div class="func-brief">为异象注入一个临时亡语（覆盖原有亡语）。</div>
     <div class="func-meta">
@@ -2995,14 +2995,14 @@ amount: 需要消耗的正数
 新亡语触发后自动恢复原有的亡语（如果存在）。
 注意：此实现基于覆盖-恢复模式，不适用于需要叠加多个亡语的场景。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1737</span>def inject_temporary_deathrattle(<br><span class="line-num">1738</span>    minion: "Minion",<br><span class="line-num">1739</span>    game: "Game",<br><span class="line-num">1740</span>    deathrattle_fn: Callable,<br><span class="line-num">1741</span>) -&gt; None:<br><span class="line-num">1742</span>    """为异象注入一个临时亡语（覆盖原有亡语）。<br><span class="line-num">1743</span><br><span class="line-num">1744</span>    新亡语触发后自动恢复原有的亡语（如果存在）。<br><span class="line-num">1745</span>    注意：此实现基于覆盖-恢复模式，不适用于需要叠加多个亡语的场景。<br><span class="line-num">1746</span>    """<br><span class="line-num">1747</span>    if not minion.is_alive():<br><span class="line-num">1748</span>        print(f"  [警告] inject_temporary_deathrattle 目标 {minion.name} 已死亡")<br><span class="line-num">1749</span>        return<br><span class="line-num">1750</span>    original_dr = minion.keywords.get("亡语")<br><span class="line-num">1751</span><br><span class="line-num">1752</span>    def _wrapped_deathrattle(m, p, b):<br><span class="line-num">1753</span>        try:<br><span class="line-num">1754</span>            deathrattle_fn(m, p, b)<br><span class="line-num">1755</span>        except Exception as e:<br><span class="line-num">1756</span>            print(f"  [警告] 临时亡语执行异常: {e}")<br><span class="line-num">1757</span>        # 恢复原亡语<br><span class="line-num">1758</span>        if original_dr:<br><span class="line-num">1759</span>            m.base_keywords["亡语"] = original_dr<br><span class="line-num">1760</span>        else:<br><span class="line-num">1761</span>            m.base_keywords.pop("亡语", None)<br><span class="line-num">1762</span>        m.recalculate()<br><span class="line-num">1763</span><br><span class="line-num">1764</span>    minion.base_keywords["亡语"] = _wrapped_deathrattle<br><span class="line-num">1765</span>    minion.recalculate()<br><span class="line-num">1766</span>    print(f"  {minion.name} 获得临时亡语")<br></div>
+      <div class="code-block"><span class="line-num">1732</span>def inject_temporary_deathrattle(<br><span class="line-num">1733</span>    minion: "Minion",<br><span class="line-num">1734</span>    game: "Game",<br><span class="line-num">1735</span>    deathrattle_fn: Callable,<br><span class="line-num">1736</span>) -&gt; None:<br><span class="line-num">1737</span>    """为异象注入一个临时亡语（覆盖原有亡语）。<br><span class="line-num">1738</span><br><span class="line-num">1739</span>    新亡语触发后自动恢复原有的亡语（如果存在）。<br><span class="line-num">1740</span>    注意：此实现基于覆盖-恢复模式，不适用于需要叠加多个亡语的场景。<br><span class="line-num">1741</span>    """<br><span class="line-num">1742</span>    if not minion.is_alive():<br><span class="line-num">1743</span>        print(f"  [警告] inject_temporary_deathrattle 目标 {minion.name} 已死亡")<br><span class="line-num">1744</span>        return<br><span class="line-num">1745</span>    original_dr = minion.keywords.get("亡语")<br><span class="line-num">1746</span><br><span class="line-num">1747</span>    def _wrapped_deathrattle(m, p, b):<br><span class="line-num">1748</span>        try:<br><span class="line-num">1749</span>            deathrattle_fn(m, p, b)<br><span class="line-num">1750</span>        except Exception as e:<br><span class="line-num">1751</span>            print(f"  [警告] 临时亡语执行异常: {e}")<br><span class="line-num">1752</span>        # 恢复原亡语<br><span class="line-num">1753</span>        if original_dr:<br><span class="line-num">1754</span>            m.base_keywords["亡语"] = original_dr<br><span class="line-num">1755</span>        else:<br><span class="line-num">1756</span>            m.base_keywords.pop("亡语", None)<br><span class="line-num">1757</span>        m.recalculate()<br><span class="line-num">1758</span><br><span class="line-num">1759</span>    minion.base_keywords["亡语"] = _wrapped_deathrattle<br><span class="line-num">1760</span>    minion.recalculate()<br><span class="line-num">1761</span>    print(f"  {minion.name} 获得临时亡语")<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="get_opponent" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">get_opponent(game, player)</span>
-      <span class="func-line">行 1901</span>
+      <span class="func-line">行 1896</span>
     </div>
     <div class="func-brief">返回指定玩家的对手。</div>
     <div class="func-meta">
@@ -3014,14 +3014,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>返回指定玩家的对手。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1901</span>def get_opponent(game: "Game", player: "Player") -&gt; "Player":<br><span class="line-num">1902</span>    """返回指定玩家的对手。"""<br><span class="line-num">1903</span>    return game.p2 if player == game.p1 else game.p1<br></div>
+      <div class="code-block"><span class="line-num">1896</span>def get_opponent(game: "Game", player: "Player") -&gt; "Player":<br><span class="line-num">1897</span>    """返回指定玩家的对手。"""<br><span class="line-num">1898</span>    return game.p2 if player == game.p1 else game.p1<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="add_turn_start_effect" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">add_turn_start_effect(minion, fn)</span>
-      <span class="func-line">行 1945</span>
+      <span class="func-line">行 1940</span>
     </div>
     <div class="func-brief">给异象注入一个回合开始效果。</div>
     <div class="func-meta">
@@ -3033,14 +3033,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>给异象注入一个回合开始效果。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1945</span>def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -&gt; None:<br><span class="line-num">1946</span>    """给异象注入一个回合开始效果。"""<br><span class="line-num">1947</span>    if not hasattr(minion, "_injected_turn_start"):<br><span class="line-num">1948</span>        minion._injected_turn_start = []<br><span class="line-num">1949</span>    minion._injected_turn_start.append(fn)<br></div>
+      <div class="code-block"><span class="line-num">1940</span>def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -&gt; None:<br><span class="line-num">1941</span>    """给异象注入一个回合开始效果。"""<br><span class="line-num">1942</span>    if not hasattr(minion, "_injected_turn_start"):<br><span class="line-num">1943</span>        minion._injected_turn_start = []<br><span class="line-num">1944</span>    minion._injected_turn_start.append(fn)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="add_turn_end_effect" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">add_turn_end_effect(minion, fn)</span>
-      <span class="func-line">行 1952</span>
+      <span class="func-line">行 1947</span>
     </div>
     <div class="func-brief">给异象注入一个回合结束效果。</div>
     <div class="func-meta">
@@ -3052,14 +3052,14 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>给异象注入一个回合结束效果。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1952</span>def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -&gt; None:<br><span class="line-num">1953</span>    """给异象注入一个回合结束效果。"""<br><span class="line-num">1954</span>    if not hasattr(minion, "_injected_turn_end"):<br><span class="line-num">1955</span>        minion._injected_turn_end = []<br><span class="line-num">1956</span>    minion._injected_turn_end.append(fn)<br></div>
+      <div class="code-block"><span class="line-num">1947</span>def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -&gt; None:<br><span class="line-num">1948</span>    """给异象注入一个回合结束效果。"""<br><span class="line-num">1949</span>    if not hasattr(minion, "_injected_turn_end"):<br><span class="line-num">1950</span>        minion._injected_turn_end = []<br><span class="line-num">1951</span>    minion._injected_turn_end.append(fn)<br></div>
     </div>
   </div>
 
   <div class="func-card unused" data-name="add_deploy_restriction" data-usage="unused" data-compat="false" data-callers='[]'>
     <div class="func-header">
       <span class="func-name">add_deploy_restriction(game, fn)</span>
-      <span class="func-line">行 1963</span>
+      <span class="func-line">行 1958</span>
     </div>
     <div class="func-brief">添加一个全局部署限制条件。fn 返回 False 则阻止部署。</div>
     <div class="func-meta">
@@ -3071,7 +3071,7 @@ amount: 需要消耗的正数
       <strong>完整文档：</strong>
       <pre>添加一个全局部署限制条件。fn 返回 False 则阻止部署。</pre>
       <strong style="display:block;margin-top:10px;">源代码：</strong>
-      <div class="code-block"><span class="line-num">1963</span>def add_deploy_restriction(game: "Game", fn: Callable[["Player", Any], bool]) -&gt; None:<br><span class="line-num">1964</span>    """添加一个全局部署限制条件。fn 返回 False 则阻止部署。"""<br><span class="line-num">1965</span>    if not hasattr(game, "_global_deploy_restrictions"):<br><span class="line-num">1966</span>        game._global_deploy_restrictions = []<br><span class="line-num">1967</span>    game._global_deploy_restrictions.append(fn)<br></div>
+      <div class="code-block"><span class="line-num">1958</span>def add_deploy_restriction(game: "Game", fn: Callable[["Player", Any], bool]) -&gt; None:<br><span class="line-num">1959</span>    """添加一个全局部署限制条件。fn 返回 False 则阻止部署。"""<br><span class="line-num">1960</span>    if not hasattr(game, "_global_deploy_restrictions"):<br><span class="line-num">1961</span>        game._global_deploy_restrictions = []<br><span class="line-num">1962</span>    game._global_deploy_restrictions.append(fn)<br></div>
     </div>
   </div>
 </div></div>
@@ -3270,7 +3270,7 @@ amount: 需要消耗的正数
         <div class="kw-desc">具有本词条的异象需要在出牌阶段由玩家手动指向目标。本异象可以攻击本列及相邻X列的异象。（只有在场上没有敌方异象时，才能指向对手）</div>
         <div class="kw-funcs">
           <strong>相关函数：</strong>
-          <span class="kw-func-tag">auto_attack</span><span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::action_phase</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span><span class="kw-func-tag">game.py::set_vision_target</span><span class="kw-func-tag">targeting.py::get_attack_target_candidates</span>
+          <span class="kw-func-tag">board.py::get_front_minion</span><span class="kw-func-tag">game.py::do_round</span><span class="kw-func-tag">game.py::resolve_phase</span><span class="kw-func-tag">targeting.py::get_attack_target_candidates</span>
         </div>
       </div>
 

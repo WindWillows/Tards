@@ -680,22 +680,6 @@ class Game:
                         print(f"  非法出牌请求：{reason}")
                 finally:
                     active.sacrifice_chooser = old_chooser
-            elif act_type == "set_vision":
-                pos = action.get("pos")
-                col = action.get("col")
-                m = self.board.get_minion_at(pos)
-                if m and m.owner == active:
-                    if self.set_vision_target(m, col):
-                        targets = action.get("targets")
-                        if targets:
-                            m._pending_attack_targets = targets
-                            print(f"  {active.name} 设置 {m.name} 的视野目标列为 {col}，攻击目标 {len(targets)} 个")
-                        else:
-                            print(f"  {active.name} 设置 {m.name} 的视野目标列为 {col}")
-                    else:
-                        print(f"  非法的视野目标设置")
-                else:
-                    print(f"  非法的视野目标设置")
             elif act_type == "set_attack_targets":
                 pos = action.get("pos")
                 targets = action.get("targets", [])
@@ -851,12 +835,6 @@ class Game:
                         if not isinstance(sweep, int):
                             sweep = 0
 
-                        # 视野：预设攻击目标列
-                        attack_col = base_col
-                        vision_range = m.keywords.get("视野", 0)
-                        if vision_range > 0 and hasattr(m, "_resolve_target_col") and m._resolve_target_col is not None:
-                            attack_col = m._resolve_target_col
-
                         if sweep > 0:
                             # 横扫：按对战顺序依次对所有覆盖列造成伤害
                             affected_cols = {base_col}
@@ -980,11 +958,9 @@ class Game:
             m.temp_health_bonus = 0
             m.temp_max_health_bonus = 0
             m.temp_keywords.clear()
-            # 清理行动阶段预设的攻击目标和视野列
+            # 清理行动阶段预设的攻击目标
             if hasattr(m, "_pending_attack_targets"):
                 m._pending_attack_targets = None
-            if hasattr(m, "_resolve_target_col"):
-                m._resolve_target_col = None
             # 随时间削减层数的状态关键词（修改源头以确保 recalculate 不会还原）
             for kw in ["冰冻", "眩晕", "休眠"]:
                 for source in (m.base_keywords, m.perm_keywords, m.temp_keywords):
@@ -1136,19 +1112,6 @@ class Game:
                 fn()
             except Exception as e:
                 print(f"  [延迟效果错误] {e}")
-
-    def set_vision_target(self, minion: "Minion", col: int) -> bool:
-        """为具有视野的异象预设攻击目标列（出牌阶段调用）。"""
-        vision_range = minion.keywords.get("视野", 0)
-        if vision_range <= 0:
-            return False
-        base_col = minion.position[1]
-        if abs(col - base_col) > vision_range:
-            return False
-        if col < 0 or col >= self.board.SIZE:
-            return False
-        minion._resolve_target_col = col
-        return True
 
     def check_game_over(self) -> bool:
         if self.game_over:

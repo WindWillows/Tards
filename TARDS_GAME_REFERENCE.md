@@ -67,7 +67,7 @@
      - `brake` — 拉闸：强制结束自己的出牌阶段
      - `exchange` — 兑换矿物（离散 1 级解锁）
      - `exchange_squirrel` — 兑换松鼠（冥刻 2 级解锁）
-     - `set_vision` — 为具有视野的异象预设攻击目标列
+     - ~~`set_vision`~~ — 已移除。视野异象通过 `set_attack_targets` 预设具体攻击目标
      - `set_attack_targets` — 为高频/视野异象预设多个攻击目标
    - 拍铃规则：若本轮次未通过出牌改变过 T 点，拍铃时额外失去 1 T 点。
    - 拉闸规则：一方拉闸后，对方无法再拍铃。
@@ -81,7 +81,7 @@
      - 清理临时 BUFF（`temp_attack_bonus`、`temp_keywords` 等）
      - 冰冻/眩晕/休眠层数衰减（修改源头字典后 `recalculate()`）
      - `成长` 计数器递减与进化触发
-     - 清理 `_pending_attack_targets`、`_resolve_target_col`
+     - 清理 `_pending_attack_targets`
 
 ### 2.4 疲劳伤害（流失生命值）
 - 牌库抽空后，第 X 次尝试抽牌时，失去 **X 点 HP**（`draw_fail` 计数器递增）。
@@ -223,7 +223,7 @@ effect_fn(player, target, game, extras=None)
 
 ### 4.5 视野与高频攻击的预设目标
 
-- **视野 X**：出牌阶段通过 `set_vision` action 选择攻击列，`minion._resolve_target_col = col`。结算阶段该异象优先攻击该列。
+- **视野 X**：出牌阶段为具有视野的异象从"视野范围内（距离 base_col 不超过 X 的列）的所有敌方异象"中选择具体的攻击目标，通过 `set_attack_targets` action 存储到 `minion._pending_attack_targets`。结算阶段该异象直接攻击这些预设目标。无预设目标时，攻击同列最前排敌方异象。
 - **高频/三重打击**：出牌阶段通过 `set_attack_targets` action 预设多个攻击目标，`minion._pending_attack_targets = [target1, target2, ...]`。结算阶段按顺序消耗：第 1 次攻击取第 0 个，第 2 次取第 1 个……
 - 预设目标耗尽后攻击英雄。
 - **潜水/潜行异象**：行动阶段（出牌阶段）**可见且可选中**（策略可以指向它们）；结算阶段**攻击自动落空**。
@@ -408,7 +408,7 @@ effect_fn(player, target, game, extras=None)
 - `ACTION`：`{"type":"ACTION","action":{...}}`
 - `play`：`{"type":"play","serial":1,"target":{"pos":[3,2]},"bluff":false,"sacrifices":[{"pos":[4,2]}],"extra_targets":[{"pos":[2,2]}]}`
   - `extra_targets` 为额外指向目标序列化结果（位置或 player_side）。
-- `set_vision`：`{"type":"set_vision","pos":[3,2],"col":4,"targets":[{"pos":[1,2]}]}`
+- ~~`set_vision`~~：已移除。视野异象统一使用 `set_attack_targets`
 - `set_attack_targets`：`{"type":"set_attack_targets","pos":[3,2],"targets":[{"pos":[1,2]},{"player_side":0}]}`
 
 ### 8.4 Discover 同步

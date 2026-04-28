@@ -1043,12 +1043,7 @@ def deploy_card_copy(player: "Player", game: "Game", card: "Card", target_pos: O
 def auto_attack(minion: "Minion", game: "Game") -> bool:
     """让异象执行一次自动攻击：选择本列最前排敌方目标，没有则攻击敌方玩家。"""
     col = minion.position[1]
-    # 视野偏移
-    attack_col = col
-    vision_range = minion.keywords.get("视野", 0)
-    if vision_range > 0 and hasattr(minion, "_resolve_target_col") and minion._resolve_target_col is not None:
-        attack_col = minion._resolve_target_col
-    target = game.board.get_front_minion(attack_col, minion.owner, attacker=minion)
+    target = game.board.get_front_minion(col, minion.owner, attacker=minion)
     if target and target.is_alive():
         minion.attack_target(target)
         return True

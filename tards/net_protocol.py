@@ -136,12 +136,6 @@ def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
         extra = action.get("extra_targets")
         if extra:
             out["extra_targets"] = [_serialize_target(t) for t in extra]
-    elif atype == "set_vision":
-        out["pos"] = list(action["pos"])
-        out["col"] = action["col"]
-        targets = action.get("targets")
-        if targets:
-            out["targets"] = [_serialize_target(t) for t in targets]
     elif atype == "set_attack_targets":
         out["pos"] = list(action["pos"])
         out["targets"] = [_serialize_target(t) for t in action.get("targets", [])]
@@ -177,12 +171,6 @@ def deserialize_action(msg: Dict[str, Any], board) -> Optional[Dict[str, Any]]:
         extra = action.get("extra_targets")
         if extra:
             out["extra_targets"] = [_deserialize_target(t, board) for t in extra]
-    elif atype == "set_vision":
-        out["pos"] = tuple(action["pos"])
-        out["col"] = action["col"]
-        targets = action.get("targets")
-        if targets:
-            out["targets"] = [_deserialize_target(t, board) for t in targets]
     elif atype == "set_attack_targets":
         out["pos"] = tuple(action["pos"])
         out["targets"] = [_deserialize_target(t, board) for t in action.get("targets", [])]
