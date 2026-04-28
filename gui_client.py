@@ -1286,8 +1286,9 @@ class BattleFrame(tk.Frame):
         for c, name in enumerate(self.COL_NAMES):
             x1 = c * self.CELL_SIZE
             x2 = x1 + self.CELL_SIZE
-            self.canvas.create_rectangle(x1, 0, x2, 20, fill="#cfd8dc", outline="black", tags="board_grid")
-            self.canvas.create_text(c * self.CELL_SIZE + self.CELL_SIZE // 2, 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
+            label_y = 5 * self.CELL_SIZE
+            self.canvas.create_rectangle(x1, label_y, x2, label_y + 20, fill="#cfd8dc", outline="black", tags="board_grid")
+            self.canvas.create_text(c * self.CELL_SIZE + self.CELL_SIZE // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
