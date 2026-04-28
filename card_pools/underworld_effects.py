@@ -519,7 +519,9 @@ def _jin_yachi_strategy(player, target, game, extras=None):
 
     if isinstance(target, Minion):
         deal_damage_to_minion(target, 1, source=None, game=game)
-        if not target.is_alive():
+        # 注意：minion_death() 将实际移除操作放入 effect_queue，is_alive() 此时仍为 True
+        # 应直接检查血量或 _pending_death 标记来判断是否已消灭
+        if target.current_health <= 0 or getattr(target, "_pending_death", False):
             gain_resource(player, "t", 1)
             draw_cards(player, 1, game)
             print(f"  金牙齿消灭 {target.name}，{player.name} 获得1T并抽一张牌")
