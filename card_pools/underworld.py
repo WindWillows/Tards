@@ -1662,6 +1662,7 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=1,
+    asset_id="jin_yachi",
     # 效果描述：对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。
     targets_fn=target_any_minion_or_enemy_player,
     effect_fn=_jin_yachi_strategy,

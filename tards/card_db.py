@@ -75,6 +75,9 @@ class CardDefinition:
     tags: List[str] = field(default_factory=list)
     # 隐藏词条（如"友好""非生命"等，不由关键词行直接显示）
     hidden_keywords: Dict[str, Any] = field(default_factory=dict)
+    # 美术资源标识
+    asset_id: Optional[str] = None        # 卡牌主资源ID（卡面/肖像）
+    asset_back_id: Optional[str] = None   # 卡背资源ID（牌堆/手牌背面）
 
     def __post_init__(self):
         self.cost = Cost.from_string(self.cost_str)
@@ -123,6 +126,8 @@ class CardDefinition:
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            card.asset_id = self.asset_id
+            card.asset_back_id = self.asset_back_id
             return card
         elif self.card_type == CardType.STRATEGY:
             card = Strategy(
@@ -139,6 +144,8 @@ class CardDefinition:
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            card.asset_id = self.asset_id
+            card.asset_back_id = self.asset_back_id
             return card
         elif self.card_type == CardType.CONSPIRACY:
             card = Conspiracy(
@@ -155,6 +162,8 @@ class CardDefinition:
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            card.asset_id = self.asset_id
+            card.asset_back_id = self.asset_back_id
             return card
         elif self.card_type == CardType.MINERAL:
             card = MineralCard(
@@ -170,6 +179,8 @@ class CardDefinition:
             )
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
+            card.asset_id = self.asset_id
+            card.asset_back_id = self.asset_back_id
             return card
         else:
             raise ValueError(f"未知的卡牌类型: {self.card_type}")
@@ -236,6 +247,8 @@ def register_card(
     tags: Optional[List[str]] = None,
     hidden_keywords: Optional[Dict[str, Any]] = None,
     extra_targeting_stages=None,
+    asset_id: Optional[str] = None,
+    asset_back_id: Optional[str] = None,
     registry: CardRegistry = DEFAULT_REGISTRY,
 ) -> CardDefinition:
     """便捷注册函数。"""
@@ -279,6 +292,8 @@ def register_card(
         on_statue_fuse=on_statue_fuse,
         on_evolve_fn=on_evolve_fn,
         tags=tags or [],
+        asset_id=asset_id,
+        asset_back_id=asset_back_id,
     )
     registry.register(card)
     return card

@@ -31,6 +31,8 @@ class Card:
         self.on_turn_end = on_turn_end
         self.on_phase_start = on_phase_start
         self.on_phase_end = on_phase_end
+        self.asset_id: Optional[str] = None
+        self.asset_back_id: Optional[str] = None
 
     def __repr__(self) -> str:
         return f"{self.name}({self.cost})"
@@ -164,6 +166,7 @@ class MinionCard(Card):
             hidden_keywords=getattr(self, 'hidden_keywords', None),
         )
         minion._extra_targets = extra_targets or []
+        minion.asset_id = getattr(self, 'asset_id', None)
 
         # === BEFORE_DEPLOY 事件 ===
         deploy_event = game.emit_event(
@@ -320,6 +323,7 @@ class Minion:
         self.on_statue_fuse = on_statue_fuse
         self.tags = tags or []
         self.hidden_keywords = hidden_keywords or {}
+        self.asset_id: Optional[str] = None
 
         # 基础面板（卡牌定义时的原始值）
         self.base_attack = attack

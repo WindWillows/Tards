@@ -28,6 +28,7 @@ from tards import (
     target_self,
     target_none,
 )
+from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY, Pack, CardType
 from tards.deck import Deck
 from tards.deck_io import list_saved_decks, load_deck, save_deck
@@ -455,6 +456,40 @@ class DeckBuilderFrame(tk.Frame):
     def _clear_card_detail(self):
         self.detail_label.config(text="将鼠标悬停在卡牌上查看详情", fg="#555")
 
+    # ===== BattleFrame 卡牌详情大图 =====
+    def _update_detail_canvas(self, card):
+        if not hasattr(self, "detail_canvas"):
+            return
+        cvs = self.detail_canvas
+        cvs.delete("all")
+        am = get_asset_manager()
+        cw, ch = 160, 220
+        img = None
+        if getattr(card, "asset_id", None):
+            img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+        if img:
+            cvs.create_image(cw // 2, ch // 2, image=img)
+            cvs.image = img
+        else:
+            # 回退：显示文字信息
+            lines = [card.name, str(card.cost), card.card_type.value]
+            if isinstance(card, MinionCard):
+                lines.append(f"{card.attack}/{card.health}")
+            y = 40
+            for line in lines:
+                cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
+                y += 24
+            desc = getattr(card, "description", "")
+            if desc:
+                cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+
+    def _clear_detail_canvas(self):
+        if not hasattr(self, "detail_canvas"):
+            return
+        cvs = self.detail_canvas
+        cvs.delete("all")
+        cvs.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
+
     def _on_imm_change(self, pack: Pack):
         pts = self.imm_sliders[pack].get()
         self.deck.set_immersion(pack, pts)
@@ -867,6 +902,8 @@ class ChoiceDialog(tk.Toplevel):
 class BattleFrame(tk.Frame):
     CELL_SIZE = 80
     COL_NAMES = ["高地", "山脊", "中路", "河岸", "水路"]
+    HAND_CARD_WIDTH = 90
+    HAND_CARD_HEIGHT = 120
 
     def __init__(self, parent, app: TardsApp, duel: Any, local_player: Player, opponent: Player):
         super().__init__(parent)
@@ -983,16 +1020,25 @@ class BattleFrame(tk.Frame):
         self._drag_start_y = event.y_root
 
     def _on_drag_motion(self, event):
-        """拖拽中显示跟随标签。"""
+        """拖拽中显示跟随标签或卡牌缩略图。"""
         if not self._dragging_card:
             return
         if self._drag_label:
             self._drag_label.destroy()
-        name = getattr(self._dragging_card, "name", "未知")
-        self._drag_label = tk.Label(
-            self, text=name, bg="#fff9c4", font=("Microsoft YaHei", 10, "bold"),
-            relief=tk.RIDGE, bd=1
-        )
+        am = get_asset_manager()
+        img = None
+        asset_id = getattr(self._dragging_card, "asset_id", None)
+        if asset_id:
+            img = am.get_thumbnail(asset_id, 80, 110)
+        if img:
+            self._drag_label = tk.Label(self, image=img, bg="white", relief=tk.RIDGE, bd=1)
+            self._drag_label.image = img
+        else:
+            name = getattr(self._dragging_card, "name", "未知")
+            self._drag_label = tk.Label(
+                self, text=name, bg="#fff9c4", font=("Microsoft YaHei", 10, "bold"),
+                relief=tk.RIDGE, bd=1
+            )
         self._drag_label.place(
             x=event.x_root - self.winfo_rootx(),
             y=event.y_root - self.winfo_rooty()
@@ -1077,10 +1123,26 @@ class BattleFrame(tk.Frame):
             lbl.pack(fill=tk.X)
             self.info_labels[pname] = lbl
 
+        # 牌堆 / 弃牌堆 视觉区
+        deck_frame = tk.LabelFrame(right, text="牌库")
+        deck_frame.pack(fill=tk.X, pady=5)
+        self.deck_canvases = {}
+        for pname in [self.local_player.name, self.opponent.name]:
+            row = tk.Frame(deck_frame)
+            row.pack(fill=tk.X, pady=2)
+            tk.Label(row, text=pname, width=8, anchor="w").pack(side=tk.LEFT)
+            # 牌堆
+            deck_cvs = tk.Canvas(row, width=50, height=70, bg="#f5f5f5", highlightthickness=1, highlightbackground="#bdbdbd")
+            deck_cvs.pack(side=tk.LEFT, padx=5)
+            # 弃牌堆
+            dis_cvs = tk.Canvas(row, width=50, height=70, bg="#f5f5f5", highlightthickness=1, highlightbackground="#bdbdbd")
+            dis_cvs.pack(side=tk.LEFT, padx=5)
+            self.deck_canvases[pname] = {"deck": deck_cvs, "discard": dis_cvs}
+
         # 手牌
         hand_frame = tk.LabelFrame(right, text="手牌")
         hand_frame.pack(fill=tk.X, pady=5)
-        hand_canvas = tk.Canvas(hand_frame, height=110)
+        hand_canvas = tk.Canvas(hand_frame, height=self.HAND_CARD_HEIGHT + 10)
         hbar = tk.Scrollbar(hand_frame, orient=tk.HORIZONTAL, command=hand_canvas.xview)
         hand_canvas.configure(xscrollcommand=hbar.set)
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -1121,6 +1183,13 @@ class BattleFrame(tk.Frame):
         history_frame.pack(fill=tk.X, pady=5)
         self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9))
         self.history_list.pack(fill=tk.X, padx=5, pady=2)
+
+        # 卡牌详情大图（悬停时显示）
+        detail_frame = tk.LabelFrame(right, text="卡牌详情")
+        detail_frame.pack(fill=tk.X, pady=5)
+        self.detail_canvas = tk.Canvas(detail_frame, width=160, height=220, bg="#fafafa", highlightthickness=1, highlightbackground="#e0e0e0")
+        self.detail_canvas.pack(padx=5, pady=5)
+        self.detail_canvas.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
 
         # 日志
         log_frame = tk.LabelFrame(right, text="日志")
@@ -1187,6 +1256,8 @@ class BattleFrame(tk.Frame):
         self.canvas.delete("preview_hint")
 
     def _draw_board_grid(self):
+        am = get_asset_manager()
+        self._tile_image_refs = {}
         for r in range(5):
             for c in range(5):
                 x1 = c * self.CELL_SIZE
@@ -1194,13 +1265,24 @@ class BattleFrame(tk.Frame):
                 x2 = x1 + self.CELL_SIZE
                 y2 = y1 + self.CELL_SIZE
                 color = "#e0f7fa"
+                terrain_id = None
                 if r in (0, 1):
                     color = "#ffebee"
+                    terrain_id = "terrain_enemy"
                 elif r == 2:
                     color = "#f5f5f5"
+                    terrain_id = "terrain_neutral"
                 elif r in (3, 4):
                     color = "#e8f5e9"
+                    terrain_id = "terrain_friendly"
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black", tags=f"cell_{r}_{c}")
+                # 尝试加载地形纹理
+                if terrain_id:
+                    tile = am.get_board_tile(terrain_id, self.CELL_SIZE)
+                    if tile:
+                        self._tile_image_refs[(r, c)] = tile
+                        self.canvas.create_image(x1 + self.CELL_SIZE // 2, y1 + self.CELL_SIZE // 2,
+                                                 image=tile, tags=f"cell_{r}_{c}")
         for c, name in enumerate(self.COL_NAMES):
             x1 = c * self.CELL_SIZE
             x2 = x1 + self.CELL_SIZE
@@ -1281,16 +1363,23 @@ class BattleFrame(tk.Frame):
         }
         active_keywords.sort(key=lambda x: priority.get(x[0], 99))
 
+        am = get_asset_manager()
         for i, (k, v) in enumerate(active_keywords[:3]):
+            bx = cx - 20 + i * 18
+            by = cy + 18
+            icon = am.get_icon(f"kw_{k}", 16)
+            if icon:
+                ref_key = f"{tag}_kw_{i}"
+                self._minion_image_refs[ref_key] = icon
+                self.canvas.create_image(bx, by, image=icon, tags=(tag, "minion", "kw_icon"))
+                continue
+            # 无图标时回退到色块+文字
             bg, fg = keyword_styles.get(k, ("#607d8b", "white"))
             text = k[0]
             if isinstance(v, int) and v > 1:
                 text += str(v)
             elif isinstance(v, int) and v == 1 and k in ("视野", "高频", "连击", "多重打击", "横扫", "尖刺"):
                 text += "1"
-
-            bx = cx - 20 + i * 18
-            by = cy + 18
             self.canvas.create_rectangle(bx - 8, by - 6, bx + 8, by + 6,
                                          fill=bg, outline="white", width=1,
                                          tags=(tag, "minion", "kw_icon"))
@@ -1303,6 +1392,8 @@ class BattleFrame(tk.Frame):
         self.canvas.delete("target_hint")
         if not self.duel.game:
             return
+        am = get_asset_manager()
+        self._minion_image_refs = {}
         for (r, c), m in self.duel.game.board.minion_place.items():
             cx = c * self.CELL_SIZE + self.CELL_SIZE // 2
             cy = r * self.CELL_SIZE + self.CELL_SIZE // 2
@@ -1325,7 +1416,17 @@ class BattleFrame(tk.Frame):
                 width = 3
             # 阴影
             self.canvas.create_rectangle(cx - 28, cy - 23, cx + 32, cy + 27, fill="#757575", outline="", tags=(tag, "minion"))
-            self.canvas.create_rectangle(cx - 30, cy - 25, cx + 30, cy + 25, fill=color, outline=outline, width=width, tags=(tag, "minion"))
+            # 尝试加载肖像缩略图
+            portrait = None
+            if getattr(m, "asset_id", None):
+                portrait = am.get_thumbnail(m.asset_id, 56, 56)
+            if portrait:
+                self._minion_image_refs[(r, c)] = portrait
+                self.canvas.create_image(cx, cy, image=portrait, tags=(tag, "minion", "portrait"))
+                # 保留边框
+                self.canvas.create_rectangle(cx - 28, cy - 25, cx + 28, cy + 25, fill="", outline=outline, width=width, tags=(tag, "minion"))
+            else:
+                self.canvas.create_rectangle(cx - 30, cy - 25, cx + 30, cy + 25, fill=color, outline=outline, width=width, tags=(tag, "minion"))
             self.canvas.create_text(cx, cy - 8, text=m.name, fill="white", font=("Microsoft YaHei", 9, "bold"), tags=(tag, "minion"))
             # 攻击/生命数值颜色：增强=绿，减弱=红，受伤=橙
             atk_color = "white"
@@ -1429,8 +1530,10 @@ class BattleFrame(tk.Frame):
             Conspiracy: "#f3e5f5",
             MineralCard: "#fffde7",
         }
+        am = get_asset_manager()
+        cw = self.HAND_CARD_WIDTH
+        ch = self.HAND_CARD_HEIGHT
         for i, card in enumerate(active.card_hand):
-            btn_text = self._card_display_text(card)
             base_bg = card_type_colors.get(type(card), "white")
             bg = "#fff9c4" if self.selected_card_idx == i else base_bg
             # 若当前处于指向模式且该手牌是合法目标，高亮为亮黄色
@@ -1446,13 +1549,48 @@ class BattleFrame(tk.Frame):
             serial = i + 1
             frame = tk.Frame(self.hand_inner, bg=frame_bg, bd=frame_bd)
             frame.pack(side=tk.LEFT, padx=2)
-            btn = tk.Button(frame, text=btn_text, wraplength=120, height=3, width=14, bg=bg,
-                            command=lambda idx=i: self._on_hand_card_click(idx))
-            btn.pack(padx=2, pady=2)
-            btn.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
-            btn.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s)))
-            btn.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview()))
-            btn.bind("<Motion>", lambda e, c=card: self._move_tooltip(e.x_root, e.y_root))
+            cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
+            cvs.pack(padx=2, pady=2)
+            # 尝试加载卡面图像
+            img = None
+            if getattr(card, "asset_id", None):
+                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+            if img:
+                cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                cvs.image = img  # 防止被 GC
+            else:
+                # 纯色回退
+                cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+            # 卡牌文字覆盖
+            name = card.name
+            cost_str = str(card.cost)
+            stats = ""
+            if isinstance(card, MinionCard):
+                stats = f"{card.attack}/{card.health}"
+            # 名称（顶部居中）
+            cvs.create_text(cw // 2, 14, text=name, fill="#212121",
+                            font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+            # 费用（左上角）
+            cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+            # 类型与攻防（底部）
+            bottom_text = stats
+            if isinstance(card, Strategy):
+                bottom_text = "【策】"
+            elif isinstance(card, Conspiracy):
+                bottom_text = "【谋】"
+            elif isinstance(card, MineralCard):
+                bottom_text = "【矿】"
+            elif isinstance(card, MinionCard):
+                bottom_text = f"【随】{stats}"
+            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
+                            font=("Microsoft YaHei", 8), tags="card_text")
+            # 绑定事件
+            cvs.bind("<Button-1>", lambda e, idx=i: self._on_hand_card_click(idx))
+            cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
+            cvs.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s), self._update_detail_canvas(c)))
+            cvs.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview(), self._clear_detail_canvas()))
+            cvs.bind("<Motion>", lambda e, c=card: self._move_tooltip(e.x_root, e.y_root))
 
     def _card_display_text(self, card) -> str:
         name = card.name
@@ -1473,6 +1611,8 @@ class BattleFrame(tk.Frame):
     def _render_info(self):
         if not self.duel.game:
             return
+        am = get_asset_manager()
+        back_img = am.get_card_back("default", 46, 66)
         for pname, lbl in self.info_labels.items():
             player = None
             if self.duel.game.p1.name == pname:
@@ -1488,6 +1628,19 @@ class BattleFrame(tk.Frame):
                     f"手牌:{len(player.card_hand)} | "
                     f"卡组:{len(player.card_deck)} 弃牌:{len(player.card_dis)} 阴谋:{len(player.active_conspiracies)}"
                 ))
+                # 更新牌堆/弃牌堆 Canvas
+                cvs_map = self.deck_canvases.get(pname)
+                if cvs_map:
+                    for key, count in [("deck", len(player.card_deck)), ("discard", len(player.card_dis))]:
+                        cvs = cvs_map[key]
+                        cvs.delete("all")
+                        if back_img:
+                            cvs.create_image(25, 35, image=back_img)
+                            cvs.image = back_img
+                        else:
+                            cvs.create_rectangle(2, 2, 48, 68, fill="#8d6e63", outline="#5d4037", width=2)
+                        cvs.create_text(25, 60, text=str(count), fill="white",
+                                        font=("Microsoft YaHei", 10, "bold"))
             # 绑定点击事件以支持将玩家作为指向目标
             lbl.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
             # 高亮提示：如果当前处于指向模式且该玩家是合法目标，改变背景色
