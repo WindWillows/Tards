@@ -1590,6 +1590,11 @@ class BattleFrame(tk.Frame):
                 bottom_text = f"【随】{stats}"
             cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
+            # 已激活阴谋标记
+            if isinstance(card, Conspiracy) and card in active.active_conspiracies:
+                cvs.create_oval(cw - 18, 2, cw - 2, 18, fill="#4caf50", outline="white", width=1, tags="activated_mark")
+                cvs.create_text(cw - 10, 10, text="激", fill="white",
+                                font=("Microsoft YaHei", 7, "bold"), tags="activated_mark")
             # 绑定事件
             cvs.bind("<Button-1>", lambda e, idx=i: self._on_hand_card_click(idx))
             cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
@@ -2012,8 +2017,12 @@ class BattleFrame(tk.Frame):
 
     def _submit_play(self, serial: int, target: Any, bluff: bool = False, extra_targets: Optional[List[Any]] = None):
         active = self.duel.game.current_player if self.duel.game else None
+        card_name = "未知卡牌"
+        is_conspiracy = False
         if active and 1 <= serial <= len(active.card_hand):
             card = active.card_hand[serial - 1]
+            card_name = card.name
+            is_conspiracy = isinstance(card, Conspiracy)
             if card.cost.b >= 3:
                 if not messagebox.askyesno("确认出牌", f"确定要打出 [{card.name}] 吗？\n费用: {card.cost}"):
                     self._exit_targeting_mode()
@@ -2027,8 +2036,13 @@ class BattleFrame(tk.Frame):
             action["sacrifices"] = sacrifices
             self._pending_sacrifices = []
         self._clear_selection()
+        # 阴谋激活视觉反馈
+        if is_conspiracy:
+            if bluff:
+                self._show_toast(f"虚张声势：假装激活 [{card_name}]", "#ffebee", 1500)
+            else:
+                self._show_toast(f"阴谋 [{card_name}] 已暗中激活", "#f3e5f5", 1500)
         self.duel.submit_local_action(action)
-        card_name = active.card_hand[serial - 1].name if active and 1 <= serial <= len(active.card_hand) else "未知卡牌"
         self._add_history(f"打出 [{card_name}]")
         self.hint_label.config(text="已出牌，等待结果...")
         self.after(2000, self._reset_guide_hint)
@@ -2178,11 +2192,19 @@ class BattleFrame(tk.Frame):
         conspiracies_player = self.local_player
         if not isinstance(self.duel, NetworkDuel) and self.duel.game and self.duel.game.current_player:
             conspiracies_player = self.duel.game.current_player
+        # 清空旧内容，重建彩色标签
+        for w in list(self.conspiracy_frame.winfo_children()):
+            w.destroy()
         if conspiracies_player.active_conspiracies:
-            names = ", ".join(c.name for c in conspiracies_player.active_conspiracies)
-            self.conspiracy_label.config(text=names)
+            for c in conspiracies_player.active_conspiracies:
+                lbl = tk.Label(self.conspiracy_frame, text=c.name,
+                               font=("Microsoft YaHei", 9, "bold"),
+                               bg="#f3e5f5", fg="#4a148c", padx=6, pady=2,
+                               relief="ridge", bd=1)
+                lbl.pack(side=tk.LEFT, padx=2, pady=2)
         else:
-            self.conspiracy_label.config(text="无")
+            lbl = tk.Label(self.conspiracy_frame, text="无", anchor="w")
+            lbl.pack(fill=tk.X, padx=5)
         if self.duel.game:
             phase_map = {
                 "draw": "抽牌阶段",
@@ -2389,6 +2411,21 @@ class BattleFrame(tk.Frame):
             if hasattr(self.duel, "close"):
                 self.duel.close()
             self.app.show_menu()
+
+    def _show_toast(self, text: str, bg_color: str = "#fff9c4", duration_ms: int = 1500):
+        """在屏幕中央显示一个临时浮层提示，duration_ms 后自动消失。"""
+        toast = tk.Toplevel(self)
+        toast.overrideredirect(True)
+        toast.attributes("-topmost", True)
+        label = tk.Label(toast, text=text, font=("Microsoft YaHei", 14, "bold"),
+                         bg=bg_color, fg="#212121", padx=20, pady=10,
+                         relief="solid", bd=1)
+        label.pack()
+        toast.update_idletasks()
+        x = self.winfo_rootx() + (self.winfo_width() // 2) - (toast.winfo_width() // 2)
+        y = self.winfo_rooty() + (self.winfo_height() // 3) - (toast.winfo_height() // 2)
+        toast.geometry(f"+{x}+{y}")
+        self.after(duration_ms, toast.destroy)
 
     def _on_gameover(self, winner_name: Optional[str]):
         msg = f"游戏结束！胜者: {winner_name}" if winner_name else "游戏结束：平局"

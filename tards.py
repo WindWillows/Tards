@@ -150,7 +150,6 @@ class Player:
                 return True
             else:
                 print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
-                self.card_hand.pop(serial - 1)
                 self.active_conspiracies.append(card)
                 return True
         return True

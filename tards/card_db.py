@@ -141,6 +141,7 @@ class CardDefinition:
                 on_phase_end=self.on_phase_end,
                 hidden_keywords=self.hidden_keywords.copy() if self.hidden_keywords else None,
             )
+            card.owner = owner
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
@@ -159,6 +160,7 @@ class CardDefinition:
                 on_phase_start=self.on_phase_start,
                 on_phase_end=self.on_phase_end,
             )
+            card.owner = owner
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)

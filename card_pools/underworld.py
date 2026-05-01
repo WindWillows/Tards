@@ -4,7 +4,372 @@
 from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY
 from tards.targets import target_friendly_positions, target_none, target_any_minion, target_enemy_minions, target_enemy_player, target_self, target_friendly_minions
 from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand
+from tards.constants import (
+    EVENT_DEPLOYED, EVENT_CARD_PLAYED, EVENT_BELL, EVENT_BEFORE_STACK_RESOLVE,
+    EVENT_DRAW, EVENT_BEFORE_POINT, EVENT_TURN_START, EVENT_DEATH, EVENT_BEFORE_ATTACK,
+)
+from tards.cards import Strategy, MinionCard, Minion
 from .underworld_effects import *
+
+# =============================================================================
+# 冥刻阴谋手动实现
+# =============================================================================
+
+# ---------- 剪刀 ----------
+def _jiandao_condition(game, event_data, player):
+    """对方部署异象后触发。"""
+    if event_data.get("event_type") != EVENT_DEPLOYED:
+        return False
+    deploy_player = event_data.get("player")
+    if not deploy_player or deploy_player == player:
+        return False
+    return True
+
+def _jiandao_effect(game, event_data, player):
+    """对方失去4T。"""
+    deploy_player = event_data.get("player")
+    if deploy_player:
+        print(f"  阴谋 [剪刀] 触发：{deploy_player.name} 失去 4T")
+        deploy_player.t_point_change(-4)
+
+
+# ---------- 反戈 ----------
+def _fange_condition(game, event_data, player):
+    """对方打出异象时触发。"""
+    if event_data.get("event_type") != EVENT_CARD_PLAYED:
+        return False
+    card = event_data.get("card")
+    card_player = event_data.get("player")
+    if not card or not isinstance(card, MinionCard):
+        return False
+    if card_player == player:
+        return False
+    return True
+
+def _fange_effect(game, event_data, player):
+    """对打出异象的玩家造成等同于其T花费的伤害。"""
+    card = event_data.get("card")
+    if isinstance(card, MinionCard):
+        damage = card.cost.t if card.cost else 0
+        target = card.owner
+        if target and damage > 0:
+            print(f"  阴谋 [反戈] 触发：{card.name} 的反噬对 {target.name} 造成 {damage} 点伤害")
+            target.health_change(-damage)
+
+
+# ---------- 蓄锐 ----------
+def _xurui_condition(game, event_data, player):
+    """对方拍铃且本阶段未出牌时触发。"""
+    if event_data.get("event_type") != EVENT_BELL:
+        return False
+    bell_player = event_data.get("player")
+    if bell_player == player:
+        return False
+    if getattr(bell_player, "_cards_played_this_phase", 0) > 0:
+        return False
+    return True
+
+def _xurui_effect(game, event_data, player):
+    """阴谋拥有者获得4T。"""
+    print(f"  阴谋 [蓄锐] 触发：{player.name} 获得 4T")
+    player.t_point_change(4)
+
+
+# ---------- 墨水（堆栈反制检测） ----------
+def _moshui_condition(game, event_data, player):
+    """对方打出花费<=4T的策略时，通过堆栈响应窗口反制。
+
+    检测机制：监听 before_stack_resolve 事件，查看即将结算的堆栈帧。
+    若该帧对应敌方的一张<=4T策略卡，则推入反制效果到堆栈顶部（LIFO），
+    使反制效果先于原效果执行，从而取消原效果并将其洗入卡组。
+    """
+    if event_data.get("event_type") != EVENT_BEFORE_STACK_RESOLVE:
+        return False
+    frame = event_data.get("frame")
+    if not frame:
+        return False
+    source = getattr(frame, "source", None)
+    if not source or not isinstance(source, Strategy):
+        return False
+    if source.owner == player:
+        return False
+    if source.cost.t > 4:
+        return False
+
+    # 推入反制效果到堆栈顶部，确保它在原效果之前结算
+    def _moshui_counter():
+        frame.cancelled = True
+        opponent = source.owner
+        # 策略卡仍在手牌中（play_fn 尚未执行），将其移除并洗入卡组
+        if source in opponent.card_hand:
+            opponent.card_hand.remove(source)
+        opponent.card_deck.append(source)
+        import random
+        random.shuffle(opponent.card_deck)
+        print(f"  阴谋 [墨水] 反制：{source.name} 被洗入 {opponent.name} 的卡组")
+
+    game.effect_queue.push_stack("阴谋 [墨水] 反制", _moshui_counter)
+    return True
+
+def _moshui_effect(game, event_data, player):
+    """反制的主要工作已在 condition_fn 的堆栈推入中完成，
+    此处仅打印确认信息。阴谋卡本身由 register_conspiracy 自动弃置。
+    """
+    print(f"  阴谋 [墨水] 结算完毕")
+
+
+# ---------- 劲风 ----------
+def _jinfeng_condition(game, event_data, player):
+    """对方在额外抽牌阶段（非系统抽牌阶段）抽牌时触发。"""
+    if event_data.get("event_type") != EVENT_DRAW:
+        return False
+    draw_player = event_data.get("player")
+    if not draw_player or draw_player == player:
+        return False
+    if game.current_phase == game.PHASE_DRAW:
+        return False
+    return True
+
+def _jinfeng_effect(game, event_data, player):
+    """弃掉对方抽到的牌，并随机使其一张手牌花费+1T。"""
+    draw_player = event_data.get("player")
+    card = event_data.get("card")
+    if card and card in draw_player.card_hand:
+        draw_player.card_hand.remove(card)
+        draw_player.card_dis.append(card)
+        print(f"  阴谋 [劲风] 弃掉了 {draw_player.name} 抽到的 [{card.name}]")
+    if draw_player.card_hand:
+        import random
+        target_card = random.choice(draw_player.card_hand)
+        target_card.cost.t += 1
+        print(f"  阴谋 [劲风] 使 {draw_player.name} 的 [{target_card.name}] 花费 +1T")
+
+
+# ---------- 离群 ----------
+def _liqun_condition(game, event_data, player):
+    """敌方异象部署后，若其所在列进入协同状态（该列有≥2个敌方异象），触发。"""
+    if event_data.get("event_type") != EVENT_DEPLOYED:
+        return False
+    minion = event_data.get("minion")
+    if not minion or minion.owner == player:
+        return False
+    pos = minion.position
+    c = pos[1]
+    enemy_count = 0
+    for r in range(game.board.SIZE):
+        m = game.board.minion_place.get((r, c))
+        if m and m.owner == minion.owner:
+            enemy_count += 1
+    # 部署后 enemy_count >= 2 且部署前 enemy_count - 1 <= 1
+    if enemy_count >= 2 and (enemy_count - 1) <= 1:
+        return True
+    return False
+
+def _liqun_effect(game, event_data, player):
+    """消灭该列所有进入协同状态的敌方异象。"""
+    minion = event_data.get("minion")
+    c = minion.position[1]
+    from card_pools.effect_utils import destroy_minion
+    to_destroy = []
+    for r in range(game.board.SIZE):
+        m = game.board.minion_place.get((r, c))
+        if m and m.owner == minion.owner:
+            to_destroy.append(m)
+    for m in to_destroy:
+        destroy_minion(m, game)
+    print(f"  阴谋 [离群] 消灭了 {len(to_destroy)} 个进入协同状态的异象")
+
+
+# ---------- 入河 ----------
+_RUHE_LISTENER_ID = 987654321
+
+def _ruhe_condition(game, event_data, player):
+    """对方部署异象前（堆栈响应窗口），将其移除并延迟至下回合加入原位。"""
+    if event_data.get("event_type") != EVENT_BEFORE_STACK_RESOLVE:
+        return False
+    frame = event_data.get("frame")
+    if not frame:
+        return False
+    source = getattr(frame, "source", None)
+    if not source or not isinstance(source, MinionCard):
+        return False
+    if source.owner == player:
+        return False
+    target = getattr(source, "_deploy_target", None)
+    if not target:
+        return False
+
+    def _counter():
+        frame.cancelled = True
+        deploy_player = source.owner
+        if source in deploy_player.card_hand:
+            deploy_player.card_hand.remove(source)
+        pending = getattr(game, "_ruhe_pending", [])
+        pending.append({
+            "card": source,
+            "player": deploy_player,
+            "pos": target,
+            "trigger_turn": game.current_turn + 1,
+        })
+        game._ruhe_pending = pending
+        print(f"  阴谋 [入河] 反制了 [{source.name}] 的部署，下回合将其加入原位 {target}")
+
+    game.effect_queue.push_stack("阴谋 [入河] 反制", _counter)
+    return True
+
+def _ruhe_effect(game, event_data, player):
+    """注册回合开始监听器，延迟部署被反制的异象。"""
+    listener_id = id(event_data)
+
+    def _redeploy_listener(event):
+        pending = getattr(game, "_ruhe_pending", [])
+        to_remove = []
+        for item in pending:
+            if game.current_turn >= item["trigger_turn"]:
+                card = item["card"]
+                deploy_player = item["player"]
+                pos = item["pos"]
+                minion = Minion(
+                    name=card.name,
+                    owner=deploy_player,
+                    position=pos,
+                    attack=card.attack,
+                    health=card.health,
+                    source_card=card,
+                    board=game.board,
+                    keywords=dict(card.keywords) if card.keywords else {},
+                    on_turn_start=card.on_turn_start,
+                    on_turn_end=card.on_turn_end,
+                    on_phase_start=card.on_phase_start,
+                    on_phase_end=card.on_phase_end,
+                    tags=list(card.tags) if card.tags else [],
+                    hidden_keywords=dict(card.hidden_keywords) if card.hidden_keywords else {},
+                )
+                minion.summon_turn = game.current_turn
+                game.board.place_minion(minion, pos)
+                print(f"  阴谋 [入河] 将 [{card.name}] 加入战场 {pos}")
+                to_remove.append(item)
+        for item in to_remove:
+            pending.remove(item)
+        game._ruhe_pending = pending
+        if not pending:
+            game.unregister_listeners_by_owner(listener_id)
+
+    game.register_listener(EVENT_TURN_START, _redeploy_listener, priority=50, owner_id=listener_id)
+    print(f"  阴谋 [入河] 效果触发：等待下回合将异象加入原位")
+
+
+# ---------- 怪石 ----------
+def _guaishi_condition(game, event_data, player):
+    """对方拉闸且剩余T点为0时触发。"""
+    if event_data.get("event_type") != EVENT_BELL:
+        return False
+    bell_player = event_data.get("player")
+    if not bell_player or bell_player == player:
+        return False
+    if bell_player.t_point != 0:
+        return False
+    return True
+
+def _guaishi_effect(game, event_data, player):
+    """对方永久失去一个T槽。"""
+    bell_player = event_data.get("player")
+    if bell_player:
+        bell_player.t_point_max -= 1
+        print(f"  阴谋 [怪石] 触发：{bell_player.name} 失去一个T槽（当前上限 {bell_player.t_point_max}）")
+
+
+# ---------- 海市蜃楼 ----------
+def _haishi_condition(game, event_data, player):
+    """1个异象被指向前，改为其随机敌方异象成为指向目标。"""
+    if event_data.get("event_type") != EVENT_BEFORE_POINT:
+        return False
+    event = event_data.get("_event_ref")
+    if not event:
+        return False
+    target = event.data.get("target")
+    if not isinstance(target, Minion):
+        return False
+    source_player = event.data.get("player")
+    if source_player == player:
+        return False
+    # 改为被指向异象的随机敌方异象
+    enemy_minions = [m for m in game.board.minion_place.values()
+                     if m.owner != target.owner and m.is_alive()]
+    if not enemy_minions:
+        return False
+    import random
+    new_target = random.choice(enemy_minions)
+    event.data["target"] = new_target
+    print(f"  阴谋 [海市蜃楼] 将指向目标从 [{target.name}] 改为 [{new_target.name}]")
+    return True
+
+def _haishi_effect(game, event_data, player):
+    """重定向已在 condition_fn 中同步完成。"""
+    print(f"  阴谋 [海市蜃楼] 结算完毕")
+
+
+# ---------- 掩星 ----------
+def _yanxing_condition(game, event_data, player):
+    """场上敌方异象数量成为唯一最多时触发。"""
+    event_type = event_data.get("event_type")
+    if event_type == EVENT_DEPLOYED:
+        minion = event_data.get("minion")
+        if not minion or minion.owner == player:
+            return False
+        enemy_count = sum(1 for m in game.board.minion_place.values()
+                          if m.owner != player and m.is_alive())
+        friendly_count = sum(1 for m in game.board.minion_place.values()
+                             if m.owner == player and m.is_alive())
+        if enemy_count > friendly_count and (enemy_count - 1) <= friendly_count:
+            return True
+        return False
+    elif event_type == EVENT_DEATH:
+        minion = event_data.get("minion")
+        if not minion or minion.owner != player:
+            return False
+        enemy_count = sum(1 for m in game.board.minion_place.values()
+                          if m.owner != player and m.is_alive())
+        friendly_count = sum(1 for m in game.board.minion_place.values()
+                             if m.owner == player and m.is_alive())
+        if enemy_count > friendly_count and enemy_count <= (friendly_count + 1):
+            return True
+        return False
+    return False
+
+def _yanxing_effect(game, event_data, player):
+    """阴谋拥有者抽2张牌。"""
+    print(f"  阴谋 [掩星] 触发：{player.name} 抽2张牌")
+    player.draw_card(2, game=game)
+
+
+# ---------- 夜袭 ----------
+def _yexi_condition(game, event_data, player):
+    """敌方异象对阴谋拥有者造成伤害前触发。"""
+    if event_data.get("event_type") != EVENT_BEFORE_ATTACK:
+        return False
+    attacker = event_data.get("attacker")
+    defender = event_data.get("defender")
+    if not isinstance(attacker, Minion):
+        return False
+    if attacker.owner == player:
+        return False
+    if defender != player:
+        return False
+    return True
+
+def _yexi_effect(game, event_data, player):
+    """使其先获得-2攻击力。若具有迅捷，将其消灭。"""
+    attacker = event_data.get("attacker")
+    from card_pools.effect_utils import destroy_minion
+    if attacker.keywords.get("迅捷", False):
+        destroy_minion(attacker, game)
+        print(f"  阴谋 [夜袭] 消灭了具有迅捷的 [{attacker.name}]")
+    else:
+        attacker.base_attack -= 2
+        attacker.recalculate()
+        print(f"  阴谋 [夜袭] 使 [{attacker.name}] 获得-2攻击力（当前 {attacker.current_attack}）")
+
 
 # Pack: UNDERWORLD
 
@@ -2254,8 +2619,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方部署异象后，失去4T。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_jiandao_condition,
+    effect_fn=_jiandao_effect,
 )
 
 register_card(
@@ -2267,8 +2632,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方使用花费不大于4T的策略时，改为将其洗入对方卡组。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_moshui_condition,
+    effect_fn=_moshui_effect,
 )
 
 register_card(
@@ -2280,8 +2645,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方额外抽1张牌后，将其弃掉，随机使对方1张手牌花费+1T。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    condition_fn=_jinfeng_condition,
+    effect_fn=_jinfeng_effect,
 )
 
 register_card(
@@ -2293,8 +2658,8 @@ register_card(
     immersion_level=1,
     # 效果描述：消灭接下来首列进入协同状态的异象。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_liqun_condition,
+    effect_fn=_liqun_effect,
 )
 
 register_card(
@@ -2306,8 +2671,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方部署异象前，将其移除，在下回合开始后将其加入原位。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_ruhe_condition,
+    effect_fn=_ruhe_effect,
 )
 
 register_card(
@@ -2319,8 +2684,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方拉闸时，若其剩余T点等于0，对方失去一个T槽。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_guaishi_condition,
+    effect_fn=_guaishi_effect,
 )
 
 register_card(
@@ -2332,8 +2697,8 @@ register_card(
     immersion_level=1,
     # 效果描述：1个异象被指向前，改为其随机敌方异象成为指向目标。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_haishi_condition,
+    effect_fn=_haishi_effect,
 )
 
 register_card(
@@ -2345,8 +2710,8 @@ register_card(
     immersion_level=1,
     # 效果描述：场上敌方异象数量成为唯一最多时，抽2张牌。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    condition_fn=_yanxing_condition,
+    effect_fn=_yanxing_effect,
 )
 
 register_card(
@@ -2358,8 +2723,8 @@ register_card(
     immersion_level=1,
     # 效果描述：对方打出下一张牌时，若是异象，对对手造成等同于其花费的伤害。
     targets_fn=target_enemy_player,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_fange_condition,
+    effect_fn=_fange_effect,
 )
 
 register_card(
@@ -2371,8 +2736,8 @@ register_card(
     immersion_level=1,
     # 效果描述：敌方异象对你造成伤害前，使其先获得-2攻击力。若具有迅捷，将其消灭。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_yexi_condition,
+    effect_fn=_yexi_effect,
 )
 
 register_card(
@@ -2384,6 +2749,6 @@ register_card(
     immersion_level=1,
     # 效果描述：对方下次拍铃时，若此轮次未出牌，你获得4T。
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_xurui_condition,
+    effect_fn=_xurui_effect,
 )

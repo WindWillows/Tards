@@ -291,9 +291,11 @@ effect_fn(player, target, game, extras=None)
 - 策略回响：`copy.copy` 后 `echo_level - 1`。
 
 ### 6.7 效果队列（EffectQueue）
-- `queue(name, fn)` — 入队，不在结算中时立即处理。
-- `resolve(name, fn)` — 执行主效果 + 处理所有连锁。
-- **当前模型为 FIFO 队列，非堆栈**。无法支持 Counterspell 式的"响应并取消原效果"。
+- `queue(name, fn)` — 将**自动触发的连锁效果**（亡语、回合效果、雕像融合等）加入 FIFO 队列。若不在结算中则立即处理。
+- `resolve(name, fn)` — 将**主动执行的主效果**（打出卡牌、战斗结算等）推入 LIFO 堆栈并启动结算。
+- `push_stack(name, fn, source=None)` → `StackFrame` — 将效果推入堆栈顶部，返回可被取消的帧对象。
+- `resolve_stack()` — 按 LIFO 顺序结算堆栈。每个帧结算前触发 `before_stack_resolve` 事件，允许其他效果响应并推入新的堆栈帧，或设置 `frame.cancelled = True` 取消原效果。
+- **当前为 堆栈 + 队列 双模型**。堆栈支持 Counterspell 式响应与取消；队列保持原有 FIFO 连锁语义不变。
 
 ### 6.8 异象死亡与亡语
 - `Minion.minion_death()` 加入 `EffectQueue`：先移除棋盘 → 派发 `EVENT_DEATH` → 触发亡语。
@@ -318,7 +320,7 @@ effect_fn(player, target, game, extras=None)
 - 回调签名：`fn(game, event_data, source)`。
 
 ### 6.12 轻量"取消"机制
-- **设计原则**：不改 EffectQueue FIFO 模型，在状态变更前拦截。
+- **设计原则**：在状态变更前拦截，作为堆栈取消机制的补充。
 - **伤害替换**：`Game.register_damage_replacement(filter_fn, replace_fn, once=True)`
   - 在 `Minion.take_damage()` 和 `Player.health_change(-delta)` 的**最开头**调用。
   - `replace_fn(damage) → int`，返回 0 表示完全取消。
@@ -326,9 +328,11 @@ effect_fn(player, target, game, extras=None)
 - **指向保护**：`Game.protect_target(filter_fn, once=True)`
   - 在 `Strategy.effect()` 执行 `effect_fn` **之前**检查。
   - 被保护时，卡牌正常消耗（进弃牌堆），但效果不执行。
+- **堆栈取消**（新增，见 §6.7）：
+  - 通过 `EffectQueue.push_stack()` + `resolve_stack()` 实现真正的 Counterspell 式响应。
+  - 响应窗口发射 `before_stack_resolve` 事件，监听器可设置 `event.cancelled = True` 或直接修改 `frame.cancelled`。
 - **限制**：
   - 无法取消无目标的策略（如"抽两张牌"）。
-  - 无法做真正的 Counterspell（堆栈响应）。
   - 持续型保护（`once=False`）在回合结束时由 `clear_protections()` 清理。
 
 ### 6.13 通用词条实现状态（完整清单）
@@ -569,7 +573,7 @@ def _xxx_special(minion, player, game, extras=None):
 ## 十三、待实现 / TODO 汇总
 
 ### 13.1 引擎层
-- [ ] **堆栈响应机制**（高优先级）：将 `EffectQueue` 从 FIFO 队列改为支持 `push_stack()` / `resolve_stack()` 的堆栈模型，实现真正的 Counterspell 式"取消原效果"。
+- [x] **堆栈响应机制**：~~将 `EffectQueue` 从 FIFO 队列改为支持 `push_stack()` / `resolve_stack()` 的堆栈模型。~~ **已实现**：`EffectQueue` 现在为 堆栈 + 队列 双模型。堆栈用于主动效果（LIFO，可响应/取消），队列用于自动连锁（FIFO）。新增 `EVENT_BEFORE_STACK_RESOLVE` 事件常量。
 - [ ] **结束阶段（End Phase）**：当前 `run_turn()` 只有抽牌→出牌→结算，结算后直接 `EVENT_TURN_END`，无独立结束阶段。部分卡牌效果（如"回合结束时"）在结算阶段末尾处理。
 - [x] **抽取（Draw-trigger）**：~~"抽取：..." 效果在卡被从卡组抽入手牌时触发。`EVENT_DRAW` 已发出但几乎没有响应逻辑。~~ **已实现**：通过 `_trigger_auto_effects` + `_EVENT_SPECIFIC_TARGET` 精确命中被抽卡牌，走 `card.on_drawn` 回调。工具：`set_draw_trigger(card, callback)` / `remove_draw_trigger(card)`。
 - [ ] **Tag 系统**（阻塞大量卡牌）：friendly/hostile/neutral/creature/nonliving/hell/fairy 等标签尚未实现，阻塞耕殖/砍伐/掘进等效果。
@@ -760,7 +764,7 @@ def _xxx_special(minion, player, game, extras=None):
 | `tards/player.py` | `Player` 状态、资源、手牌操作、沉浸度增益 |
 | `tards/cards.py` | `Card` 类型体系、`Minion` 战场逻辑、亡语、藤蔓替伤 |
 | `tards/board.py` | 5×5 棋盘、双层细胞、部署规则、跨方移动 |
-| `tards/effect_queue.py` | `EffectQueue` 连锁控制（FIFO 队列） |
+| `tards/effect_queue.py` | `EffectQueue` 连锁控制（堆栈 + FIFO 队列） |
 | `tards/targeting.py` | `TargetingRequest`、`TargetPicker`、攻击候选、部署额外目标 |
 | `tards/auto_effects.py` | 自动化效果辅助：移动、交换、返回手牌 |
 | `tards/net_game.py` | `NetworkDuel` 网络对战同步 |
@@ -784,5 +788,30 @@ def _xxx_special(minion, player, game, extras=None):
 
 ---
 
-*文档版本：2026-04-20*  
-*涵盖规则书 v1.0 + 离散卡包 + 冥刻卡包 v1.0 + 血契卡包 + 程序实现全状态 + 统一指向模块 + 轻量取消机制 + 人工效果协作规范 + 献祭重构 + 测试卡组模式*
+## 十九、本轮对话（2026-04-29）核心交付
+
+### 19.1 架构/引擎改动
+1. **EffectQueue 堆栈模型**：
+   - `effect_queue.py` 从纯 FIFO 队列改造为 **堆栈 + 队列 双模型**。
+   - 新增 `StackFrame` dataclass，包含 `name`、`fn`、`source`、`cancelled` 字段。
+   - 新增 `push_stack(name, fn, source=None) -> StackFrame`：将效果推入 LIFO 堆栈顶部。
+   - 新增 `resolve_stack()`：按 LIFO 结算堆栈，每个帧结算前触发响应窗口（`before_stack_resolve` 事件）。
+   - `resolve(name, fn)` 向后兼容：推入堆栈 → `resolve_stack()` → `_process_queue()`。
+   - `queue(name, fn)` 语义不变：自动连锁效果（亡语、回合效果等）仍走 FIFO 队列，在堆栈清空后处理。
+   - 响应窗口允许监听器推入新的堆栈帧，或设置 `event.cancelled = True` / `frame.cancelled = True` 取消原效果。
+   - 新增 `EVENT_BEFORE_STACK_RESOLVE = "before_stack_resolve"` 事件常量。
+2. **轻量取消机制文档更新**：
+   - §6.12 更新为"堆栈取消 + 伤害替换 + 指向保护"三层体系。
+   - 移除"无法做真正的 Counterspell"的限制说明。
+3. **修复 `game.py` 笔误**：
+   - `resolve_phase` 中 `do_round` 闭包使用了未定义的 `attack_col`，修正为 `base_col`。
+
+### 19.2 测试验证
+- `test_effect_queue.py`：FIFO 连锁行为保持不变（亡语在主效果后触发）。
+- `test_event_stack.py`：22 个事件总线测试全部通过。
+- `test_combat_cards.py`、`test_develop.py`、`test_discrete_eventbus.py`、`test_delay_effects.py`、`test_minecart.py`、`test_shell.py` 均通过。
+
+---
+
+*文档版本：2026-04-29*  
+*涵盖规则书 v1.0 + 离散卡包 + 冥刻卡包 v1.0 + 血契卡包 + 程序实现全状态 + 统一指向模块 + 堆栈响应机制 + 轻量取消机制 + 人工效果协作规范 + 献祭重构 + 测试卡组模式*

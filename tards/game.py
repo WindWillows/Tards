@@ -161,8 +161,12 @@ class Game:
                 return  # 已被消耗或移除
             if not conspiracy.condition_fn:
                 return
-            # condition_fn 旧签名：(game, event_data_dict, player)
-            if conspiracy.condition_fn(self, event.data, player):
+            # condition_fn 签名：(game, event_data_dict, player)
+            # 为方便阴谋判断触发时机，自动注入 event_type
+            event_data = dict(event.data)
+            event_data["event_type"] = event.type
+            event_data["_event_ref"] = event
+            if conspiracy.condition_fn(self, event_data, player):
                 # 满足条件：移出活跃区，注销监听器，推入 EffectQueue 执行
                 player.active_conspiracies.remove(conspiracy)
                 self.unregister_listeners_by_owner(owner_id)
@@ -171,6 +175,8 @@ class Game:
                     def trigger():
                         print(f"  阴谋 [{c.name}] 被触发！")
                         c.effect_fn(self, ev.data, p)
+                        if c in p.card_hand:
+                            p.card_hand.remove(c)
                         p.card_dis.append(c)
                     return trigger
                 self.effect_queue.queue(f"阴谋 [{conspiracy.name}]", make_trigger())
@@ -910,11 +916,11 @@ class Game:
                                 m.attack_target(enemy)
                         elif can_pierce:
                             # 串击/穿刺/穿透：攻击同列所有敌方异象
-                            enemies = [e for e in self.board.get_enemy_minions_in_column(attack_col, m.owner) if e.is_alive()]
+                            enemies = [e for e in self.board.get_enemy_minions_in_column(base_col, m.owner) if e.is_alive()]
                             # 潜水/潜行始终不可见
                             enemies = [e for e in enemies if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)]
                             if enemies:
-                                print(f"  {m.name} 串击 {self.board.COL_NAMES[attack_col]}列所有敌方异象")
+                                print(f"  {m.name} 串击 {self.board.COL_NAMES[base_col]}列所有敌方异象")
                                 for enemy in enemies:
                                     m.attack_target(enemy)
                             else:
@@ -922,7 +928,7 @@ class Game:
                                 m.attack_target(enemy)
                         else:
                             # 普通攻击（含视野偏移）
-                            target = self.board.get_front_minion(attack_col, m.owner, attacker=m)
+                            target = self.board.get_front_minion(base_col, m.owner, attacker=m)
                             if target and target.is_alive():
                                 m.attack_target(target)
                             else:

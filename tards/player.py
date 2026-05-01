@@ -1,7 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
-from .constants import EVENT_DRAW, EVENT_MILLED
+from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_MILLED, EVENT_BEFORE_POINT
 from .cost import Cost
-from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy
+from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy, Minion
 
 if TYPE_CHECKING:
     from .board import Board
@@ -322,6 +322,11 @@ class Player:
         self._cards_played_this_phase += 1
 
         if isinstance(card, MinionCard):
+            card._deploy_target = target
+            # 指向异象前的事件（供海市蜃楼等阴谋拦截）
+            if target is not None and isinstance(target, Minion):
+                event = game.emit_event(EVENT_BEFORE_POINT, source=card, target=target, player=self)
+                target = event.data.get("target", target)
             def deploy_fn():
                 effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
                 if effect:
@@ -341,17 +346,22 @@ class Player:
                         echo_card.echo_level = card.echo_level - 1
                         self.card_hand.append(echo_card)
                         print(f"  {self.name} 获得回响 [{echo_card.name}]（回响 {echo_card.echo_level}）")
+                    game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                 else:
                     # 部署失败，回滚费用（简化）
                     self.t_point_change(cost.t)
                     self.b_point += cost.b
                     self.s_point += cost.s
                     self.c_point_change(cost.c)
-            game.effect_queue.resolve(f"部署 [{card.name}]", deploy_fn)
+            game.effect_queue.resolve(f"部署 [{card.name}]", deploy_fn, source=card)
             return True
 
         elif isinstance(card, (Strategy, MineralCard)):
             is_mineral = isinstance(card, MineralCard)
+            # 指向异象前的事件（供海市蜃楼等阴谋拦截）
+            if target is not None and isinstance(target, Minion):
+                event = game.emit_event(EVENT_BEFORE_POINT, source=card, target=target, player=self)
+                target = event.data.get("target", target)
 
             def play_fn():
                 prev = getattr(game, "_current_strategy_player", None)
@@ -380,7 +390,7 @@ class Player:
                     self.b_point += card.cost.b
                     self.s_point += card.cost.s
                     self.c_point_change(card.cost.c)
-            game.effect_queue.resolve(f"打出 [{card.name}]", play_fn)
+            game.effect_queue.resolve(f"打出 [{card.name}]", play_fn, source=card)
             return True
 
         elif isinstance(card, Conspiracy):
@@ -390,8 +400,6 @@ class Player:
             else:
                 def activate_fn():
                     print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
-                    if card in self.card_hand:
-                        self.card_hand.remove(card)
                     self.active_conspiracies.append(card)
                     # 注册到事件总线（通配符监听器）
                     game.register_conspiracy(card, self)

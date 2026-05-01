@@ -55,6 +55,9 @@ EVENT_AFTER_PLAY = "after_play"
 EVENT_T_MAX_CHANGED = "t_max_changed"
 EVENT_C_MAX_CHANGED = "c_max_changed"
 
+# 堆栈响应事件
+EVENT_BEFORE_STACK_RESOLVE = "before_stack_resolve"
+
 # 开发事件
 EVENT_DEVELOPED = "developed"
 
