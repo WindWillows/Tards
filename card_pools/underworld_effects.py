@@ -316,8 +316,23 @@ def _tianniu_special(minion, player, game, extras=None):
 # 冥刻包 — 代表性效果（特殊资源机制）
 # =============================================================================
 
+def _register_candle_modifier_and_count(player):
+    """注册蜡烛费用修正器（若尚未注册）并增加烛烟部署计数。"""
+    if not getattr(player, "_candle_modifier_registered", False):
+        def _mod(card, cost):
+            if card.name == "蜡烛":
+                reduction = getattr(player, "_zhuyan_deployed_count", 0) * 2
+                if reduction > 0:
+                    cost.t = max(0, cost.t - reduction)
+        player._cost_modifiers.append(_mod)
+        player._candle_modifier_registered = True
+    player._zhuyan_deployed_count = getattr(player, "_zhuyan_deployed_count", 0) + 1
+
+
 def _zhuyan_special(minion, player, game, extras=None):
-    """烛烟：亡语：抽1张牌。"""
+    """烛烟：亡语：抽1张牌。部署时增加烛烟计数并注册蜡烛费用修正。"""
+    _register_candle_modifier_and_count(player)
+
     def _dr(m, p, b):
         draw_cards(p, 1, game=b.game_ref if hasattr(b, "game_ref") else None)
     add_deathrattle(minion, _dr)
@@ -354,7 +369,9 @@ def _xinge_special(minion, player, game, extras=None):
 
 
 def _datuanzhuyan_special(minion, player, game, extras=None):
-    """大团烛烟：亡语：抽2张牌。"""
+    """大团烛烟：亡语：抽2张牌。部署时增加烛烟计数并注册蜡烛费用修正。"""
+    _register_candle_modifier_and_count(player)
+
     def _dr(m, p, b):
         draw_cards(p, 2, game=b.game_ref if hasattr(b, "game_ref") else None)
     add_deathrattle(minion, _dr)

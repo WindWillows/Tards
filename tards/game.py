@@ -73,6 +73,12 @@ class Game:
         # 本回合对玩家造成的伤害累计（木鹊等需要查询）
         self._damage_dealt_to_players_this_turn: Dict["Player", int] = {}
 
+        # 结构化状态日志（机器可读，用于全局统计如失去T槽数、出牌数等）
+        self._state_log: List[Dict[str, Any]] = []
+
+        # 本回合双方合计打出的策略卡数量（血溅白练等需要查询）
+        self._strategies_played_this_turn: int = 0
+
         # 绑定引用
         self.board.game_ref = self
         for p in self.players:
@@ -459,6 +465,21 @@ class Game:
                     print(f"  {p.name} 血契沉浸度 {blood_pts}：将6张时刻洗入卡组")
 
             p.draw_card(4, game=self)
+
+        # === 对局开始时效果（如血渍怀表置入卡组顶等）===
+        game_start_cards = []
+        for p in self.players:
+            for card in p.card_deck:
+                if getattr(card, "on_game_start", None):
+                    game_start_cards.append((p, card))
+        import random
+        random.shuffle(game_start_cards)
+        for player, card in game_start_cards:
+            try:
+                card.on_game_start(player, self, card)
+            except Exception as e:
+                print(f"  [对局开始时效果错误] {card.name}: {e}")
+
         self.current_turn = 1
         while not self.game_over:
             self.run_turn()
@@ -472,6 +493,7 @@ class Game:
         first = self.p1 if self.current_turn % 2 == 1 else self.p2
         second = self.p2 if first == self.p1 else self.p1
         print(f"\n========== 回合 {self.current_turn} | 先手: {first.name} ==========")
+        self._strategies_played_this_turn = 0
         self.emit_event(EVENT_TURN_START, turn=self.current_turn, first=first, second=second)
         self._process_delayed_effects("turn_start")
         if self.check_game_over():
@@ -660,6 +682,10 @@ class Game:
                 temp_b = 0
                 if valid_sacs:
                     temp_b = sum(m.keywords.get("丰饶", 1) for m in valid_sacs)
+                    # 双倍血契（含垢齿轮等效果）
+                    if getattr(active, "_double_blood_gain", False):
+                        temp_b *= 2
+                        print(f"  {active.name} 双倍血契触发，获得 {temp_b}B")
                     active.b_point += temp_b
                 old_chooser = active.sacrifice_chooser
                 if valid_sacs:
@@ -742,6 +768,12 @@ class Game:
         return str(target)
 
     def resolve_phase(self, first: Player, second: Player):
+        # 检查是否被跳过（钝锈指针等效果）
+        if getattr(self, "_skip_resolve_phase", False):
+            print("[结算阶段被跳过]")
+            self._skip_resolve_phase = False
+            return
+
         # 清空本回合状态追踪（"回合"等价于结算阶段）
         self._deployed_this_turn.clear()
         self._damage_dealt_to_players_this_turn.clear()
@@ -956,14 +988,14 @@ class Game:
             if m.is_alive():
                 m.keywords["先攻"] = original
 
-        # 结算阶段结束：清理全场异象的临时效果，并递减状态层数
+        # 结算阶段结束：清理全场异象的临时攻击/生命 buff，并递减状态层数
+        # temp_keywords 保留到 action phase start 的 clear_temp_effects() 再清理
         for m in list(self.board.minion_place.values()):
             if not m.is_alive():
                 continue
             m.temp_attack_bonus = 0
             m.temp_health_bonus = 0
             m.temp_max_health_bonus = 0
-            m.temp_keywords.clear()
             # 清理行动阶段预设的攻击目标
             if hasattr(m, "_pending_attack_targets"):
                 m._pending_attack_targets = None
@@ -1021,6 +1053,25 @@ class Game:
         filter_fn(target, damage, source) -> bool  判断是否匹配本次伤害。
         replace_fn(damage) -> int                  返回新伤害值（0 表示完全取消）。
         once=True 时触发一次后自动移除。
+        """
+        self._damage_replacements.append({
+            "filter": filter_fn,
+            "replace": replace_fn,
+            "once": once,
+            "reason": reason,
+        })
+
+    def add_damage_replacement(
+        self,
+        filter_fn: Callable[[Any, int, Any], bool],
+        replace_fn: Callable[[int], int],
+        once: bool = True,
+        reason: str = "伤害替换",
+    ) -> None:
+        """注册一个伤害替换效果。
+
+        filter_fn(target, damage, source) -> bool 判断某次伤害是否被替换。
+        replace_fn(damage) -> int 返回替换后的伤害值（0 表示取消）。
         """
         self._damage_replacements.append({
             "filter": filter_fn,

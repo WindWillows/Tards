@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
-from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_MILLED, EVENT_BEFORE_POINT
+from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT
 from .cost import Cost
 from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy, Minion
 
@@ -144,6 +144,15 @@ class Player:
                 old=self.health - actual_delta,
                 new=self.health,
             )
+            # 记录HP损失到状态日志，用于"本阶段失去HP"类统计
+            if hasattr(game, "_state_log") and actual_delta < 0:
+                game._state_log.append({
+                    "event": "health_lost",
+                    "player": self,
+                    "amount": -actual_delta,
+                    "turn": getattr(game, "current_turn", 0),
+                    "phase": getattr(game, "current_phase", ""),
+                })
 
         self._check_underworld_candle()
 
@@ -204,18 +213,28 @@ class Player:
                 continue
             if len(self.card_hand) == self.card_hand_max:
                 card = self.card_deck.pop()
+                card.move_to("discard", game)
                 self.card_dis.append(card)
                 amount -= 1
                 print(f"  {self.name} 手牌已满，{card.name} 被弃置")
                 if game:
+                    game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
                     game.emit_event(EVENT_MILLED, player=self, card=card)
                 continue
             card = self.card_deck.pop()
+            card.move_to("hand", game)
             self.card_hand.append(card)
             drawn_names.append(card.name)
             amount -= 1
             if game:
                 game.emit_event(EVENT_DRAW, player=self, card=card)
+            # 触发"抽取"效果（具有"抽取"隐藏关键词的卡牌被抽到时执行）
+            draw_trigger = getattr(card, "hidden_keywords", {}).get("抽取")
+            if draw_trigger:
+                try:
+                    draw_trigger(self, game, card)
+                except Exception as e:
+                    print(f"  [抽取效果错误] {card.name}: {e}")
         if drawn_names:
             print(f"  {self.name} 抽取了: {', '.join(drawn_names)}")
 
@@ -225,6 +244,21 @@ class Player:
             self.t_point = 0
         if delta != 0:
             self.t_changed_this_round = True
+
+    def t_point_max_change(self, delta: int):
+        """改变T槽上限。减少时记录到 game._state_log 用于全局统计。"""
+        old = self.t_point_max
+        self.t_point_max = max(0, self.t_point_max + delta)
+        actual_delta = self.t_point_max - old
+        if actual_delta < 0:
+            game = getattr(self.board_ref, "game_ref", None)
+            if game and hasattr(game, "_state_log"):
+                game._state_log.append({
+                    "event": "t_max_lost",
+                    "player": self,
+                    "amount": abs(actual_delta),
+                    "turn": getattr(game, "current_turn", 0),
+                })
 
     def c_point_change(self, delta: int):
         game = getattr(self.board_ref, "game_ref", None)
@@ -284,7 +318,11 @@ class Player:
         cost = card.cost.copy()
         from .cards import MinionCard, Strategy
         if isinstance(card, (MinionCard, Strategy)):
+            # 玩家级修正器
             for fn in self._cost_modifiers:
+                fn(card, cost)
+            # 卡牌级修正器（卡牌自身定义的动态费用）
+            for fn in getattr(card, "_card_cost_modifiers", []):
                 fn(card, cost)
         return cost
 
@@ -303,10 +341,30 @@ class Player:
         if isinstance(card, Strategy) and isinstance(target, Minion):
             if target.keywords.get("绝缘", False) and target.owner != self:
                 return False, f"{target.name} 具有绝缘，无法被策略选中"
+        # 无法被选中：无法被任何指向性效果选为目标
+        if isinstance(target, Minion):
+            if target.temp_keywords.get("无法被选中", False):
+                return False, f"{target.name} 无法被选中"
         valid_targets = self.get_valid_targets(card)
         if target not in valid_targets:
             return False, "目标位置无效"
         return True, ""
+
+    def discard_card(self, card: Card, game: Optional["Game"] = None, reason: str = "effect") -> None:
+        """从手牌中弃置一张卡。触发 EVENT_DISCARDED（正常打出不算弃置）。
+
+        Args:
+            card: 要弃置的卡（必须在手牌中）。
+            game: Game 实例。
+            reason: 弃置原因，"effect" 为效果弃置，"mill" 为手牌满磨牌。
+        """
+        if card in self.card_hand:
+            self.card_hand.remove(card)
+        card.move_to("discard", game)
+        self.card_dis.append(card)
+        if game:
+            game.emit_event(EVENT_DISCARDED, player=self, card=card, reason=reason)
+        print(f"  {self.name} 弃置了 [{card.name}]")
 
     def play_card(self, serial: int, target: Any, game: "Game", bluff: bool = False, extra_targets: Optional[List[Any]] = None) -> bool:
         ok, reason = self.card_can_play(serial, target)
@@ -328,10 +386,13 @@ class Player:
                 event = game.emit_event(EVENT_BEFORE_POINT, source=card, target=target, player=self)
                 target = event.data.get("target", target)
             def deploy_fn():
+                # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
+                if card in self.card_hand:
+                    self.card_hand.remove(card)
+                card.move_to("resolving", game)
                 effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
                 if effect:
-                    if card in self.card_hand:
-                        self.card_hand.remove(card)
+                    card.move_to("board", game)
                     if card.echo_level > 0:
                         echo_card = MinionCard(
                             name=card.name,
@@ -348,7 +409,9 @@ class Player:
                         print(f"  {self.name} 获得回响 [{echo_card.name}]（回响 {echo_card.echo_level}）")
                     game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                 else:
-                    # 部署失败，回滚费用（简化）
+                    # 部署失败，回滚：卡移回手牌，费用返还
+                    card.move_to("hand", game)
+                    self.card_hand.append(card)
                     self.t_point_change(cost.t)
                     self.b_point += cost.b
                     self.s_point += cost.s
@@ -364,6 +427,13 @@ class Player:
                 target = event.data.get("target", target)
 
             def play_fn():
+                # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
+                if card in self.card_hand:
+                    self.card_hand.remove(card)
+                card.move_to("resolving", game)
+                # 统计本回合策略卡使用次数（包含此卡本身，血溅白练等需要）
+                if not is_mineral:
+                    game._strategies_played_this_turn += 1
                 prev = getattr(game, "_current_strategy_player", None)
                 game._current_strategy_player = self
                 try:
@@ -371,10 +441,9 @@ class Player:
                 finally:
                     game._current_strategy_player = prev
                 if effect:
-                    if card in self.card_hand:
-                        self.card_hand.remove(card)
+                    card.move_to("discard", game)
                     self.card_dis.append(card)
-                    game.emit_event("card_played", player=self, card=card)
+                    game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                     if is_mineral:
                         print(f"  {self.name} 因打出矿物，失去所有剩余 C 点")
                         self.c_point = 0
@@ -385,7 +454,11 @@ class Player:
                         self.card_hand.append(echo_card)
                         print(f"  {self.name} 获得回响 [{echo_card.name}]（回响 {echo_card.echo_level}）")
                 else:
-                    # 效果失败，回滚费用（简化）
+                    # 效果失败，回滚：卡移回手牌，费用返还，策略计数回滚
+                    if not is_mineral:
+                        game._strategies_played_this_turn -= 1
+                    card.move_to("hand", game)
+                    self.card_hand.append(card)
                     self.t_point_change(card.cost.t)
                     self.b_point += card.cost.b
                     self.s_point += card.cost.s
@@ -399,6 +472,10 @@ class Player:
                 return True
             else:
                 def activate_fn():
+                    # 阴谋激活时同样先离开手牌
+                    if card in self.card_hand:
+                        self.card_hand.remove(card)
+                    card.move_to("active_conspiracy", game)
                     print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
                     self.active_conspiracies.append(card)
                     # 注册到事件总线（通配符监听器）

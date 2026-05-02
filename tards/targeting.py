@@ -81,7 +81,8 @@ def get_attack_target_candidates(minion: "Minion", game: "Game") -> List[Any]:
     if vision_range > 0:
         enemies = [m for m in board.minion_place.values()
                    if m.owner != minion.owner and m.is_alive()
-                   and abs(m.position[1] - base_col) <= vision_range]
+                   and abs(m.position[1] - base_col) <= vision_range
+                   and not m.temp_keywords.get("无法被选中", False)]
         candidates = enemies + [opponent]
     else:
         front = board.get_front_minion(base_col, minion.owner, attacker=minion)

@@ -15,7 +15,14 @@ if TYPE_CHECKING:
 
 
 class Card:
-    """所有卡牌的基类。"""
+    """所有卡牌的基类。
+
+    每张卡牌实例都可以持有自己的事件监听器（通过 ``on()`` 注册），
+    并通过 ``move_to()`` 统一追踪所在位置（deck/hand/discard/board/exile）。
+    """
+
+    # 通用时间节点回调（可在实例创建后动态设置）
+    on_game_start: Optional[Callable] = None
 
     def __init__(self, name: str, cost: Cost, targets: Callable[["Player", "Board"], List[Any]],
                  on_turn_start: Optional[Callable] = None,
@@ -31,11 +38,45 @@ class Card:
         self.on_turn_end = on_turn_end
         self.on_phase_start = on_phase_start
         self.on_phase_end = on_phase_end
+        self._card_cost_modifiers: List[Callable[["Card", "Cost"], None]] = []
         self.asset_id: Optional[str] = None
         self.asset_back_id: Optional[str] = None
 
+        # === 卡的位置与事件监听（引擎扩展）===
+        self._location: Optional[str] = None  # "deck", "hand", "discard", "board", "exile"
+        self._card_listeners: List[tuple] = []  # (event_type, listener_fn)
+        self.owner: Optional["Player"] = None
+
     def __repr__(self) -> str:
         return f"{self.name}({self.cost})"
+
+    @property
+    def location(self) -> Optional[str]:
+        return self._location
+
+    # ----- 卡级别事件监听 API -----
+    def on(self, event_type: str, listener: Callable) -> None:
+        """注册此卡实例专属的事件监听器。当卡已有 owner 和 game 时立即生效。"""
+        self._card_listeners.append((event_type, listener))
+        game = getattr(self.owner, "board_ref", None)
+        if game and hasattr(game, "event_bus"):
+            game.event_bus.register(event_type, listener)
+
+    def off_all(self) -> None:
+        """注销此卡实例的所有事件监听器。"""
+        game = getattr(self.owner, "board_ref", None)
+        if game and hasattr(game, "event_bus"):
+            for event_type, listener in self._card_listeners:
+                game.event_bus.unregister(event_type, listener)
+        self._card_listeners.clear()
+
+    # ----- 统一移动接口 -----
+    def move_to(self, new_location: str, game: Optional["Game"] = None) -> None:
+        """统一移动接口。更新 location 并可选地触发 card_moved 事件。"""
+        old_location = self._location
+        self._location = new_location
+        if game and hasattr(game, "event_bus"):
+            game.emit_event("card_moved", card=self, from_loc=old_location, to_loc=new_location)
 
 
 class MineralCard(Card):
@@ -246,7 +287,10 @@ class Strategy(Card):
         import inspect
         sig = inspect.signature(self.effect_fn)
         param_count = len(sig.parameters)
-        if param_count >= 4:
+        if param_count >= 5:
+            # 第5个参数传入 Strategy 实例自身，供 effect_fn 注册卡级别监听器
+            return self.effect_fn(player, target, game, extra_targets or [], self)
+        elif param_count >= 4:
             return self.effect_fn(player, target, game, extra_targets or [])
         else:
             return self.effect_fn(player, target, game)
@@ -408,6 +452,13 @@ class Minion:
         new_minion = game.transform_minion(self, card_def, preserve_summon_turn=True)
         if new_minion:
             print(f"  {self.name} 成长为 {new_minion.name}！")
+            # 应用成长时buff（通用机制）
+            buff = getattr(self, "_on_evolve_buff", None)
+            if buff:
+                atk_delta, hp_delta = buff
+                new_minion.gain_attack(atk_delta, permanent=True)
+                new_minion.gain_health_bonus(hp_delta, permanent=True)
+                print(f"  {new_minion.name} 成长时获得+{atk_delta}/+{hp_delta}")
             return True
         return False
 
@@ -635,6 +686,13 @@ class Minion:
 
                 if game:
                     game.emit_event(EVENT_DEATH, minion=self, player=self.owner)
+                    if hasattr(game, "_state_log"):
+                        game._state_log.append({
+                            "event": "minion_death",
+                            "minion": self,
+                            "player": self.owner,
+                            "turn": getattr(game, "current_turn", 0),
+                        })
 
                     # === DESTROYED 事件 ===
                     game.emit_event(

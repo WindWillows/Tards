@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Un
 
 if TYPE_CHECKING:
     from tards.cards import Card, Minion, MinionCard
+    from tards.cost import Cost
     from tards.game import Game
     from tards.player import Player
     from tards.board import Board
@@ -183,6 +184,27 @@ def summon_token(
     token.summon_turn = summon_turn if summon_turn is not None else game.current_turn
     print(f"  {owner.name} 在 {position} 召唤了 {name}")
     return token
+
+
+def convert_cost_to_t(cost: "Cost") -> int:
+    """将费用折算为等效T点数，向下取整。
+
+    折算规则：
+    - 1T = 1T
+    - 2B = 3T  →  b * 3 // 2
+    - 3S = 2T  →  s * 2 // 3
+    - 1I = 1T
+    - 1G = 2T
+    - 1D = 4T
+    """
+    total = cost.t
+    total += cost.b * 3 // 2
+    total += cost.s * 2 // 3
+    minerals = getattr(cost, "minerals", {})
+    total += minerals.get("I", 0) * 1
+    total += minerals.get("G", 0) * 2
+    total += minerals.get("D", 0) * 4
+    return total
 
 
 def destroy_minion(minion: "Minion", game: "Game") -> None:
@@ -653,6 +675,19 @@ def get_adjacent_positions(position: Tuple[int, int], board: "Board") -> List[Tu
         nr, nc = r + dr, c + dc
         if 0 <= nr < board.SIZE and 0 <= nc < board.SIZE:
             result.append((nr, nc))
+    return result
+
+
+def adjacent_columns(column: int, board_size: int = 5) -> List[int]:
+    """返回指定列的左右相邻列索引（在棋盘范围内）。
+
+    例如：column=2 → [1, 3]；column=0 → [1]；column=4 → [3]。
+    """
+    result: List[int] = []
+    if column - 1 >= 0:
+        result.append(column - 1)
+    if column + 1 < board_size:
+        result.append(column + 1)
     return result
 
 
@@ -1410,6 +1445,32 @@ def destroy_all_enemies(
     return count
 
 
+def freeze_minion(minion: "Minion", layers: int = 1) -> None:
+    """为异象添加【冰冻】关键词（指定层数）。
+
+    若异象已死亡则跳过并打印警告。
+    """
+    if not minion.is_alive():
+        print(f"  [警告] freeze_minion 目标 {minion.name} 已死亡")
+        return
+    gain_keyword(minion, "冰冻", layers, permanent=True)
+
+
+def freeze_enemies_in_columns(
+    game: "Game",
+    player: "Player",
+    columns: List[int],
+    layers: int = 1,
+) -> int:
+    """冰冻指定列中的所有存活敌方异象。返回被冰冻的异象数。"""
+    count = 0
+    for m in all_enemy_minions(game, player):
+        if m.position[1] in columns:
+            freeze_minion(m, layers)
+            count += 1
+    return count
+
+
 def silence_all_enemies(
     game: "Game",
     player: "Player",
@@ -1446,6 +1507,26 @@ def strongest_enemy_minion(
     if not enemies:
         return None
     return max(enemies, key=lambda m: m.attack)
+
+
+def find_unique_highest_attack(
+    minions: List["Minion"],
+    key_fn: Optional[Callable[["Minion"], int]] = None,
+) -> Optional["Minion"]:
+    """找出攻击力（或自定义 key）唯一最高的异象。
+
+    若最高值有多个并列，返回 None（不唯一）。
+    若列表为空，返回 None。
+    """
+    if not minions:
+        return None
+    if key_fn is None:
+        key_fn = lambda m: m.attack
+    max_val = max(key_fn(m) for m in minions)
+    highest = [m for m in minions if key_fn(m) == max_val]
+    if len(highest) != 1:
+        return None
+    return highest[0]
 
 
 def enemy_minions_in_column(
@@ -2123,6 +2204,89 @@ def get_terrain_at(
     """获取指定格子的当前地形类型，优先返回覆盖值。"""
     overrides = getattr(game, "_terrain_overrides", {})
     return overrides.get(position, default)
+
+
+def _is_minion_legal_on_terrain(minion: "Minion", terrain: str) -> bool:
+    """检查异象是否能在指定地形上合法存活。"""
+    aquatic = minion.keywords.get("水生", False) or minion.keywords.get("两栖", False)
+    if terrain == "水路":
+        return aquatic
+    return not minion.keywords.get("水生", False)
+
+
+def register_terrain_enforcement(
+    game: "Game",
+    column: int,
+    forced_terrain: str,
+    end_turn: int,
+) -> None:
+    """注册一列的地形强制覆盖，并在每个阶段检查该列异象合法性，移除非法者。
+
+    参数：
+        game: 游戏实例
+        column: 被覆盖的列号（0-4）
+        forced_terrain: 强制地形（如"水路"、"高地"）
+        end_turn: 覆盖持续到哪个回合结束（含）
+    """
+    from tards.constants import EVENT_PHASE_START
+
+    board = game.board
+    if not hasattr(game, "_terrain_overrides"):
+        game._terrain_overrides = {}
+
+    # 设置地形覆盖
+    for r in range(5):
+        game._terrain_overrides[(r, column)] = forced_terrain
+
+    def _check_illegal():
+        """检查该列所有异象是否合法，移除非法者（不触发亡语）。"""
+        for r in range(5):
+            pos = (r, column)
+            m = board.minion_place.get(pos)
+            if m and m.is_alive() and not _is_minion_legal_on_terrain(m, forced_terrain):
+                board.remove_minion(pos)
+                print(f"  地形强制({forced_terrain})：{m.name} 因不合法被移除")
+            u = board.cell_underlay.get(pos)
+            if u and u.is_alive() and not _is_minion_legal_on_terrain(u, forced_terrain):
+                board.cell_underlay.pop(pos)
+                u.position = None
+                print(f"  地形强制({forced_terrain})：{u.name} 因不合法被移除")
+
+    # 立即检查一次
+    _check_illegal()
+
+    # 注册阶段监听器，持续检查
+    def _phase_checker(event_data):
+        _check_illegal()
+
+    game.event_bus.on(EVENT_PHASE_START, _phase_checker)
+
+    # 清理函数：在 end_turn 回合结束时移除覆盖、注销监听器、最终检查
+    def _cleanup():
+        # 注销监听器
+        game.event_bus.off(EVENT_PHASE_START, _phase_checker)
+        # 移除地形覆盖
+        for r in range(5):
+            game._terrain_overrides.pop((r, column), None)
+        # 恢复为默认陆地后，再次检查并移除不合法异象（如纯水生）
+        restored_terrain = "陆地"
+        for r in range(5):
+            pos = (r, column)
+            m = board.minion_place.get(pos)
+            if m and m.is_alive() and not _is_minion_legal_on_terrain(m, restored_terrain):
+                board.remove_minion(pos)
+                print(f"  地形恢复({restored_terrain})：{m.name} 因不合法被移除")
+            u = board.cell_underlay.get(pos)
+            if u and u.is_alive() and not _is_minion_legal_on_terrain(u, restored_terrain):
+                board.cell_underlay.pop(pos)
+                u.position = None
+                print(f"  地形恢复({restored_terrain})：{u.name} 因不合法被移除")
+
+    game._delayed_effects.append({
+        "trigger": "turn_end",
+        "turn": end_turn,
+        "fn": _cleanup,
+    })
 
 
 # =============================================================================

@@ -63,6 +63,8 @@ class CardDefinition:
     on_turn_end: Optional[Callable] = None
     on_phase_start: Optional[Callable] = None
     on_phase_end: Optional[Callable] = None
+    # 对局开始时回调（如血渍怀表置入卡组顶等）
+    on_game_start: Optional[Callable] = None
     # 雕像拼装字段
     statue_top: bool = False
     statue_bottom: bool = False
@@ -75,6 +77,8 @@ class CardDefinition:
     tags: List[str] = field(default_factory=list)
     # 隐藏词条（如"友好""非生命"等，不由关键词行直接显示）
     hidden_keywords: Dict[str, Any] = field(default_factory=dict)
+    # 动态费用修正器（卡牌级，打出前生效）
+    cost_modifier: Optional[Callable[["Card", "Cost"], None]] = None
     # 美术资源标识
     asset_id: Optional[str] = None        # 卡牌主资源ID（卡面/肖像）
     asset_back_id: Optional[str] = None   # 卡背资源ID（牌堆/手牌背面）
@@ -115,6 +119,7 @@ class CardDefinition:
                 on_phase_end=self.on_phase_end,
                 hidden_keywords=self.hidden_keywords.copy() if self.hidden_keywords else None,
             )
+            card.pack = self.pack
             card.evolve_to = self.evolve_to
             card.statue_top = self.statue_top
             card.statue_bottom = self.statue_bottom
@@ -126,6 +131,9 @@ class CardDefinition:
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            if self.cost_modifier:
+                card._card_cost_modifiers.append(self.cost_modifier)
+            card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             return card
@@ -141,10 +149,13 @@ class CardDefinition:
                 on_phase_end=self.on_phase_end,
                 hidden_keywords=self.hidden_keywords.copy() if self.hidden_keywords else None,
             )
+            card.pack = self.pack
             card.owner = owner
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            card.pack = self.pack
+            card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             return card
@@ -164,6 +175,8 @@ class CardDefinition:
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
             card.extra_targeting_stages = list(self.extra_targeting_stages)
+            card.pack = self.pack
+            card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             return card
@@ -179,8 +192,10 @@ class CardDefinition:
                 on_phase_start=self.on_phase_start,
                 on_phase_end=self.on_phase_end,
             )
+            card.owner = owner
             card.targets_count = self.targets_count
             card.targets_repeat = self.targets_repeat
+            card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             return card
@@ -240,6 +255,7 @@ def register_card(
     on_turn_end=None,
     on_phase_start=None,
     on_phase_end=None,
+    on_game_start=None,
     statue_top: bool = False,
     statue_bottom: bool = False,
     statue_pair: Optional[str] = None,
@@ -251,6 +267,7 @@ def register_card(
     extra_targeting_stages=None,
     asset_id: Optional[str] = None,
     asset_back_id: Optional[str] = None,
+    cost_modifier=None,
     registry: CardRegistry = DEFAULT_REGISTRY,
 ) -> CardDefinition:
     """便捷注册函数。"""
@@ -287,8 +304,10 @@ def register_card(
         on_turn_end=on_turn_end,
         on_phase_start=on_phase_start,
         on_phase_end=on_phase_end,
+        on_game_start=on_game_start,
         statue_top=statue_top,
         statue_bottom=statue_bottom,
+        cost_modifier=cost_modifier,
         statue_pair=statue_pair,
         on_statue_activate=on_statue_activate,
         on_statue_fuse=on_statue_fuse,
