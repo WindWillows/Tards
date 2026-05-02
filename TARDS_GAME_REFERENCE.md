@@ -209,11 +209,15 @@ class TargetingRequest:
 special_fn(minion, player, game, extras=None)
 
 # Strategy.effect_fn 的签名（通过 inspect 自适应）
+# 3~4 参数：向后兼容旧代码
 effect_fn(player, target, game, extras=None)
+# 5 参数：第 5 个参数自动传入 Strategy 实例自身（供注册卡级别监听器）
+effect_fn(player, target, game, extras, card)
 ```
 
 - **第一个选中的目标** = `target`（主目标）
 - **后续选中的目标** = `extra_targets` 列表（按选择顺序）
+- **5 参数模式**：当 `effect_fn` 定义了 5 个形参时，`Strategy.effect()` 会自动传入 `self`（Strategy 实例）。这是卡实例级事件监听（如深渊的弃置监听）的必要机制。
 
 ```python
 # 部署时：使一个异象获得恐惧
@@ -340,14 +344,18 @@ effect_fn(player, target, game, extras=None)
 - **`Card.move_to(new_location, game)`**：统一移动接口，自动触发 `card_moved` 事件（`from_loc` / `to_loc`）。
 - **`Card.on(event_type, listener)`**：卡实例级事件监听器注册。卡被拥有后自动将监听器挂到 `game.event_bus`。
 - **`Card.off_all()`**：注销该卡实例注册的所有监听器。异象死亡 / 卡离场时应调用。
+- **临时结算区 `"resolving"`**：`Player.play_card()` 在打出卡牌时，先将卡移入 `"resolving"` 临时区域，执行效果成功后再移入最终区域（discard/board）；若效果失败（如指向保护），则回滚到手牌。
 - **用途**：策略卡"深渊"通过 `card.on(EVENT_DISCARDED, ...)` 监听自身被弃置；血渍怀表通过 `card.move_to("top_of_deck", ...)` 配合手动置顶。
 
 ### 6.14 抽取效果（Draw-trigger）
-- **机制**：卡牌可通过 `hidden_keywords={"抽取": callback}` 设置抽取触发器。
-- **触发时机**：`Player.draw_card()` 将卡从牌库抽入手牌后，自动调用 `callback(player, game, card)`。
+- **机制 A（直接方式）**：卡牌可通过 `hidden_keywords={"抽取": callback}` 设置抽取触发器。
+  - `Player.draw_card()` 将卡从牌库抽入手牌后，直接调用 `callback(player, game, card)`。
+  - blood.py 中的占位符系列卡使用此方式。
+- **机制 B（EventBus 方式）**：通过 `effect_utils.set_draw_trigger(card, callback)` 设置 `card.on_drawn`。
+  - 由 `_trigger_auto_effects` 在 `EVENT_DRAW` 时统一调度，callback 签名为 `(game, event_data, card)`。
 - **关键规则**：只有通过 `draw_card()` 真正"抽入"的卡牌才会触发；直接 `append` 到手牌不会触发。
 - **抽取链支持**：若抽取效果本身又抽牌（如通过 `draw_card`），可形成连锁。
-- **工具函数**：`effect_utils.set_draw_trigger(card, callback)` / `remove_draw_trigger(card)`。
+- **注意**：两种机制并存，callback 签名不同。优先使用机制 A（`hidden_keywords`）实现卡牌效果，机制 B 用于需要 EventBus 统一调度的场景。
 
 ### 6.15 对局开始时效果（on_game_start）
 - **触发时机**：`Game.start_game()` 中，在双方抽初始手牌**之前**执行。
@@ -853,6 +861,16 @@ def _xxx_special(minion, player, game, extras=None):
 - `test_effect_queue.py`：FIFO 连锁行为保持不变（亡语在主效果后触发）。
 - `test_event_stack.py`：22 个事件总线测试全部通过。
 - `test_combat_cards.py`、`test_develop.py`、`test_discrete_eventbus.py`、`test_delay_effects.py`、`test_minecart.py`、`test_shell.py` 均通过。
+
+### 19.3 已知遗留问题
+- **blood.py 中「冰冻」实现不一致**：
+  - 血溅白练、狭间使用 `gain_keyword("冰冻", 1)` ✅ 正确。
+  - 恐惧震慑使用 `m.keywords["冰冻"] = True`（无层数，受击时 `frozen -= 1` 可能异常）。
+  - 人定使用 `apply_fear()`（恐惧效果，非冰冻关键词）。
+  - **建议**：统一使用 `effect_utils.freeze_minion()`。
+- **`targets_fn=target_none` 是占位符**：大量策略卡（如人定、狭间等）注册时使用了 `target_none`，不代表真的无目标。部分人定等卡可能需要指向目标选择，当前沿用自动随机选择。
+- **管窥等含"开发"机制的卡牌被跳过**：待后续统一实现开发机制后再补充。
+- **血契异象卡 `special_fn=None`**：~35 张异象卡效果尚未实现（除保卫者、巫毒娃娃等 5 张外）。
 
 ---
 
