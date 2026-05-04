@@ -105,25 +105,6 @@ def _jiaopian_choice(player, board):
     return ["造成1点伤害", "移除卡组顶1张"]
 
 
-def _jiaopian_effect(player, target, game, extras=None):
-    """胶片：抉择——对你造成1点伤害 或 移除卡组顶1张到弃牌堆。"""
-    from card_pools.effect_utils import deal_damage_to_player
-
-    choice = (extras or [None])[0]
-    if choice == "造成1点伤害":
-        deal_damage_to_player(player, 1, game=game)
-        print(f"  胶片：{player.name} 受到1点伤害")
-    elif choice == "移除卡组顶1张":
-        if player.card_deck:
-            card = player.card_deck.pop()
-            player.card_dis.append(card)
-            print(f"  胶片：{player.name} 移除卡组顶 [{card.name}] 到弃牌堆")
-        else:
-            print(f"  胶片：{player.name} 牌库已空")
-    else:
-        print("  胶片：未选择")
-        return False
-    return True
 
 
 register_card(
@@ -567,20 +548,6 @@ register_card(
     special_fn=None,  # TODO: 实现部署/回合效果
 )
 
-def _shuangsheng_bishou_effect(player, target, game, extras=None, card=None):
-    """双生匕首：抽1张牌，获得1S，对1个异象和你造成1点伤害。"""
-    from tards.cards import Minion
-    player.draw_card(1, game=game)
-    player.s_point += 1
-    print(f"  双生匕首：{player.name} 获得1S")
-    if target and isinstance(target, Minion) and target.is_alive():
-        target.take_damage(1, source_type="strategy")
-        print(f"  双生匕首：{target.name} 受到1点伤害")
-    player.health_change(-1)
-    print(f"  双生匕首：{player.name} 受到1点伤害")
-    return True
-
-
 register_card(
     name="双生匕首",
     cost_str="1T",
@@ -590,7 +557,7 @@ register_card(
     immersion_level=1,
     # 效果描述：抽1张牌，获得1S，对1个异象和你造成1点伤害。
     targets_fn=target_any_minion,
-    effect_fn=_shuangsheng_bishou_effect,
+    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
 
 def _zhanzheng_heping_effect(player, target, game, extras=None):
@@ -1614,8 +1581,8 @@ register_card(
     effect_fn=_hangou_chilun_effect,
 )
 
-def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
-    '''天下无双：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。'''
+def _tianxiawushuang_effect(player, target, game, extras=None, card=None):
+    """天下无"双"：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。"""
     import random
 
     opponent = game.p2 if player == game.p1 else game.p1
@@ -1630,7 +1597,7 @@ def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
         # 随机选1个造成1点伤害
         victim = random.choice(enemy_minions)
         victim.take_damage(1, source_type="strategy")
-        print(f'  天下无双：{victim.name} 受到1点伤害')
+        print(f"天下无双：{victim.name} 受到1点伤害")
 
         # 检查是否仍有敌方异象HP为偶数
         has_even_hp = any(
@@ -1645,7 +1612,7 @@ def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
 
 
 register_card(
-    name='天下无双',
+    name="天下无双",
     cost_str="1T2S",
     card_type=CardType.STRATEGY,
     pack=Pack.BLOOD,
@@ -1653,7 +1620,7 @@ register_card(
     immersion_level=1,
     # 效果描述：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。
     targets_fn=target_enemy_minions,
-    effect_fn=_tianxia_wushuang_effect,
+    effect_fn=_tianxiawushuang_effect,
 )
 
 def target_highland_minion(player, board):
@@ -1954,15 +1921,6 @@ register_card(
     effect_fn=_tingwu_effect,
 )
 
-def _bomu_effect(player, target, game, extras=None, card=None):
-    """薄暮：抽1张牌。下个抽牌阶段，对方无法抽牌。"""
-    opponent = game.p2 if player == game.p1 else game.p1
-    player.draw_card(1, game=game)
-    opponent._skip_next_draw = True
-    print(f"  薄暮：{opponent.name} 下个抽牌阶段无法抽牌")
-    return True
-
-
 register_card(
     name="薄暮",
     cost_str="1T3S",
@@ -1973,45 +1931,8 @@ register_card(
     is_moment=True,
     # 效果描述：抽1张牌。下个抽牌阶段，对方无法抽牌。
     targets_fn=target_none,
-    effect_fn=_bomu_effect,
+    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
-
-def _rending_effect(player, target, game, extras=None, card=None):
-    """人定：冰冻1个异象及其相邻的1个异象。抽1张牌。"""
-    import random
-
-    # 找到所有存活异象中至少有一个相邻异象的
-    all_minions = [m for m in game.board.minion_place.values() if m.is_alive()]
-    candidates = []
-    for m in all_minions:
-        r, c = m.position[0], m.position[1]
-        adjacent_positions = []
-        if r - 1 >= 0:
-            adjacent_positions.append((r - 1, c))
-        if r + 1 < 5:
-            adjacent_positions.append((r + 1, c))
-        if c - 1 >= 0:
-            adjacent_positions.append((r, c - 1))
-        if c + 1 < 5:
-            adjacent_positions.append((r, c + 1))
-        for pos in adjacent_positions:
-            adj = game.board.get_minion_at(pos)
-            if adj and adj.is_alive():
-                candidates.append((m, adj))
-                break
-
-    if candidates:
-        primary, adjacent = random.choice(candidates)
-        primary.apply_fear()
-        print(f"  人定：{primary.name} 被冰冻")
-        adjacent.apply_fear()
-        print(f"  人定：{adjacent.name}（相邻）被冰冻")
-    else:
-        print("  人定：场上没有相邻的异象对")
-
-    player.draw_card(1, game=game)
-    return True
-
 
 register_card(
     name="人定",
@@ -2023,26 +1944,8 @@ register_card(
     is_moment=True,
     # 效果描述：冰冻1个异象及其相邻的1个异象。抽1张牌。
     targets_fn=target_none,
-    effect_fn=_rending_effect,
+    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )
-
-def _meidan_effect(player, target, game, extras=None, card=None):
-    """昧旦：将场上攻击力最高的1个异象返回其所有者手牌。抽1张牌。"""
-    import random
-    from card_pools.effect_utils import return_minion_to_hand
-
-    all_minions = [m for m in game.board.minion_place.values() if m.is_alive()]
-    if all_minions:
-        max_attack = max(m.attack for m in all_minions)
-        highest = [m for m in all_minions if m.attack == max_attack]
-        chosen = random.choice(highest)
-        return_minion_to_hand(chosen, game)
-    else:
-        print("  昧旦：场上没有异象")
-
-    player.draw_card(1, game=game)
-    return True
-
 
 register_card(
     name="昧旦",
@@ -2054,5 +1957,5 @@ register_card(
     is_moment=True,
     # 效果描述：将场上攻击力最高的1个异象返回其所有者手牌。抽1张牌。
     targets_fn=target_none,
-    effect_fn=_meidan_effect,
+    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
 )

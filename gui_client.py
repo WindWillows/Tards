@@ -1899,7 +1899,8 @@ class BattleFrame(tk.Frame):
                 if stage_idx < len(stages):
                     run_stage(stage_idx + 1)
                 else:
-                    self._submit_play(serial, None)
+                    self._submit_play(serial, selected_targets[0] if selected_targets else None,
+                                      extra_targets=selected_targets[1:] or None)
                     self._exit_targeting_mode()
                 return
 

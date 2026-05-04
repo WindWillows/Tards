@@ -1748,6 +1748,7 @@ def chain_effects(
     minion: "Minion",
     game: "Game",
     *effect_fns: Callable,
+    extras=None,
 ) -> None:
     """按顺序链式执行多个效果函数。
 
@@ -1764,7 +1765,7 @@ def chain_effects(
             import inspect
             sig = inspect.signature(fn)
             if len(sig.parameters) >= 4:
-                fn(minion, player, game, None)
+                fn(minion, player, game, extras)
             else:
                 fn(minion, player, game)
         except Exception as e:
