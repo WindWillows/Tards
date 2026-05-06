@@ -81,6 +81,17 @@ __all__ = [
     "_meidan_effect",
     "_zhijianfangcun_special",
     "_erliuhuatan_special",
+    "_jiaopian_choice",
+    "_peiti_targets",
+    "_yongheng_targets",
+    "_wangyi_targets",
+    "_guobao_cost_modifier",
+    "_xuezhi_huaibiao_game_start",
+    "target_highland_minion",
+    "_zhanweifu1_draw_trigger",
+    "_zhanweifu2_draw_trigger",
+    "_zhanweifu4_draw_trigger",
+    "_tianxiawushuang_effect"
 ]
 
 
@@ -1212,3 +1223,122 @@ def _zhijianfangcun_special(p, t, g, extras=None):
 def _erliuhuatan_special(p, t, g, extras=None):
     return (t.health_change(-1) if hasattr(t, "health_change") else (t.take_damage(1) if hasattr(t, "take_damage") else False) or True)
 
+def _jiaopian_choice(player, board):
+    """胶片：抉择。"""
+    return ["造成1点伤害", "移除卡组顶1张"]
+
+def _peiti_targets(player, board):
+    """配体：选择友方纯净异象。"""
+    result = []
+    seen = set()
+    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
+        if m.is_alive() and m.owner == player and "纯净" in getattr(m, "tags", []) and id(m) not in seen:
+            result.append(m)
+            seen.add(id(m))
+    return result
+
+def _yongheng_targets(player, board):
+    """永恒奴役：选择场上具有恐惧的异象。"""
+    result = []
+    seen = set()
+    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
+        if m.is_alive() and m.keywords.get("恐惧", False) and id(m) not in seen:
+            result.append(m)
+            seen.add(id(m))
+    return result
+
+def _wangyi_targets(player, board):
+    """王翼弃兵：选择手牌中的一张牌弃掉。"""
+    return player.card_hand
+
+def _guobao_cost_modifier(card, cost):
+    """过曝！：对方手中每有1张牌，费用-1S。"""
+    owner = getattr(card, "owner", None)
+    if not owner:
+        return
+    game = getattr(getattr(owner, "board_ref", None), "game_ref", None)
+    if not game:
+        return
+    opponent = game.p2 if owner == game.p1 else game.p1
+    discount = len(opponent.card_hand)
+    cost.s = max(0, cost.s - discount)
+
+def _xuezhi_huaibiao_game_start(player, game, card):
+    """对局开始时：将血渍怀表置入卡组顶。"""
+    if card in player.card_deck:
+        player.card_deck.remove(card)
+        player.card_deck.insert(0, card)
+        print(f"  血渍怀表：{player.name} 将其置入卡组顶")
+
+def _tianxiawushuang_effect(player, target, game, extras=None, card=None):
+    """天下无"双"：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。"""
+    import random
+
+    opponent = game.p2 if player == game.p1 else game.p1
+
+    while True:
+        # 获取敌方存活异象
+        enemy_minions = [m for m in game.board.minion_place.values()
+                         if m.is_alive() and m.owner == opponent]
+        if not enemy_minions:
+            break
+
+        # 随机选1个造成1点伤害
+        victim = random.choice(enemy_minions)
+        victim.take_damage(1, source_type="strategy")
+        print(f"天下无双：{victim.name} 受到1点伤害")
+
+        # 检查是否仍有敌方异象HP为偶数
+        has_even_hp = any(
+            m.is_alive() and m.health % 2 == 0
+            for m in game.board.minion_place.values()
+            if m.owner == opponent
+        )
+        if not has_even_hp:
+            break
+
+    return True
+
+def target_highland_minion(player, board):
+    """返回所有位于高地列（col=0）的异象。"""
+    return [m for m in board.minion_place.values()
+            if m.is_alive() and isinstance(m.position, (list, tuple)) and len(m.position) >= 2 and m.position[1] == 0]
+
+def _zhanweifu1_draw_trigger(player, game, card):
+    """抽取：若可能，消耗1S，对对手造成2点伤害。"""
+    if player.s_point >= 1:
+        player.s_point -= 1
+        opponent = game.p2 if player == game.p1 else game.p2
+        opponent.health_change(-2)
+        print(f"  {card.name} 抽取：{player.name} 消耗1S，{opponent.name} 受到2点伤害")
+    else:
+        print(f"  {card.name} 抽取：{player.name} S不足，无法造成伤害")
+
+def _zhanweifu2_draw_trigger(player, game, card):
+    """抽取：对所有具有恐惧的异象造成2点伤害。"""
+    for m in game.board.minion_place.values():
+        if m.is_alive() and m.keywords.get("恐惧", False):
+            m.take_damage(2, source_type="strategy")
+            print(f"  {card.name} 抽取：{m.name} 受到2点伤害")
+
+def _zhanweifu4_draw_trigger(player, game, card):
+    """抽取：抽1张具有抽取效果的牌。
+
+    正确实现：将候选卡放到卡组顶，然后通过 draw_card 真正抽进手牌，
+    由 draw_card 内部统一触发抽取效果。
+    """
+    import random
+    candidates = [c for c in player.card_deck if getattr(c, "hidden_keywords", {}).get("抽取")]
+    if candidates:
+        chosen = random.choice(candidates)
+        # 将选中的卡放到卡组顶，然后通过 draw_card 真正抽进手牌
+        player.card_deck.remove(chosen)
+        player.card_deck.insert(0, chosen)
+        chosen.move_to("deck", game)
+        print(f"  {card.name} 抽取：将 {chosen.name} 置入卡组顶")
+        player.draw_card(1, game=game)
+    else:
+        print(f"  {card.name} 抽取：卡组中没有具有抽取效果的牌")
+
+# Alias for backward compatibility
+_tianxiawushuang_effect = _tianxia_wushuang_effect

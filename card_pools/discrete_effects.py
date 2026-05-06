@@ -2914,6 +2914,13 @@ __all__ = [
     "_tieding_mineral",
     "_jinding_mineral",
     "_zuanshi_mineral",
+    # 策略效果（原 discrete.py 内联 lambda）
+    "_fengli_effect",
+    "_shiyun_effect",
+    "_jingzhuicaiji_effect",
+    "_xingyunfangkuai_effect",
+    "_yanhuozhixing_effect",
+    "_yanhuaqiaochi_effect",
 ]
 
 
@@ -2939,4 +2946,56 @@ def _zuanshi_mineral(player, game):
     """钻石：打出获得4T。"""
     player.t_point_change(4)
     print(f"  {player.name} 打出钻石，获得4T")
+    return True
+
+
+# =============================================================================
+# 原 discrete.py 内联 lambda 迁移（策略效果）
+# =============================================================================
+
+def _fengli_effect(player, target, game, extras=None):
+    """锋利：对一个异象造成6点伤害。"""
+    deal_damage_to_minion(target, 6, game=game)
+    return True
+
+
+def _shiyun_effect(player, target, game, extras=None):
+    """时运：抽2张牌。"""
+    player.draw_card(2, game=game)
+    return True
+
+
+def _jingzhuicaiji_effect(player, target, game, extras=None):
+    """精准采集：开发1张卡组中的牌。"""
+    game.develop_card(player, player.original_deck_defs)
+    return True
+
+
+def _xingyunfangkuai_effect(player, target, game, extras=None):
+    """幸运方块：开发1张离散金卡异象。"""
+    from tards import DEFAULT_REGISTRY
+    candidates = [
+        c for c in DEFAULT_REGISTRY.all_cards()
+        if c.pack == Pack.DISCRETE and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION
+    ]
+    game.develop_card(player, candidates)
+    return True
+
+
+def _yanhuozhixing_effect(player, target, game, extras=None):
+    """焰火之星：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。
+
+    TODO: 溢出伤害随机分配尚未实现。
+    """
+    deal_damage_to_minion(target, 6, game=game)
+    return True
+
+
+def _yanhuaqiaochi_effect(player, target, game, extras=None):
+    """烟花鞘翅：使1个友方异象返回手牌，将其花费设为1I直到回合结束。
+    然后若其上回合在场上，使其部署时具有迅捷。
+
+    TODO: 改花费和条件迅捷尚未实现。
+    """
+    return_to_hand(target, game, player)
     return True

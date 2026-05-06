@@ -1884,12 +1884,6 @@ register_card(
     effect_fn=_songshuping_effect,
 )
 
-def _shudong_targets(player, board):
-    from card_pools.effect_utils import empty_positions
-    return empty_positions(player, board)
-
-
-
 
 register_card(
     name="树洞",
@@ -1974,8 +1968,6 @@ register_card(
 
 
 
-
-
 register_card(
     name="骨王之惠",
     cost_str="1T",
@@ -2030,11 +2022,6 @@ register_card(
     effect_fn=_zhiwuxuejia_effect,
 )
 
-def _pimaoshang_choice(player, board):
-    return ["抽2张异象", "获得4T"]
-
-
-
 
 register_card(
     name="皮毛商",
@@ -2048,11 +2035,6 @@ register_card(
     extra_targeting_stages=[(_pimaoshang_choice, 1, False)],
     effect_fn=_pimaoshang_effect,
 )
-
-def _lieren_targets(player, board):
-    return player.card_hand[:]
-
-
 
 
 register_card(
@@ -2106,11 +2088,6 @@ register_card(
     targets_fn=target_any_minion,
     effect_fn=_bopidao_effect,
 )
-
-def _yanping_targets(player, board):
-    return list(range(board.SIZE))
-
-
 
 
 register_card(
@@ -2167,13 +2144,6 @@ register_card(
     effect_fn=_xiangji_effect,
 )
 
-def _shalou_cost_modifier(card, cost):
-    owner = getattr(card, "owner", None)
-    if owner and len(owner.card_hand) <= 3:
-        cost.t = max(0, cost.t - 2)
-
-
-
 
 register_card(
     name="沙漏",
@@ -2215,14 +2185,6 @@ register_card(
     targets_fn=target_any_minion,
     effect_fn=_jiaoshui_effect,
 )
-
-def _shizhong_targets(player, board):
-    from tards.cards import MinionCard
-    from card_pools.effect_utils import convert_cost_to_t
-    return [c for c in player.card_hand
-            if isinstance(c, MinionCard) and convert_cost_to_t(c.cost) <= 7]
-
-
 
 
 register_card(
@@ -2279,13 +2241,6 @@ register_card(
     effect_fn=_mudiaoshi_effect,
 )
 
-def _muqi_targets(player, board):
-    return [m for m in board.minion_place.values()
-            if m.owner == player and m.is_alive()
-            and (getattr(m, "statue_top", False) or getattr(m, "statue_bottom", False))]
-
-
-
 
 register_card(
     name="木漆",
@@ -2299,16 +2254,6 @@ register_card(
     effect_fn=_muqi_effect,
 )
 
-def _make_targets(player, board):
-    from tards.cards import Minion
-    minions = [m for m in board.minion_place.values() if isinstance(m, Minion)]
-    opponent = None
-    if board.game_ref:
-        opponent = board.game_ref.p2 if player == board.game_ref.p1 else board.game_ref.p1
-    return minions + ([opponent] if opponent else [])
-
-
-
 
 register_card(
     name="玛珂",
@@ -2321,37 +2266,6 @@ register_card(
     targets_fn=_make_targets,
     effect_fn=_make_effect,
 )
-
-
-
-def _shanhong_targets(player, board):
-    """山洪：选择一列陆地（0-3）。"""
-    return [0, 1, 2, 3]
-
-
-
-
-
-
-
-
-
-
-def _gaozhi_cost_modifier(card, cost):
-    player = getattr(card, "owner", None)
-    if not player:
-        return
-    game = getattr(getattr(player, "board_ref", None), "game_ref", None)
-    if not game:
-        return
-    deployed = getattr(game, "_deployed_this_turn", {})
-    count = len(deployed.get(player, []))
-    if count > 0:
-        cost.t = max(0, cost.t - count)
-        print(f"  稿纸费用：本回合部署 {count} 个异象，费用-{count}T")
-
-
-
 
 
 
@@ -2480,13 +2394,6 @@ register_card(
 
 
 
-def _zhenban_targets(player, board):
-    """砧板：选择手牌中的一张牌。"""
-    return player.card_hand
-
-
-
-
 register_card(
     name="砧板",
     cost_str="2T",
@@ -2498,18 +2405,6 @@ register_card(
     targets_fn=_zhenban_targets,
     effect_fn=_zhenban_effect,
 )
-
-def _haichen_targets(player, board):
-    """还尘：选择任意一个受伤异象。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.current_health < m.max_health and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
-
-
 
 
 register_card(
@@ -2538,22 +2433,6 @@ register_card(
     effect_fn=_jidai_effect,
 )
 
-def _yehuo_targets(player, board):
-    """野火：选择手牌中的一张牌弃掉。"""
-    return player.card_hand
-
-
-def _yehuo_minion_choice(player, board):
-    """野火：选择场上一个异象返回其所有者牌库顶。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
-
-
 
 
 register_card(
@@ -2569,22 +2448,6 @@ register_card(
     effect_fn=_yehuo_effect,
 )
 
-def _lunhui_targets(player, board):
-    """轮回：选择手牌中的一张牌弃掉。"""
-    return player.card_hand
-
-
-def _lunhui_target_choice(player, board):
-    """轮回：若弃掉回响，选择一个目标（敌方异象或敌方玩家）造成4点伤害。"""
-    opponent = player.board_ref.game_ref.p2 if player == player.board_ref.game_ref.p1 else player.board_ref.game_ref.p1
-    targets = []
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.owner == opponent:
-            targets.append(m)
-    targets.append(opponent)
-    return targets
-
-
 
 
 register_card(
@@ -2599,17 +2462,6 @@ register_card(
     extra_targeting_stages=[(_lunhui_target_choice, 1, False)],
     effect_fn=_lunhui_effect,
 )
-
-def _gengti_targets(player, board):
-    """更替：选择手牌中的一个回响异象。"""
-    from tards.cards import MinionCard
-    result = []
-    for card in player.card_hand:
-        if isinstance(card, MinionCard) and (card.keywords.get("回响", False) or getattr(card, "echo_level", 0) > 0):
-            result.append(card)
-    return result
-
-
 
 
 register_card(
@@ -2637,13 +2489,6 @@ register_card(
     targets_fn=target_none,
     effect_fn=_poxiao_effect,
 )
-
-def _liulinfengsheng_targets(player, board):
-    """柳林风声：选择手牌中的一个异象弃掉。"""
-    from tards.cards import MinionCard
-    return [c for c in player.card_hand if isinstance(c, MinionCard)]
-
-
 
 
 register_card(

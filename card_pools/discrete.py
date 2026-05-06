@@ -1853,7 +1853,7 @@ register_card(
     is_token=True,
     # 效果描述：对一个异象造成6点伤害。
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
+    effect_fn=_fengli_effect,
 )
 
 register_card(
@@ -1895,7 +1895,7 @@ register_card(
     is_token=True,
     # 效果描述：抽2张牌。
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_shiyun_effect,
 )
 
 register_card(
@@ -1952,7 +1952,7 @@ register_card(
     is_token=True,
     # 效果描述：开发1张卡组中的牌。
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: g.develop_card(p, p.original_deck_defs),
+    effect_fn=_jingzhuicaiji_effect,
 )
 
 register_card(
@@ -2006,7 +2006,7 @@ register_card(
     hidden_keywords={},
     # 效果描述：开发1张离散金卡异象。
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.DISCRETE and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION]),
+    effect_fn=_xingyunfangkuai_effect,
 )
 
 register_card(
@@ -2497,7 +2497,7 @@ register_card(
     hidden_keywords={},
     # 效果描述：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
+    effect_fn=_yanhuozhixing_effect,
 )
 
 register_card(
@@ -2680,7 +2680,7 @@ register_card(
     hidden_keywords={},
     # 效果描述：使1个友方异象返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。
     targets_fn=target_friendly_minions,
-    effect_fn=lambda p, t, g, extras=None: return_to_hand(t, g, p),
+    effect_fn=_yanhuaqiaochi_effect,
 )
 
 register_card(
