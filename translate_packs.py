@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 # 导入关键词列表用于匹配
 from tards.constants import GENERAL_KEYWORDS, TAG_TOKENS
 from tards.card_db import Rarity
+from tards.cost import Cost
 
 # 导入标签覆盖表（为描述中才有标签的卡牌补充标签）
 try:
@@ -613,7 +614,7 @@ def try_generate_move_effect(description: str) -> Optional[str]:
 def generate_card_code(card: Dict[str, Any], pack_enum: str, special_map: Optional[Dict[str, str]] = None, strategy_map: Optional[Dict[str, str]] = None) -> str:
     lines = []
     name = card["name"]
-    cost_str = card["cost_str"]
+    cost_str = Cost.normalize_str(card["cost_str"])
     card_type = card["card_type"]
     immersion = card["immersion_level"]
     desc = card["description"].strip()

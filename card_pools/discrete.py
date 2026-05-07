@@ -42,7 +42,7 @@ register_card(
 
 register_card(
     name="信标",
-    cost_str="1D1G1I1T",
+    cost_str="1T1D1G1I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -159,7 +159,7 @@ register_card(
 
 register_card(
     name="恶魂",
-    cost_str="1G1T",
+    cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -191,7 +191,7 @@ register_card(
 
 register_card(
     name="凋零骷髅",
-    cost_str="2I1T",
+    cost_str="1T2I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -273,7 +273,7 @@ register_card(
 
 register_card(
     name="马",
-    cost_str="1G1T",
+    cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -358,7 +358,7 @@ register_card(
 
 register_card(
     name="雪块",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -423,7 +423,7 @@ register_card(
 
 register_card(
     name="海龟",
-    cost_str="1G1T",
+    cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -689,7 +689,7 @@ register_card(
 
 register_card(
     name="潜影贝",
-    cost_str="1G3T",
+    cost_str="3T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -740,7 +740,7 @@ register_card(
 
 register_card(
     name="僵尸",
-    cost_str="1G2T",
+    cost_str="2T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -1209,7 +1209,7 @@ register_card(
 
 register_card(
     name="橡树",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -1715,7 +1715,7 @@ register_card(
 
 register_card(
     name="铁镐",
-    cost_str="2I1T",
+    cost_str="1T2I",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -1741,7 +1741,7 @@ register_card(
 
 register_card(
     name="钻石镐",
-    cost_str="1D3T",
+    cost_str="3T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -1950,7 +1950,7 @@ register_card(
 
 register_card(
     name="效率",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -1978,7 +1978,7 @@ register_card(
 
 register_card(
     name="附魔台",
-    cost_str="1D2T",
+    cost_str="2T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -2214,7 +2214,7 @@ register_card(
 
 register_card(
     name="鱼骨挖掘",
-    cost_str="1D2T",
+    cost_str="2T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -2344,7 +2344,7 @@ register_card(
 
 register_card(
     name="TNT",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -2371,7 +2371,7 @@ register_card(
 
 register_card(
     name="轰击",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -2399,7 +2399,7 @@ register_card(
 
 register_card(
     name="珍珠塔",
-    cost_str="0T",
+    cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
@@ -2481,7 +2481,7 @@ register_card(
 
 register_card(
     name="焰火之星",
-    cost_str="1D1T",
+    cost_str="1T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,

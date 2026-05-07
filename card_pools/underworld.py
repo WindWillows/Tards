@@ -218,7 +218,7 @@ def _yexi_condition(game, event_data, player):
 
 register_card(
     name="松鼠球",
-    cost_str="5T0B",
+    cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -234,7 +234,7 @@ register_card(
 
 register_card(
     name="松鼠",
-    cost_str="1T0B",
+    cost_str="1T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -249,7 +249,7 @@ register_card(
 
 register_card(
     name="松鼠罐",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -278,7 +278,7 @@ register_card(
 
 register_card(
     name="黑山羊",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -326,7 +326,7 @@ register_card(
 
 register_card(
     name="烛烟",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -342,7 +342,7 @@ register_card(
 
 register_card(
     name="大团烛烟",
-    cost_str="1T0B",
+    cost_str="1T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -572,7 +572,7 @@ register_card(
 
 register_card(
     name="雄鹿",
-    cost_str="4T0B",
+    cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -587,7 +587,7 @@ register_card(
 
 register_card(
     name="雌鹿",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -666,7 +666,7 @@ register_card(
 
 register_card(
     name="河坝",
-    cost_str="1T0B",
+    cost_str="1T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -713,7 +713,7 @@ register_card(
 
 register_card(
     name="兀鹫",
-    cost_str="0T3B",
+    cost_str="3B",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -776,7 +776,7 @@ register_card(
 
 register_card(
     name="西瓜",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -823,7 +823,7 @@ register_card(
 
 register_card(
     name="信鸽",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -839,7 +839,7 @@ register_card(
 
 register_card(
     name="隼",
-    cost_str="5T0B",
+    cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -854,7 +854,7 @@ register_card(
 
 register_card(
     name="鸠",
-    cost_str="4T0B",
+    cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -870,7 +870,7 @@ register_card(
 
 register_card(
     name="节肢座首",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -890,7 +890,7 @@ register_card(
 
 register_card(
     name="多足底座",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -909,7 +909,7 @@ register_card(
 
 register_card(
     name="水肺座首",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -929,7 +929,7 @@ register_card(
 
 register_card(
     name="鳍尾底座",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -949,7 +949,7 @@ register_card(
 
 register_card(
     name="尖牙座首",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -969,7 +969,7 @@ register_card(
 
 register_card(
     name="利爪底座",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -989,7 +989,7 @@ register_card(
 
 register_card(
     name="丰饶座首",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -1009,7 +1009,7 @@ register_card(
 
 register_card(
     name="牢牲底座",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -1028,7 +1028,7 @@ register_card(
 
 register_card(
     name="长翅座首",
-    cost_str="2T0B",
+    cost_str="2T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -1048,7 +1048,7 @@ register_card(
 
 register_card(
     name="破风底座",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.GOLD,
@@ -1135,7 +1135,7 @@ register_card(
 
 register_card(
     name="成鸟",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1151,7 +1151,7 @@ register_card(
 
 register_card(
     name="奇怪的蛹",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1198,7 +1198,7 @@ register_card(
 
 register_card(
     name="狐",
-    cost_str="0T4B",
+    cost_str="4B",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1213,7 +1213,7 @@ register_card(
 
 register_card(
     name="鹤",
-    cost_str="5T0B",
+    cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1321,7 +1321,7 @@ register_card(
 
 register_card(
     name="老鹿",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1429,7 +1429,7 @@ register_card(
 
 register_card(
     name="木鹊",
-    cost_str="5T0B",
+    cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1581,7 +1581,7 @@ register_card(
 
 register_card(
     name="寄居蟹",
-    cost_str="4T0B",
+    cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1673,7 +1673,7 @@ register_card(
 
 register_card(
     name="水螅群",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1690,7 +1690,7 @@ register_card(
 
 register_card(
     name="蚜虫",
-    cost_str="4T0B",
+    cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1705,7 +1705,7 @@ register_card(
 
 register_card(
     name="蚊",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1720,7 +1720,7 @@ register_card(
 
 register_card(
     name="鸬鹚",
-    cost_str="3T0B",
+    cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1781,7 +1781,7 @@ register_card(
 
 register_card(
     name="断尾",
-    cost_str="0T0B",
+    cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
@@ -1813,7 +1813,7 @@ register_card(
 
 register_card(
     name="兵蚁",
-    cost_str="1T0B",
+    cost_str="1T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,

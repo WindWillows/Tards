@@ -28,6 +28,11 @@ class Cost:
         self.minerals = minerals or {}  # 手牌矿物需求，如 {"I": 2, "G": 1}
 
     @classmethod
+    def normalize_str(cls, s: str) -> str:
+        """规范化费用字符串，去除所有 0 值部分。"""
+        return repr(cls.from_string(s))
+
+    @classmethod
     def from_string(cls, s: str) -> "Cost":
         """解析费用字符串。
         
