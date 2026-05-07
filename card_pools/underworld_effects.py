@@ -676,20 +676,10 @@ def _xurui_effect(game, event_data, player):
     player.t_point_change(4)
 
 def _moshui_effect(game, event_data, player):
-    """将敌方<=4T策略取消并洗入其卡组。"""
-    frame = event_data.get("frame")
-    source = getattr(frame, "source", None) if frame else None
-    if not frame or not isinstance(source, MinionCard):
-        print(f"  阴谋 [墨水] 未找到有效目标")
-        return
-    frame.cancelled = True
-    opponent = source.owner
-    if source in opponent.card_hand:
-        opponent.card_hand.remove(source)
-    opponent.card_deck.append(source)
-    import random
-    random.shuffle(opponent.card_deck)
-    print(f"  阴谋 [墨水] 反制：{source.name} 被洗入 {opponent.name} 的卡组")
+    """反制的主要工作已在 condition_fn 的堆栈推入中完成，
+    此处仅打印确认信息。阴谋卡本身由 register_conspiracy 自动弃置。
+    """
+    print(f"  阴谋 [墨水] 结算完毕")
 
 def _jinfeng_effect(game, event_data, player):
     """弃掉对方抽到的牌，并随机使其一张手牌花费+1T。"""
@@ -720,56 +710,51 @@ def _liqun_effect(game, event_data, player):
     print(f"  阴谋 [离群] 消灭了 {len(to_destroy)} 个进入协同状态的异象")
 
 def _ruhe_effect(game, event_data, player):
-    """取消敌方部署，并将其延迟至下回合原位部署。"""
-    frame = event_data.get("frame")
-    source = getattr(frame, "source", None) if frame else None
-    if not frame or not isinstance(source, MinionCard):
-        print(f"  阴谋 [入河] 未找到有效目标")
-        return
+    """注册回合开始监听器，延迟部署被反制的异象。"""
+    listener_id = id(event_data)
 
-    frame.cancelled = True
-    deploy_player = source.owner
-    target = getattr(source, "_deploy_target", None)
-    if source in deploy_player.card_hand:
-        deploy_player.card_hand.remove(source)
+    def _redeploy_listener(event):
+        pending = getattr(game, "_ruhe_pending", [])
+        to_remove = []
+        for item in pending:
+            if game.current_turn >= item["trigger_turn"]:
+                card = item["card"]
+                deploy_player = item["player"]
+                pos = item["pos"]
+                minion = Minion(
+                    name=card.name,
+                    owner=deploy_player,
+                    position=pos,
+                    attack=card.attack,
+                    health=card.health,
+                    source_card=card,
+                    board=game.board,
+                    keywords=dict(card.keywords) if card.keywords else {},
+                    on_turn_start=card.on_turn_start,
+                    on_turn_end=card.on_turn_end,
+                    on_phase_start=card.on_phase_start,
+                    on_phase_end=card.on_phase_end,
+                    tags=list(card.tags) if card.tags else [],
+                    hidden_keywords=dict(card.hidden_keywords) if card.hidden_keywords else {},
+                )
+                if hasattr(card, "statue_top"):
+                    minion.statue_top = card.statue_top
+                if hasattr(card, "statue_bottom"):
+                    minion.statue_bottom = card.statue_bottom
+                if hasattr(card, "statue_pair"):
+                    minion.statue_pair = card.statue_pair
+                minion.summon_turn = game.current_turn
+                game.board.place_minion(minion, pos)
+                print(f"  阴谋 [入河] 将 [{card.name}] 加入战场 {pos}")
+                to_remove.append(item)
+        for item in to_remove:
+            pending.remove(item)
+        game._ruhe_pending = pending
+        if not pending:
+            game.unregister_listeners_by_owner(listener_id)
 
-    pending = getattr(game, "_ruhe_pending", [])
-    pending.append({
-        "card": source,
-        "player": deploy_player,
-        "pos": target,
-        "trigger_turn": game.current_turn + 1,
-    })
-    game._ruhe_pending = pending
-    print(f"  阴谋 [入河] 反制了 [{source.name}] 的部署，下回合将其加入原位 {target}")
-
-    # 注册回合开始监听器（只注册一次）
-    if not getattr(game, "_ruhe_listener_registered", False):
-        game._ruhe_listener_registered = True
-
-        def _redeploy_listener(event):
-            pending = getattr(game, "_ruhe_pending", [])
-            to_remove = []
-            for item in pending:
-                if game.current_turn >= item["trigger_turn"]:
-                    card = item["card"]
-                    deploy_player = item["player"]
-                    pos = item["pos"]
-                    # 通过 MinionCard.effect 走标准部署流程（费用已免）
-                    # 临时屏蔽费用避免再次献祭
-                    old_cost = card.cost
-                    from tards.cost import Cost
-                    card.cost = Cost()
-                    try:
-                        card.effect(deploy_player, pos, game)
-                    finally:
-                        card.cost = old_cost
-                    to_remove.append(item)
-            for item in to_remove:
-                pending.remove(item)
-            game._ruhe_pending = pending
-
-        game.history.listen(EVENT_TURN_START, _redeploy_listener, priority=50)
+    game.register_listener(EVENT_TURN_START, _redeploy_listener, priority=50, owner_id=listener_id)
+    print(f"  阴谋 [入河] 效果触发：等待下回合将异象加入原位")
 
 def _guaishi_effect(game, event_data, player):
     """对方永久失去一个T槽。"""
@@ -779,26 +764,13 @@ def _guaishi_effect(game, event_data, player):
         print(f"  阴谋 [怪石] 触发：{bell_player.name} 失去一个T槽（当前上限 {bell_player.t_point_max}）")
 
 def _haishi_effect(game, event_data, player):
-    """将指向目标改为随机敌方异象。"""
-    event = event_data.get("_event_ref")
-    if not event:
-        return
-    target = event.data.get("target")
-    if not isinstance(target, Minion):
-        return
-    enemy_minions = [m for m in game.board.minion_place.values()
-                     if m.owner != target.owner and m.is_alive()]
-    if not enemy_minions:
-        return
-    import random
-    new_target = random.choice(enemy_minions)
-    event.data["target"] = new_target
-    print(f"  阴谋 [海市蜃楼] 将指向目标从 [{target.name}] 改为 [{new_target.name}]")
+    """重定向已在 condition_fn 中同步完成。"""
+    print(f"  阴谋 [海市蜃楼] 结算完毕")
 
 def _yanxing_effect(game, event_data, player):
     """阴谋拥有者抽2张牌。"""
-    print(f"  阴谋 [掩星] 触发：{player.name} 抽2张牌")
     player.draw_card(2, game=game)
+    print(f"  阴谋 [掩星] 触发：{player.name} 抽2张牌")
 
 def _yexi_effect(game, event_data, player):
     """使其先获得-2攻击力。若具有迅捷，将其消灭。"""
@@ -1772,11 +1744,11 @@ def _tudao_effect(player, target, game, extras=None):
             player.draw_card(1, game=game)
             print(f"  屠刀：{player.name} 献祭抽1张牌")
 
-    listener_id = game.history.listen(EVENT_SACRIFICE, on_sacrifice)
+    owner_id = game.event_bus.register(EVENT_SACRIFICE, on_sacrifice)
 
     # 本回合结束时注销
     def cleanup():
-        game.history.unlisten(listener_id)
+        game.event_bus.unregister_by_owner(owner_id)
         print(f"  屠刀：献祭抽牌效果结束")
 
     game._delayed_effects.append({

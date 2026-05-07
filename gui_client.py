@@ -460,9 +460,12 @@ class DeckBuilderFrame(tk.Frame):
             lines.append(f"关键词: {kw}")
         if card.evolve_to:
             lines.append(f"成长为: {card.evolve_to}")
+        # 效果描述（从卡包源文件解析的原始文本）
         desc = getattr(card, "description", "")
         if desc:
-            lines.append(f"\n效果:\n{desc}")
+            lines.append(f"\n【效果】\n{desc}")
+        else:
+            lines.append("\n【效果】\n（暂无描述）")
         text = "\n".join(lines)
         self.detail_text.config(state=tk.NORMAL)
         self.detail_text.delete("1.0", tk.END)

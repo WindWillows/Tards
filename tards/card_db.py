@@ -82,6 +82,8 @@ class CardDefinition:
     # 美术资源标识
     asset_id: Optional[str] = None        # 卡牌主资源ID（卡面/肖像）
     asset_back_id: Optional[str] = None   # 卡背资源ID（牌堆/手牌背面）
+    # 效果描述文本（从卡包源文件解析，用于 UI 展示）
+    description: str = ""
 
     def __post_init__(self):
         self.cost = Cost.from_string(self.cost_str)
@@ -268,6 +270,7 @@ def register_card(
     asset_id: Optional[str] = None,
     asset_back_id: Optional[str] = None,
     cost_modifier=None,
+    description: str = "",
     registry: CardRegistry = DEFAULT_REGISTRY,
 ) -> CardDefinition:
     """便捷注册函数。"""
@@ -315,6 +318,7 @@ def register_card(
         tags=tags or [],
         asset_id=asset_id,
         asset_back_id=asset_back_id,
+        description=description,
     )
     registry.register(card)
     return card

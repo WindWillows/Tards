@@ -713,9 +713,9 @@ def generate_card_code(card: Dict[str, Any], pack_enum: str, special_map: Option
         if fuse_fn:
             lines.append(f'    on_statue_fuse={fuse_fn},')
 
-    # 效果描述注释
+    # 效果描述（注册到 CardDefinition 用于 UI 展示）
     if desc:
-        lines.append(f'    # 效果描述：{escape_string(desc)}')
+        lines.append(f'    description="{escape_string(desc)}",')
 
     # 尝试自动生成简单效果
     chosen_effect = None
