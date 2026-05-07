@@ -59,12 +59,7 @@ def _xurui_condition(game, event_data, player):
 
 # ---------- 墨水（堆栈反制检测） ----------
 def _moshui_condition(game, event_data, player):
-    """对方打出花费<=4T的策略时，通过堆栈响应窗口反制。
-
-    检测机制：监听 before_stack_resolve 事件，查看即将结算的堆栈帧。
-    若该帧对应敌方的一张<=4T策略卡，则推入反制效果到堆栈顶部（LIFO），
-    使反制效果先于原效果执行，从而取消原效果并将其洗入卡组。
-    """
+    """对方打出花费<=4T的策略时触发。"""
     if event_data.get("event_type") != EVENT_BEFORE_STACK_RESOLVE:
         return False
     frame = event_data.get("frame")
@@ -77,20 +72,6 @@ def _moshui_condition(game, event_data, player):
         return False
     if source.cost.t > 4:
         return False
-
-    # 推入反制效果到堆栈顶部，确保它在原效果之前结算
-    def _moshui_counter():
-        frame.cancelled = True
-        opponent = source.owner
-        # 策略卡仍在手牌中（play_fn 尚未执行），将其移除并洗入卡组
-        if source in opponent.card_hand:
-            opponent.card_hand.remove(source)
-        opponent.card_deck.append(source)
-        import random
-        random.shuffle(opponent.card_deck)
-        print(f"  阴谋 [墨水] 反制：{source.name} 被洗入 {opponent.name} 的卡组")
-
-    game.effect_queue.push_stack("阴谋 [墨水] 反制", _moshui_counter)
     return True
 
 
@@ -132,10 +113,8 @@ def _liqun_condition(game, event_data, player):
 
 
 # ---------- 入河 ----------
-_RUHE_LISTENER_ID = 987654321
-
 def _ruhe_condition(game, event_data, player):
-    """对方部署异象前（堆栈响应窗口），将其移除并延迟至下回合加入原位。"""
+    """对方部署异象前（堆栈响应窗口）触发。"""
     if event_data.get("event_type") != EVENT_BEFORE_STACK_RESOLVE:
         return False
     frame = event_data.get("frame")
@@ -149,23 +128,6 @@ def _ruhe_condition(game, event_data, player):
     target = getattr(source, "_deploy_target", None)
     if not target:
         return False
-
-    def _counter():
-        frame.cancelled = True
-        deploy_player = source.owner
-        if source in deploy_player.card_hand:
-            deploy_player.card_hand.remove(source)
-        pending = getattr(game, "_ruhe_pending", [])
-        pending.append({
-            "card": source,
-            "player": deploy_player,
-            "pos": target,
-            "trigger_turn": game.current_turn + 1,
-        })
-        game._ruhe_pending = pending
-        print(f"  阴谋 [入河] 反制了 [{source.name}] 的部署，下回合将其加入原位 {target}")
-
-    game.effect_queue.push_stack("阴谋 [入河] 反制", _counter)
     return True
 
 
@@ -186,7 +148,7 @@ def _guaishi_condition(game, event_data, player):
 
 # ---------- 海市蜃楼 ----------
 def _haishi_condition(game, event_data, player):
-    """1个异象被指向前，改为其随机敌方异象成为指向目标。"""
+    """1个异象被指向前触发。"""
     if event_data.get("event_type") != EVENT_BEFORE_POINT:
         return False
     event = event_data.get("_event_ref")
@@ -198,15 +160,11 @@ def _haishi_condition(game, event_data, player):
     source_player = event.data.get("player")
     if source_player == player:
         return False
-    # 改为被指向异象的随机敌方异象
+    # 检查是否有可替换的敌方异象
     enemy_minions = [m for m in game.board.minion_place.values()
                      if m.owner != target.owner and m.is_alive()]
     if not enemy_minions:
         return False
-    import random
-    new_target = random.choice(enemy_minions)
-    event.data["target"] = new_target
-    print(f"  阴谋 [海市蜃楼] 将指向目标从 [{target.name}] 改为 [{new_target.name}]")
     return True
 
 

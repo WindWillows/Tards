@@ -193,7 +193,14 @@ class Game:
                             p.card_hand.remove(c)
                         p.card_dis.append(c)
                     return trigger
-                self.effect_queue.queue(f"阴谋 [{conspiracy.name}]", make_trigger())
+                # 动态选择 push_stack / queue：
+                # - 若当前在堆栈解析中（出牌/部署/战斗等），使用 push_stack
+                #   确保 effect_fn 在当前堆栈帧之前执行（堆栈反制型阴谋需要）。
+                # - 若不在堆栈解析中（回合/阶段事件），使用 queue 立即执行。
+                if self.effect_queue.is_resolving_stack():
+                    self.effect_queue.push_stack(f"阴谋 [{conspiracy.name}]", make_trigger())
+                else:
+                    self.effect_queue.queue(f"阴谋 [{conspiracy.name}]", make_trigger())
 
         self.event_bus.register("*", listener, priority=50, owner_id=owner_id)
         return owner_id

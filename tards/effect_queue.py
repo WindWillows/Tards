@@ -38,6 +38,9 @@ class EffectQueue:
     def is_resolving(self) -> bool:
         return self._resolving
 
+    def is_resolving_stack(self) -> bool:
+        return self._resolving_stack
+
     def push_stack(self, name: str, fn: Callable[[], None], source: Any = None) -> StackFrame:
         """将效果推入堆栈顶部。返回 StackFrame，可被其他效果取消。"""
         frame = StackFrame(name=name, fn=fn, source=source)
