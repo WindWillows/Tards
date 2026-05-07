@@ -387,8 +387,9 @@ class DeckBuilderFrame(tk.Frame):
         tk.Radiobutton(filter_frame, text="沉浸度", variable=self.sort_by, value="immersion", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
         tk.Radiobutton(filter_frame, text="费用", variable=self.sort_by, value="cost", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
 
-        cards_frame = tk.LabelFrame(self, text="可用卡牌 (点击添加)")
-        cards_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # ===== 左侧：可用卡牌列表 =====
+        cards_frame = tk.LabelFrame(self, text="可用卡牌 (单击查看详情，双击加入卡组)")
+        cards_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.notebook = ttk.Notebook(cards_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         self.pack_tabs = {}
@@ -405,13 +406,23 @@ class DeckBuilderFrame(tk.Frame):
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
             self.pack_tabs[pack] = inner
 
-        # 卡牌详情
-        self.detail_label = tk.Label(self, text="将鼠标悬停在卡牌上查看详情", anchor="w", justify=tk.LEFT,
-                                     wraplength=1100, fg="#555", font=("Microsoft YaHei", 10))
-        self.detail_label.pack(fill=tk.X, padx=10, pady=2)
+        # ===== 右侧：卡牌详情 + 当前卡组 =====
+        right_frame = tk.Frame(self)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        deck_frame = tk.LabelFrame(self, text="当前卡组")
-        deck_frame.pack(fill=tk.X, padx=10, pady=5)
+        # 卡牌详情面板（非浮窗，固定显示）
+        detail_frame = tk.LabelFrame(right_frame, text="卡牌详情")
+        detail_frame.pack(fill=tk.X, pady=5)
+        self.detail_text = tk.Text(detail_frame, height=10, wrap=tk.WORD,
+                                   font=("Microsoft YaHei", 10), state=tk.DISABLED,
+                                   bg="#fafafa", fg="#333")
+        self.detail_text.pack(fill=tk.X, padx=5, pady=5)
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
+        self.detail_text.config(state=tk.DISABLED)
+
+        deck_frame = tk.LabelFrame(right_frame, text="当前卡组")
+        deck_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         self.deck_listbox = tk.Listbox(deck_frame, height=8)
         self.deck_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         deck_btn_frame = tk.Frame(deck_frame)
@@ -439,7 +450,8 @@ class DeckBuilderFrame(tk.Frame):
         self._refresh_deck_list()
 
     def _show_card_detail(self, card):
-        lines = [f"{card.name}  [{card.pack.value} {card.immersion_display} {card.rarity.name}]"]
+        """在右侧固定详情面板中显示卡牌信息（非浮窗）。"""
+        lines = [f"【{card.name}】  [{card.pack.value} {card.immersion_display} {card.rarity.name}]"]
         lines.append(f"费用: {card.cost}  类型: {card.card_type.value}")
         if card.attack is not None:
             lines.append(f"攻击/生命: {card.attack}/{card.health}")
@@ -450,11 +462,18 @@ class DeckBuilderFrame(tk.Frame):
             lines.append(f"成长为: {card.evolve_to}")
         desc = getattr(card, "description", "")
         if desc:
-            lines.append(f"效果: {desc}")
-        self.detail_label.config(text="  |  ".join(lines), fg="#000")
+            lines.append(f"\n效果:\n{desc}")
+        text = "\n".join(lines)
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, text)
+        self.detail_text.config(state=tk.DISABLED)
 
     def _clear_card_detail(self):
-        self.detail_label.config(text="将鼠标悬停在卡牌上查看详情", fg="#555")
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
+        self.detail_text.config(state=tk.DISABLED)
 
     # ===== BattleFrame 卡牌详情大图 =====
     def _update_detail_canvas(self, card):
@@ -545,10 +564,11 @@ class DeckBuilderFrame(tk.Frame):
                 info = f"[{card.immersion_display} {card.cost}] {card.name}"
                 if card.attack is not None:
                     info += f" {card.attack}/{card.health}"
-                btn = tk.Button(tab, text=info, anchor="w", command=lambda c=card: self._add_card(c.name))
+                btn = tk.Button(tab, text=info, anchor="w")
                 btn.pack(fill=tk.X, padx=2, pady=1)
-                btn.bind("<Enter>", lambda e, c=card: self._show_card_detail(c))
-                btn.bind("<Leave>", lambda e: self._clear_card_detail())
+                # 单击显示详情，双击加入卡组
+                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
+                btn.bind("<Double-Button-1>", lambda e, c=card: self._add_card(c.name))
 
     def _add_card(self, name: str):
         card_def = DEFAULT_REGISTRY.get(name)
