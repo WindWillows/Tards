@@ -1836,7 +1836,7 @@ register_card(
     immersion_level=1,
     description="将2张“松鼠”加入手牌，此前你每使用过一次“松鼠瓶”，额外加入一只“松鼠”。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_songshuping_effect
 )
 
 register_card(
@@ -1872,7 +1872,7 @@ register_card(
     immersion_level=1,
     description="对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jin_yachi_strategy
 )
 
 register_card(
@@ -2006,7 +2006,7 @@ register_card(
     immersion_level=1,
     description="使一个异象具有空袭直到回合结束。抽1张牌。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shanzi_strategy
 )
 
 register_card(
@@ -2222,7 +2222,7 @@ register_card(
     immersion_level=1,
     description="对所有陆地异象造成3点伤害，然后使所有陆地异象+1/2。你失去1个T槽。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_hanji_effect
 )
 
 register_card(
@@ -2234,7 +2234,7 @@ register_card(
     immersion_level=2,
     description="回合结束时，使一列陆地算作水路直到下回合结束。你失去1个T槽。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shanhong_effect
 )
 
 register_card(
@@ -2246,7 +2246,7 @@ register_card(
     immersion_level=2,
     description="若水路有敌方异象，对所有敌方异象造成1点伤害，若有异象被消灭，重复此 流程。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shuiyi_effect
 )
 
 register_card(
@@ -2258,7 +2258,7 @@ register_card(
     immersion_level=2,
     description="眩晕一个敌方异象。若本回合对方先手，结束双方出牌阶段。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shachen_effect
 )
 
 register_card(
@@ -2270,7 +2270,7 @@ register_card(
     immersion_level=2,
     description="对方无法部署异象，直到下一个出牌阶段结束。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_kuangfeng_effect
 )
 
 register_card(
@@ -2282,7 +2282,7 @@ register_card(
     immersion_level=2,
     description="将1个异象返回其所有者手牌。对手下回合无法抽牌。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhouyu_effect
 )
 
 register_card(
@@ -2306,7 +2306,7 @@ register_card(
     immersion_level=1,
     description="选择并弃一张牌，抽一张花费更高的牌。若弃掉的牌献祭等级与丰饶等级之积 不小于2，你获得2B。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhenban_effect
 )
 
 register_card(
@@ -2318,7 +2318,7 @@ register_card(
     immersion_level=1,
     description="消灭一个受伤异象。若是友方异象，抽三张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_haichen_effect
 )
 
 register_card(
@@ -2342,7 +2342,7 @@ register_card(
     immersion_level=1,
     description="选择并弃1张牌，将一个异象返回其所有者牌堆顶。眩晕周围异象。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yehuo_effect
 )
 
 register_card(
@@ -2354,7 +2354,7 @@ register_card(
     immersion_level=1,
     description="选择并弃1张牌，抽1张牌。若弃掉回响，对一个目标造成4点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_lunhui_effect
 )
 
 register_card(
@@ -2366,7 +2366,7 @@ register_card(
     immersion_level=1,
     description="使手牌中的1个回响异象回响等级+1。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_gengti_effect
 )
 
 register_card(
@@ -2378,7 +2378,7 @@ register_card(
     immersion_level=2,
     description="抽2张牌。然后若你剩余T点不大于1，获得两倍于你本对局失去过T槽数目的T点。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_poxiao_effect
 )
 
 register_card(
@@ -2390,7 +2390,7 @@ register_card(
     immersion_level=1,
     description="选择并弃1张异象，将其花费为5T的复制加入对方手牌。对方部署其它异象时，将此异象加入友方区域。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_liulinfengsheng_effect
 )
 
 register_card(
@@ -2402,7 +2402,7 @@ register_card(
     immersion_level=3,
     description="展示卡组顶的4张牌，抽取其中花费最高的一张，使其花费为0T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_hesheng_effect
 )
 
 register_card(
@@ -2414,7 +2414,7 @@ register_card(
     immersion_level=1,
     description="使一个异象立刻成长，然后使其获得+1/2。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shanqian_effect
 )
 
 register_card(
@@ -2426,7 +2426,7 @@ register_card(
     immersion_level=1,
     description="使1个异象获得：成长时，+2/2。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_culi_effect
 )
 
 register_card(

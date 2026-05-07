@@ -968,7 +968,7 @@ register_card(
     hidden_keywords={},
     description="你每在手牌已满时抽1张牌，对一个随机敌方目标造成2点伤害。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_moyingxiang_special
 )
 
 register_card(
@@ -984,7 +984,7 @@ register_card(
     hidden_keywords={},
     description="部署：消灭1个与本异象距离最近的异象。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_qianxingzhe_special
 )
 
 register_card(
@@ -1051,7 +1051,7 @@ register_card(
     hidden_keywords={},
     description="部署：移除卡组顶的1张友好异象。若如此做，获得迅捷和先攻1。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_jiangshijiqishi_special
 )
 
 register_card(
@@ -1068,7 +1068,7 @@ register_card(
     hidden_keywords={},
     description="部署：你的手牌具有+1T花费，直到下回合结束。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_kuloumaqishi_special
 )
 
 register_card(
@@ -1084,7 +1084,7 @@ register_card(
     hidden_keywords={},
     description="友方策略造成的伤害+1。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_zhizhuqishi_special
 )
 
 register_card(
@@ -1101,7 +1101,7 @@ register_card(
     hidden_keywords={},
     description="友方异象被消灭时，改为将其洗入卡组。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_diyuchuansongmen_special
 )
 
 register_card(
@@ -1118,7 +1118,7 @@ register_card(
     hidden_keywords={},
     description="其上异象被消灭时，抽1张牌。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_chuan_special
 )
 
 register_card(
@@ -1135,7 +1135,7 @@ register_card(
     hidden_keywords={},
     description="攻击异象前，先造成等同于目标部署花费的伤害。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_tntpao_special
 )
 
 register_card(
@@ -1152,7 +1152,7 @@ register_card(
     hidden_keywords={},
     description="部署：指向1个异象。 亡语：使其+2/2。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shanhun_special
 )
 
 register_card(
@@ -1186,7 +1186,7 @@ register_card(
     hidden_keywords={},
     description="受到伤害前，每有1个友方“绊线钩“与之同行或同列，对1个随机敌方目标造成1 次1点伤害。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_banxiangou_special
 )
 
 register_card(
@@ -1270,7 +1270,7 @@ register_card(
     hidden_keywords={},
     description="对方每回合打出的第一张手牌花费翻倍。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yinyuehe_special
 )
 
 register_card(
@@ -1286,7 +1286,7 @@ register_card(
     hidden_keywords={},
     description="友方异象造成1点战斗伤害时，改为造成3点伤害。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_zhong_special
 )
 
 register_card(
@@ -1337,7 +1337,7 @@ register_card(
     hidden_keywords={},
     description="溢出伤害转移至对手。 回合结束：若你的手牌数不小于6，随机攻击1个敌方异象。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_diaolingpaota_special
 )
 
 register_card(
@@ -1354,7 +1354,7 @@ register_card(
     hidden_keywords={},
     description="无法选中攻击力不大于本异象的异象。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_huosaichengchui_special
 )
 
 register_card(
@@ -1387,7 +1387,7 @@ register_card(
     hidden_keywords={},
     description="无法攻击对手。每消灭1个异象，抽1张牌。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_dungouji_special
 )
 
 register_card(
@@ -1421,7 +1421,7 @@ register_card(
     hidden_keywords={},
     description="部署：使所有友方异象获得防空。 受到非生命异象或策略造成的伤害时，将其设为0点。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shuimuqiang_special
 )
 
 register_card(
@@ -1438,7 +1438,7 @@ register_card(
     hidden_keywords={},
     description="非迅捷友方异象部署时，获得-1HP和迅捷。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_modichuan_special
 )
 
 register_card(
@@ -1472,7 +1472,7 @@ register_card(
     hidden_keywords={},
     description="友方目标受到对方策略效果时，改为由本异象承受。 亡语：若是被策略效果消灭，对所有敌方目标造成2点伤害。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_modishuijing_special
 )
 
 register_card(
@@ -1489,7 +1489,7 @@ register_card(
     hidden_keywords={},
     description="部署：抽1张花费不大于4T的异象。 亡语：将其加入本异象所在的位置。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_loudoukuanche_special
 )
 
 register_card(
@@ -1524,7 +1524,7 @@ register_card(
     hidden_keywords={},
     description="部署：使1个目标获得-2HP。若将其消灭，获得：“本列结算时，使1个目标获得 -2HP。若将其消灭，具有“无法被消灭“直到回合结束。”",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_nvwu_special
 )
 
 register_card(
@@ -1541,7 +1541,7 @@ register_card(
     hidden_keywords={},
     description="友方其它非回响异象具有“亡语：将本异象的回响加入手牌。“ 友方回响异象的花费设为1G。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_zhongshengmao_special
 )
 
 register_card(
@@ -1574,7 +1574,7 @@ register_card(
     hidden_keywords={},
     description="结算阶段不攻击。出牌阶段，敌方异象首次部署时，本异象攻击1次。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shashoutu_special
 )
 
 register_card(
@@ -1591,7 +1591,7 @@ register_card(
     hidden_keywords={},
     description="对对手造成伤害后，消灭本异象。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shouweizhe_special
 )
 
 register_card(
@@ -1608,7 +1608,7 @@ register_card(
     hidden_keywords={},
     description="攻击异象后，若目标未被消灭，获得-1HP并攻击1次。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_toast_special
 )
 
 register_card(
@@ -2515,7 +2515,7 @@ register_card(
     hidden_keywords={},
     description="将卡组顶的1张迅捷异象加入战场。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yanhuaqiaochi_effect
 )
 
 register_card(

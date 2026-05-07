@@ -111,7 +111,7 @@ register_card(
     is_token=True,
     description="抉择：对你造成1点伤害 或 移除卡组顶的1张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jiaopian_effect
 )
 
 register_card(
@@ -315,7 +315,7 @@ register_card(
     is_token=True,
     description="场上每有1个具有恐惧的异象 使1个纯净异象获得+1/1。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_peiti_effect
 )
 
 register_card(
@@ -526,7 +526,7 @@ register_card(
     immersion_level=1,
     description="对方抽2张牌，然后若对方手牌数不小于5，你获得+6HP。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhanzheng_heping_effect
 )
 
 register_card(
@@ -538,7 +538,7 @@ register_card(
     immersion_level=1,
     description="对1个异象造成1点伤害。若其在本回合离开战场，将其回响加入手牌。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_ziyou_effect
 )
 
 register_card(
@@ -550,7 +550,7 @@ register_card(
     immersion_level=1,
     description="将上一个被消灭的异象的复制洗入卡组。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_wuzhi_effect
 )
 
 register_card(
@@ -562,7 +562,7 @@ register_card(
     immersion_level=1,
     description="对所有异象造成2点伤害。每消灭1个异象，获得2S。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xianchu_xinzang_effect
 )
 
 register_card(
@@ -586,7 +586,7 @@ register_card(
     immersion_level=1,
     description="将场上1个具有恐惧的异象的复制加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yongheng_effect
 )
 
 register_card(
@@ -598,7 +598,7 @@ register_card(
     immersion_level=1,
     description="获得等同于你在本出牌阶段失去的HP。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_tansuanya_tie_effect
 )
 
 register_card(
@@ -622,7 +622,7 @@ register_card(
     immersion_level=1,
     description="消灭所有攻击力最高的异象。你拉闸。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_fusi_effect
 )
 
 register_card(
@@ -646,7 +646,7 @@ register_card(
     immersion_level=1,
     description="使对方手牌中的“胶片”数量翻倍。所有“胶片”具有+1T花费，直到回合结束。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhongying_effect
 )
 
 register_card(
@@ -658,7 +658,7 @@ register_card(
     immersion_level=1,
     description="冰冻所有具有恐惧的异象，对其造成1点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_kongju_zhengshe_effect
 )
 
 register_card(
@@ -682,7 +682,7 @@ register_card(
     immersion_level=1,
     description="对所有具有恐惧的敌方异象造成等同于场上具有恐惧的异象数的伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_wujiandi_yu_effect
 )
 
 register_card(
@@ -694,7 +694,7 @@ register_card(
     immersion_level=1,
     description="选择并弃1张牌，消灭1个折算花费不大于此牌的异象。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_wangyi_effect
 )
 
 register_card(
@@ -718,7 +718,7 @@ register_card(
     immersion_level=1,
     description="选择并弃1张牌，对方随机弃2张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yusiwangpo_effect
 )
 
 register_card(
@@ -730,7 +730,7 @@ register_card(
     immersion_level=1,
     description="将2张“胶片”加入对方手牌，对所有异象造成等同于对方手中“胶片”数目的伤害。 对方手中每有1张牌，具有-1S花费。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_guobao_effect
 )
 
 register_card(
@@ -742,7 +742,7 @@ register_card(
     immersion_level=1,
     description="冰冻所有敌方异象。若这是本回合双方使用的第3张策略，对所有敌方异象造成3 点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xuejian_bailian_effect
 )
 
 register_card(
@@ -754,7 +754,7 @@ register_card(
     immersion_level=1,
     description="将1个异象返回其所有者手牌。冰冻相邻两列的敌方异象。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xiajian_effect
 )
 
 register_card(
@@ -766,7 +766,7 @@ register_card(
     immersion_level=1,
     description="选择手牌中的1张异象，使其花费-2T。你失去1个T槽。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shenpan_qianxi_effect
 )
 
 register_card(
@@ -790,7 +790,7 @@ register_card(
     immersion_level=1,
     description="对局开始时，将其置入卡组顶。 对你造成3点伤害，对方随机弃1张牌。将1张“钝锈指针”洗入卡组。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xuezhi_huaibiao_effect
 )
 
 register_card(
@@ -802,7 +802,7 @@ register_card(
     immersion_level=1,
     description="对你造成3点伤害，本轮跳过结算阶段。将1张“含垢齿轮”洗入卡组。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_dunxiu_zhizhen_effect
 )
 
 register_card(
@@ -814,7 +814,7 @@ register_card(
     immersion_level=1,
     description="对你造成3点伤害，你获得“获得血契时，改为获得双倍”。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_hangou_chilun_effect
 )
 
 register_card(
@@ -838,7 +838,7 @@ register_card(
     immersion_level=1,
     description="对1个高地异象造成6点伤害。若被消灭，将其回响加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_weiwei_yuzhui_effect
 )
 
 register_card(
@@ -850,7 +850,7 @@ register_card(
     immersion_level=1,
     description="消灭场上攻击力唯一最高的敌方异象。 抽取：若可能，消耗1S，对对手造成2点伤害。",
     targets_fn=target_enemy_player,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhanweifu1_effect
 )
 
 register_card(
@@ -862,7 +862,7 @@ register_card(
     immersion_level=1,
     description="使1个异象及其相邻异象获得恐惧。 抽取：对所有具有恐惧的异象造成2点伤害。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhanweifu2_effect
 )
 
 register_card(
@@ -886,7 +886,7 @@ register_card(
     immersion_level=1,
     description="将所有手牌洗入卡组，抽取等量的牌。 抽取：抽1张具有抽取效果的牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhanweifu4_effect
 )
 
 register_card(
