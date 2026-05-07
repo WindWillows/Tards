@@ -888,25 +888,21 @@ def get_all_minions(game: "Game") -> List["Minion"]:
 
 def add_event_listener(minion: "Minion", game: "Game", event_type: str,
                        callback: Callable, priority: int = 0) -> int:
-    """为一个异象注册事件监听器，并返回 owner_id。
+    """为一个异象注册事件监听器，并返回 listener_id。
 
-    异象死亡时，所有以此 owner_id 注册的监听器会自动注销。
+    异象死亡时，所有以此 owner 注册的监听器会自动注销。
     """
-    # 使用 minion 的 id 作为默认 owner_id（如果没有 _event_owner_id）
-    if not hasattr(minion, "_event_owner_id"):
-        minion._event_owner_id = id(minion)
-    return game.register_listener(event_type, callback, priority, owner_id=minion._event_owner_id)
+    return game.history.listen(event_type, callback, owner=minion, priority=priority)
 
 
-def remove_event_listener(game: "Game", event_type: str, callback: Callable) -> None:
-    """注销单个事件监听器。"""
-    game.unregister_listener(event_type, callback)
+def remove_event_listener(game: "Game", listener_id: int) -> bool:
+    """注销单个事件监听器（通过 listener_id）。"""
+    return game.history.unlisten(listener_id)
 
 
-def clear_event_listeners(minion: "Minion", game: "Game") -> None:
-    """清除某个异象注册的所有事件监听器。"""
-    if hasattr(minion, "_event_owner_id"):
-        game.unregister_listeners_by_owner(minion._event_owner_id)
+def clear_event_listeners(minion: "Minion", game: "Game") -> int:
+    """清除某个异象注册的所有事件监听器。返回注销数量。"""
+    return game.history.unlisten_by_owner(minion)
 
 
 # =============================================================================
@@ -985,17 +981,11 @@ def on(period: str, callback, game, minion=None, priority: int = 0) -> int:
       "sacrifice"/"献祭", "draw"/"抽牌", "discarded"/"弃置", "milled"/"磨牌",
       "card_played"/"卡牌打出", "bell"/"鸣钟", "death"/"死亡"
 
-    minion 为 None 时，使用 callback 本身的 id 作为 owner_id。
+    minion 为 None 时，监听器无 owner（需手动注销）。
     """
     _init_event_name_map()
     event_type = _EVENT_NAME_MAP.get(period, period)
-    if minion is None:
-        owner_id = id(callback)
-    else:
-        if not hasattr(minion, "_event_owner_id"):
-            minion._event_owner_id = id(minion)
-        owner_id = minion._event_owner_id
-    return game.register_listener(event_type, callback, priority, owner_id=owner_id)
+    return game.history.listen(event_type, callback, owner=minion, priority=priority)
 
 
 # =============================================================================
@@ -1101,7 +1091,7 @@ def delay_to_next_turn(
 
     自动过滤：只在 game.current_turn > 注册时的回合数 时触发，
     避免在同一回合内重复执行。
-    返回 owner_id（可用于手动注销）。
+    返回 listener_id（可用于手动注销）。
     """
     from tards.constants import EVENT_TURN_START
 
@@ -1111,17 +1101,13 @@ def delay_to_next_turn(
         if game.current_turn <= turn_registered:
             return
         if not minion.is_alive():
-            if once:
-                game.unregister_listener(EVENT_TURN_START, _wrapper)
             return
         try:
             callback(event)
         except Exception as e:
             print(f"  [警告] delay_to_next_turn 回调异常: {e}")
-        if once:
-            game.unregister_listener(EVENT_TURN_START, _wrapper)
 
-    return add_event_listener(minion, game, EVENT_TURN_START, _wrapper)
+    return game.history.listen(EVENT_TURN_START, _wrapper, owner=minion, once=once)
 
 
 def delay_to_phase_start(
@@ -1134,6 +1120,7 @@ def delay_to_phase_start(
     """注册一个在指定 phase_start 时执行的回调。
 
     phase 应与 game.PHASE_DRAW / PHASE_ACTION / PHASE_RESOLVE 等常量一致。
+    返回 listener_id（可用于手动注销）。
     """
     from tards.constants import EVENT_PHASE_START
 
@@ -1141,17 +1128,13 @@ def delay_to_phase_start(
         if event.data.get("phase") != phase:
             return
         if not minion.is_alive():
-            if once:
-                game.unregister_listener(EVENT_PHASE_START, _wrapper)
             return
         try:
             callback(event)
         except Exception as e:
             print(f"  [警告] delay_to_phase_start 回调异常: {e}")
-        if once:
-            game.unregister_listener(EVENT_PHASE_START, _wrapper)
 
-    return add_event_listener(minion, game, EVENT_PHASE_START, _wrapper)
+    return game.history.listen(EVENT_PHASE_START, _wrapper, owner=minion, once=once)
 
 
 def delay_to_turn_end(
@@ -1160,7 +1143,9 @@ def delay_to_turn_end(
     callback: Callable[[Any], None],
     once: bool = True,
 ) -> int:
-    """注册一个在当前回合结束时执行的回调。"""
+    """注册一个在当前回合结束时执行的回调。
+    返回 listener_id（可用于手动注销）。
+    """
     from tards.constants import EVENT_TURN_END
 
     turn_registered = game.current_turn
@@ -1169,17 +1154,13 @@ def delay_to_turn_end(
         if game.current_turn != turn_registered:
             return
         if not minion.is_alive():
-            if once:
-                game.unregister_listener(EVENT_TURN_END, _wrapper)
             return
         try:
             callback(event)
         except Exception as e:
             print(f"  [警告] delay_to_turn_end 回调异常: {e}")
-        if once:
-            game.unregister_listener(EVENT_TURN_END, _wrapper)
 
-    return add_event_listener(minion, game, EVENT_TURN_END, _wrapper)
+    return game.history.listen(EVENT_TURN_END, _wrapper, owner=minion, once=once)
 
 
 # =============================================================================
@@ -1264,10 +1245,10 @@ def track_event_per_turn(
         if key_to_clear in tracker:
             del tracker[key_to_clear]
 
-    oid1 = add_event_listener(minion, game, event_type, _on_event)
+    lid1 = game.history.listen(event_type, _on_event, owner=minion)
     from tards.constants import EVENT_TURN_END
-    add_event_listener(minion, game, EVENT_TURN_END, _on_turn_end)
-    return oid1
+    game.history.listen(EVENT_TURN_END, _on_turn_end, owner=minion)
+    return lid1
 
 
 # =============================================================================
@@ -2260,12 +2241,12 @@ def register_terrain_enforcement(
     def _phase_checker(event_data):
         _check_illegal()
 
-    game.event_bus.on(EVENT_PHASE_START, _phase_checker)
+    listener_id = game.history.listen(EVENT_PHASE_START, _phase_checker)
 
     # 清理函数：在 end_turn 回合结束时移除覆盖、注销监听器、最终检查
     def _cleanup():
         # 注销监听器
-        game.event_bus.off(EVENT_PHASE_START, _phase_checker)
+        game.history.unlisten(listener_id)
         # 移除地形覆盖
         for r in range(5):
             game._terrain_overrides.pop((r, column), None)
@@ -2325,3 +2306,543 @@ def can_minion_attack(minion: "Minion", game: "Game") -> bool:
 DROP_POOL: List[Any] = []
 """猪灵掉落物卡池：存放 CardDefinition 对象，首次使用金锭时随机抽取一张加入手牌。"""
 
+
+# =============================================================================
+# 29. 机器日志查询 API（GameHistory 封装）
+# =============================================================================
+
+def get_history(game: "Game") -> Optional[Any]:
+    """获取游戏的机器日志实例。若未初始化则返回 None。"""
+    return getattr(game, "history", None)
+
+
+# ── 单回合查询（本回合）──
+
+def cards_played_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家打出的卡牌总数（含异象、策略、矿物、阴谋）。"""
+    h = get_history(game)
+    return h.cards_played_this_turn(player) if h else 0
+
+
+def minions_deployed_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家部署的异象数。"""
+    h = get_history(game)
+    return h.minions_deployed_this_turn(player) if h else 0
+
+
+def strategies_played_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家使用的策略卡数。"""
+    h = get_history(game)
+    return h.strategies_played_this_turn(player) if h else 0
+
+
+def total_strategies_played_this_turn(game: "Game") -> int:
+    """本回合双方合计使用的策略卡数（血溅白练等需要）。"""
+    h = get_history(game)
+    return h.total_strategies_played_this_turn() if h else 0
+
+
+def minerals_played_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家使用的矿物数。"""
+    h = get_history(game)
+    return h.minerals_played_this_turn(player) if h else 0
+
+
+def conspiracies_activated_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家激活的阴谋数。"""
+    h = get_history(game)
+    return h.conspiracies_activated_this_turn(player) if h else 0
+
+
+def sacrifices_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家献祭的次数。"""
+    h = get_history(game)
+    return h.sacrifices_this_turn(player) if h else 0
+
+
+def blood_spent_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家支付的血液总量。"""
+    h = get_history(game)
+    return h.blood_spent_this_turn(player) if h else 0
+
+
+def developed_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家开发的次数。"""
+    h = get_history(game)
+    return h.developed_this_turn(player) if h else 0
+
+
+def cards_drawn_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家抽牌数。"""
+    h = get_history(game)
+    return h.cards_drawn_this_turn(player) if h else 0
+
+
+def cards_discarded_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家弃牌数。"""
+    h = get_history(game)
+    return h.cards_discarded_this_turn(player) if h else 0
+
+
+def cards_milled_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家磨牌数。"""
+    h = get_history(game)
+    return h.cards_milled_this_turn(player) if h else 0
+
+
+def damage_dealt_to_players_this_turn(game: "Game", dealer: "Player") -> int:
+    """本回合该玩家对敌方玩家造成的伤害。"""
+    h = get_history(game)
+    return h.damage_dealt_to_players_this_turn(dealer) if h else 0
+
+
+def damage_dealt_to_minions_this_turn(game: "Game", dealer: "Player") -> int:
+    """本回合该玩家对异象造成的伤害。"""
+    h = get_history(game)
+    return h.damage_dealt_to_minions_this_turn(dealer) if h else 0
+
+
+def healing_received_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家获得的治疗量。"""
+    h = get_history(game)
+    return h.healing_received_this_turn(player) if h else 0
+
+
+def attacks_made_this_turn(game: "Game", player: "Player") -> int:
+    """本回合该玩家场上异象发起的攻击次数。"""
+    h = get_history(game)
+    return h.attacks_made_this_turn(player) if h else 0
+
+
+def minions_deployed_list_this_turn(game: "Game") -> List["Minion"]:
+    """本回合部署的所有异象（按部署顺序）。"""
+    h = get_history(game)
+    return h.minions_deployed_list_this_turn() if h else []
+
+
+def minions_died_list_this_turn(game: "Game") -> List["Minion"]:
+    """本回合死亡的所有异象。"""
+    h = get_history(game)
+    return h.minions_died_list_this_turn() if h else []
+
+
+def minions_sacrificed_list_this_turn(game: "Game") -> List["Minion"]:
+    """本回合被献祭的所有异象。"""
+    h = get_history(game)
+    return h.minions_sacrificed_list_this_turn() if h else []
+
+
+# ── 跨回合聚合查询（本局累计）──
+
+def total_cards_played(game: "Game", player: "Player") -> int:
+    """本局该玩家打出的卡牌总数。"""
+    h = get_history(game)
+    return h.total_cards_played(player) if h else 0
+
+
+def total_minions_deployed(game: "Game", player: "Player") -> int:
+    """本局该玩家部署的异象总数。"""
+    h = get_history(game)
+    return h.total_minions_deployed(player) if h else 0
+
+
+def total_strategies_played(game: "Game", player: "Player") -> int:
+    """本局该玩家使用的策略卡总数。"""
+    h = get_history(game)
+    return h.total_strategies_played(player) if h else 0
+
+
+def total_sacrifices(game: "Game", player: "Player") -> int:
+    """本局该玩家献祭的总次数。"""
+    h = get_history(game)
+    return h.total_sacrifices(player) if h else 0
+
+
+def total_blood_spent(game: "Game", player: "Player") -> int:
+    """本局该玩家支付的血液总量。"""
+    h = get_history(game)
+    return h.total_blood_spent(player) if h else 0
+
+
+def total_developed(game: "Game", player: "Player") -> int:
+    """本局该玩家开发的总次数。"""
+    h = get_history(game)
+    return h.total_developed(player) if h else 0
+
+
+def total_cards_drawn(game: "Game", player: "Player") -> int:
+    """本局该玩家抽牌总数。"""
+    h = get_history(game)
+    return h.total_cards_drawn(player) if h else 0
+
+
+def total_cards_discarded(game: "Game", player: "Player") -> int:
+    """本局该玩家弃牌总数。"""
+    h = get_history(game)
+    return h.total_cards_discarded(player) if h else 0
+
+
+def total_cards_milled(game: "Game", player: "Player") -> int:
+    """本局该玩家磨牌总数。"""
+    h = get_history(game)
+    return h.total_cards_milled(player) if h else 0
+
+
+def total_damage_to_players(game: "Game", dealer: "Player") -> int:
+    """本局该玩家对敌方玩家造成的总伤害。"""
+    h = get_history(game)
+    return h.total_damage_to_players(dealer) if h else 0
+
+
+def total_damage_to_minions(game: "Game", dealer: "Player") -> int:
+    """本局该玩家对异象造成的总伤害。"""
+    h = get_history(game)
+    return h.total_damage_to_minions(dealer) if h else 0
+
+
+def total_healing_received(game: "Game", player: "Player") -> int:
+    """本局该玩家获得的总治疗量。"""
+    h = get_history(game)
+    return h.total_healing_received(player) if h else 0
+
+
+def total_attacks_made(game: "Game", player: "Player") -> int:
+    """本局该玩家场上异象发起的攻击总次数。"""
+    h = get_history(game)
+    return h.total_attacks_made(player) if h else 0
+
+
+def total_minion_deaths(game: "Game", player: Optional["Player"] = None) -> int:
+    """本局死亡的异象总数。若指定 player，只统计该玩家拥有的异象。"""
+    h = get_history(game)
+    return h.total_minion_deaths(player) if h else 0
+
+
+# ── 指定回合查询 ──
+
+def cards_played_in_turn(game: "Game", turn: int, player: "Player") -> int:
+    """第 turn 回合该玩家打出的卡牌数。"""
+    h = get_history(game)
+    return h.cards_played_this_turn(player, turn) if h else 0
+
+
+def minions_deployed_in_turn(game: "Game", turn: int, player: "Player") -> int:
+    """第 turn 回合该玩家部署的异象数。"""
+    h = get_history(game)
+    return h.minions_deployed_this_turn(player, turn) if h else 0
+
+
+def strategies_played_in_turn(game: "Game", turn: int, player: "Player") -> int:
+    """第 turn 回合该玩家使用的策略卡数。"""
+    h = get_history(game)
+    return h.strategies_played_this_turn(player, turn) if h else 0
+
+
+def sacrifices_in_turn(game: "Game", turn: int, player: "Player") -> int:
+    """第 turn 回合该玩家献祭的次数。"""
+    h = get_history(game)
+    return h.sacrifices_this_turn(player, turn) if h else 0
+
+
+def damage_to_players_in_turn(game: "Game", turn: int, dealer: "Player") -> int:
+    """第 turn 回合该玩家对敌方玩家造成的伤害。"""
+    h = get_history(game)
+    return h.damage_dealt_to_players_this_turn(dealer, turn) if h else 0
+
+
+def history_summary(game: "Game") -> Dict[str, Any]:
+    """返回机器日志摘要（调试用）。"""
+    h = get_history(game)
+    return h.summary() if h else {}
+
+
+# =============================================================================
+# 30. 选择接口封装（减少 boilerplate）
+# =============================================================================
+
+def request_choice_index(
+    game: "Game",
+    player: "Player",
+    candidates: List[Any],
+    title: str = "请选择",
+) -> Optional[int]:
+    """让玩家从候选列表中选择一项，返回整数索引（从0开始）。
+
+    若玩家取消或候选为空，返回 None。
+    自动处理选项字符串生成和结果解析。
+    """
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        return 0
+
+    options = [f"{i+1}. {getattr(c, 'name', str(c))}" for i, c in enumerate(candidates)]
+    chosen = game.request_choice(player, options, title=title)
+    if not chosen:
+        return None
+    try:
+        idx = int(chosen.split('.')[0]) - 1
+        if 0 <= idx < len(candidates):
+            return idx
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def request_target(
+    game: "Game",
+    player: "Player",
+    candidates: List[Any],
+    title: str = "请选择目标",
+) -> Optional[Any]:
+    """让玩家从候选列表中选择一个目标，返回选中的对象。
+
+    若玩家取消或候选为空，返回 None。
+    """
+    idx = request_choice_index(game, player, candidates, title=title)
+    return candidates[idx] if idx is not None else None
+
+
+def request_targets(
+    game: "Game",
+    player: "Player",
+    candidates: List[Any],
+    count: int,
+    title: str = "请选择目标",
+    allow_repeat: bool = False,
+) -> List[Any]:
+    """让玩家从候选列表中选择多个目标，返回选中的对象列表。
+
+    若 count <= 0 或候选为空，返回空列表。
+    allow_repeat=True 时允许重复选择同一目标。
+    """
+    if count <= 0 or not candidates:
+        return []
+    if len(candidates) == 1 and count == 1:
+        return [candidates[0]]
+
+    selected: List[Any] = []
+    remaining = list(candidates)
+    for i in range(count):
+        if not remaining:
+            break
+        current_title = f"{title} ({i+1}/{count})"
+        options = [f"{j+1}. {getattr(c, 'name', str(c))}" for j, c in enumerate(remaining)]
+        chosen = game.request_choice(player, options, title=current_title)
+        if not chosen:
+            break
+        try:
+            idx = int(chosen.split('.')[0]) - 1
+            if 0 <= idx < len(remaining):
+                target = remaining[idx]
+                selected.append(target)
+                if not allow_repeat:
+                    remaining.pop(idx)
+        except (ValueError, IndexError):
+            break
+    return selected
+
+
+# =============================================================================
+# 31. 场上异象遍历（带去重，含 underlay）
+# =============================================================================
+
+def all_minions_on_board(
+    game: "Game",
+    alive_only: bool = True,
+    include_underlay: bool = True,
+) -> List["Minion"]:
+    """返回场上所有异象（含覆盖物），自动去重。
+
+    Args:
+        alive_only: 是否只返回存活异象
+        include_underlay: 是否包含 cell_underlay 中的覆盖物
+    """
+    seen: set[int] = set()
+    result: List["Minion"] = []
+    pools = [game.board.minion_place.values()]
+    if include_underlay:
+        pools.append(game.board.cell_underlay.values())
+    for pool in pools:
+        for m in pool:
+            if alive_only and not m.is_alive():
+                continue
+            mid = id(m)
+            if mid in seen:
+                continue
+            seen.add(mid)
+            result.append(m)
+    return result
+
+
+def all_friendly_minions_on_board(
+    game: "Game",
+    player: "Player",
+    alive_only: bool = True,
+    include_underlay: bool = True,
+) -> List["Minion"]:
+    """返回场上所有友方异象（含覆盖物），自动去重。"""
+    return [m for m in all_minions_on_board(game, alive_only, include_underlay)
+            if m.owner == player]
+
+
+def all_enemy_minions_on_board(
+    game: "Game",
+    player: "Player",
+    alive_only: bool = True,
+    include_underlay: bool = True,
+) -> List["Minion"]:
+    """返回场上所有敌方异象（含覆盖物），自动去重。"""
+    return [m for m in all_minions_on_board(game, alive_only, include_underlay)
+            if m.owner != player]
+
+
+# =============================================================================
+# 32. MinionCard 复制（减少 boilerplate）
+# =============================================================================
+
+def copy_minion_card(source_card: "MinionCard", new_owner: "Player") -> "MinionCard":
+    """基于现有 MinionCard 创建一份完整复制（含扩展属性）。
+
+    自动复制以下属性（若存在）：
+    pack, asset_id, statue_top, statue_bottom, statue_pair,
+    on_statue_activate, on_statue_fuse, tags, hidden_keywords,
+    echo_level, bluff。
+    """
+    from tards.cards import MinionCard
+    from tards.cost import Cost
+
+    new_card = MinionCard(
+        name=source_card.name,
+        owner=new_owner,
+        cost=Cost(
+            t=source_card.cost.t,
+            b=source_card.cost.b,
+            s=source_card.cost.s,
+            c=source_card.cost.c,
+        ),
+        targets=source_card.targets,
+        attack=source_card.attack,
+        health=source_card.health,
+        special=source_card.special,
+        keywords=source_card.keywords.copy() if source_card.keywords else None,
+    )
+
+    # 复制扩展属性
+    for attr in (
+        "pack", "asset_id", "statue_top", "statue_bottom", "statue_pair",
+        "on_statue_activate", "on_statue_fuse", "echo_level", "bluff",
+    ):
+        if hasattr(source_card, attr):
+            setattr(new_card, attr, getattr(source_card, attr))
+
+    if hasattr(source_card, "tags"):
+        new_card.tags = list(source_card.tags)
+    if hasattr(source_card, "hidden_keywords"):
+        new_card.hidden_keywords = (
+            source_card.hidden_keywords.copy()
+            if isinstance(source_card.hidden_keywords, dict)
+            else source_card.hidden_keywords
+        )
+
+    return new_card
+
+
+# =============================================================================
+# 33. 延迟效果封装
+# =============================================================================
+
+def register_delayed_effect(
+    game: "Game",
+    trigger: str,
+    turn_offset: int,
+    fn: Callable[[], None],
+) -> None:
+    """注册一个延迟效果，在指定回合触发。
+
+    Args:
+        trigger: "turn_start" 或 "turn_end"
+        turn_offset: 相对于当前回合的偏移（0=本回合，1=下回合）
+        fn: 无参回调函数
+    """
+    target_turn = getattr(game, "current_turn", 0) + turn_offset
+    game._delayed_effects.append({
+        "trigger": trigger,
+        "turn": target_turn,
+        "fn": fn,
+    })
+
+
+def register_until_next_turn_end(game: "Game", fn: Callable[[], None]) -> None:
+    """注册一个效果，在下个回合结束时触发。"""
+    register_delayed_effect(game, "turn_end", 1, fn)
+
+
+def register_until_turn_end(game: "Game", fn: Callable[[], None]) -> None:
+    """注册一个效果，在本回合结束时触发。"""
+    register_delayed_effect(game, "turn_end", 0, fn)
+
+
+# =============================================================================
+# 34. 目标合法性快捷检查
+# =============================================================================
+
+def is_valid_minion_target(target: Any) -> bool:
+    """检查目标是否为存活的场上异象。"""
+    from tards.cards import Minion
+    return isinstance(target, Minion) and target.is_alive()
+
+
+def ensure_minion_target(target: Any, warn_name: str = "") -> bool:
+    """确保目标是存活的场上异象，否则打印警告并返回 False。"""
+    if is_valid_minion_target(target):
+        return True
+    name = warn_name or "效果"
+    print(f"  [警告] {name} 没有有效的异象目标")
+    return False
+
+
+# =============================================================================
+# 35. 机器日志高级查询
+# =============================================================================
+
+def last_died_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
+    """返回最近一只死亡的异象。"""
+    h = get_history(game)
+    return h.last_died_minion(player) if h else None
+
+
+def last_sacrificed_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
+    """返回最近一只被献祭的异象。"""
+    h = get_history(game)
+    return h.last_sacrificed_minion(player) if h else None
+
+
+def last_deployed_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
+    """返回最近一只部署的异象。"""
+    h = get_history(game)
+    return h.last_deployed_minion(player) if h else None
+
+
+def was_minion_deployed_this_turn(game: "Game", minion: "Minion") -> bool:
+    """检查某异象是否在本回合部署。"""
+    h = get_history(game)
+    return h.was_minion_deployed_this_turn(minion) if h else False
+
+
+def player_deployed_any_minion_this_turn(game: "Game", player: "Player") -> bool:
+    """检查某玩家本回合是否部署过任何异象。"""
+    h = get_history(game)
+    return h.player_deployed_any_minion_this_turn(player) if h else False
+
+
+def total_t_max_lost(game: "Game", player: "Player") -> int:
+    """本局该玩家失去的T槽上限总数。"""
+    h = get_history(game)
+    return h.total_t_max_lost(player) if h else 0
+
+
+def health_lost_this_phase(game: "Game", player: "Player") -> int:
+    """本出牌阶段该玩家失去的HP总量（含伤害）。"""
+    h = get_history(game)
+    return h.health_lost_this_phase(player) if h else 0

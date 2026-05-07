@@ -55,6 +55,7 @@ from card_pools.effect_utils import (
     shuffle_into_deck,
     summon_token,
     swap,
+    was_minion_deployed_this_turn,
 )
 
 @special
@@ -110,13 +111,14 @@ def _gou_special(minion, player, game, extras=None):
 @special
 def _yang_special(minion, player, game, extras=None):
     """羊：回合结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。"""
+    from card_pools.effect_utils import minions_deployed_this_turn
 
     def _on_turn_end(event):
         if not minion.is_alive():
             return
-        deployed = game._deployed_this_turn.get(player, [])
-        friendly_deployed = [m for m in deployed if getattr(m, 'owner', None) is player]
-        if len(friendly_deployed) != 1 or friendly_deployed[0] is not minion:
+        if minions_deployed_this_turn(game, player) != 1:
+            return
+        if not was_minion_deployed_this_turn(game, minion):
             return
         before = len(player.card_hand)
         player.draw_card(1, game=game)
@@ -624,14 +626,15 @@ def _haitun_special(minion, player, game, extras=None):
 @special
 def _jielueduizhang_special(minion, player, game, extras=None):
     """劫掠队长：回合结束：若本回合对手受到的伤害不小于3，使对手失去2点HP。"""
+    from card_pools.effect_utils import damage_dealt_to_players_this_turn, get_opponent
 
     def on_phase_end(event):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
         if not minion.is_alive():
             return
-        opponent = game.p2 if player == game.p1 else game.p1
-        damage = game._damage_dealt_to_players_this_turn.get(opponent, 0)
+        opponent = get_opponent(game, player)
+        damage = damage_dealt_to_players_this_turn(game, opponent)
         if damage >= 3:
             opponent.health_change(-2)
             print(f"  {opponent.name} 失去2点HP（本回合受到 {damage} 点伤害）")
@@ -775,8 +778,8 @@ def _diyuchuansongmen_special(minion, player, game, extras=None):
         else:
             print(f"  地狱传送门：无法为 {victim.name} 创建卡牌")
         # 若受害者是传送门自己，清理监听器
-        if victim is minion and hasattr(minion, "_event_owner_id"):
-            game.unregister_listeners_by_owner(minion._event_owner_id)
+        if victim is minion:
+            game.history.unlisten_by_owner(minion)
 
     on("before_destroy", on_before_destroy, game, minion)
 
@@ -886,11 +889,12 @@ def _xiangshu_evolve(minion, player, game):
 @special
 def _yinyuehe_special(minion, player, game, extras=None):
     """音乐盒：对方每回合打出的第一张手牌花费翻倍。"""
+    from card_pools.effect_utils import cards_played_this_turn, get_opponent
 
-    opponent = game.p2 if player == game.p1 else game.p1
+    opponent = get_opponent(game, player)
 
     def modifier(card, cost):
-        if opponent._cards_played_this_phase == 0:
+        if cards_played_this_turn(game, opponent) == 0:
             cost.t *= 2
             print(f"  音乐盒使 {card.name} 的T花费翻倍")
 
@@ -1882,7 +1886,7 @@ def _fumota_strategy(player, target, game, extras=None):
             player._enchanting_table_triggered = False
 
     from tards.constants import EVENT_PHASE_START
-    game.register_listener(EVENT_PHASE_START, reset_flag)
+    game.history.listen(EVENT_PHASE_START, reset_flag)
     return True
 
 

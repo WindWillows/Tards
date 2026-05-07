@@ -45,12 +45,13 @@ def _fange_condition(game, event_data, player):
 # ---------- 蓄锐 ----------
 def _xurui_condition(game, event_data, player):
     """对方拍铃且本阶段未出牌时触发。"""
+    from card_pools.effect_utils import cards_played_this_turn
     if event_data.get("event_type") != EVENT_BELL:
         return False
     bell_player = event_data.get("player")
     if bell_player == player:
         return False
-    if getattr(bell_player, "_cards_played_this_phase", 0) > 0:
+    if cards_played_this_turn(game, bell_player) > 0:
         return False
     return True
 

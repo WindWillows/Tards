@@ -183,7 +183,7 @@ class MinionCard(Card):
                     m.current_health = 0
                     m.minion_death()
                     print(f"  献祭 {m.name}，获得 {blood}B")
-                game.emit_event(EVENT_SACRIFICE, minion=m, player=player)
+                game.emit_event(EVENT_SACRIFICE, minion=m, player=player, blood=blood)
 
         minion = Minion(
             name=self.name,
@@ -680,9 +680,13 @@ class Minion:
                 self.clear_all_provided_auras()
                 self.board.remove_minion(self.position)
 
-                # 清理本异象的 EventBus 监听器
+                # 清理本异象的 EventBus 监听器（旧兼容层）
                 if game and hasattr(self, '_event_owner_id'):
                     game.unregister_listeners_by_owner(self._event_owner_id)
+
+                # 清理本异象通过 GameHistory 统一注册的监听器
+                if game and hasattr(game, 'history'):
+                    game.history.unlisten_by_owner(self)
 
                 if game:
                     game.emit_event(EVENT_DEATH, minion=self, player=self.owner)
@@ -907,7 +911,7 @@ class Minion:
                 else:
                     player_target = self.board.game_ref.p2 if self.owner == self.board.game_ref.p1 else self.board.game_ref.p1
                     print(f"  {self.name} 直接攻击 {player_target.name}，造成 {self.current_attack} 点伤害")
-                    player_target.health_change(-self.current_attack)
+                    player_target.health_change(-self.current_attack, source=self)
             else:
                 print(f"  {self.name} 攻击 {target.name}，造成 {self.current_attack} 点伤害")
                 target.take_damage(self.current_attack, source_minion=self, source_type="combat", is_combat_damage=True)
@@ -919,7 +923,7 @@ class Minion:
                         self.take_damage(spike, source_type="combat", is_combat_damage=True)
         elif isinstance(target, Player):
             print(f"  {self.name} 直接攻击 {target.name}，造成 {self.current_attack} 点伤害")
-            target.health_change(-self.current_attack)
+            target.health_change(-self.current_attack, source=self)
 
         # === ATTACKED / AFTER_ATTACK ===
         if game:

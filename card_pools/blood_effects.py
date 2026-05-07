@@ -241,9 +241,8 @@ def _huanderxixi_special(minion, player, game, extras=None):
             if deployed and deployed.owner != p and deployed.is_alive():
                 deployed.apply_fear()
                 print(f"  环丁二烯亡语触发：{deployed.name} 获得恐惧")
-                game.unregister_listener(EVENT_DEPLOYED, _listener)
 
-        game.register_listener(EVENT_DEPLOYED, _listener)
+        game.history.listen_once(EVENT_DEPLOYED, _listener)
         print(f"  环丁二烯亡语：已注册敌方下一异象恐惧效果")
 
     add_deathrattle(minion, _dr)
@@ -376,15 +375,14 @@ def _wuzhi_effect(player, target, game, extras=None):
     """无知即力量：将上一个被消灭的异象的复制洗入卡组。"""
     import random
     from tards.cards import MinionCard
+    from card_pools.effect_utils import last_died_minion
 
-    death_entries = [e for e in getattr(game, "_state_log", []) if e.get("event") == "minion_death"]
-    if not death_entries:
+    last_minion = last_died_minion(game)
+    if not last_minion:
         print("  无知即力量：本对局无异象被消灭")
         return True
 
-    last = death_entries[-1]
-    minion = last.get("minion")
-    sc = getattr(minion, "source_card", None)
+    sc = getattr(last_minion, "source_card", None)
     if not sc:
         print("  无知即力量：无法找到源卡")
         return True
@@ -494,16 +492,9 @@ def _yongheng_effect(player, target, game, extras=None):
 
 def _tansuanya_tie_effect(player, target, game, extras=None):
     """碳酸亚铁：获得等同于本出牌阶段失去HP的治疗。"""
-    phase = getattr(game, "PHASE_ACTION", "action")
-    total_lost = sum(
-        entry.get("amount", 0)
-        for entry in getattr(game, "_state_log", [])
-        if entry.get("event") == "health_lost"
-        and entry.get("player") == player
-        and entry.get("turn") == game.current_turn
-        and entry.get("phase") == phase
-    )
+    from card_pools.effect_utils import health_lost_this_phase
 
+    total_lost = health_lost_this_phase(game, player)
     if total_lost > 0:
         player.health_change(total_lost)
         print(f"  碳酸亚铁：{player.name} 本出牌阶段失去 {total_lost} HP，恢复 {total_lost} HP")
@@ -811,22 +802,37 @@ def _guobao_effect(player, target, game, extras=None, card=None):
     return True
 
 def _xuejian_bailian_effect(player, target, game, extras=None, card=None):
-    """血溅白练：冰冻所有敌方异象。若本回合第3张策略，对所有敌方异象造成3点伤害。"""
-    opponent = game.p2 if player == game.p1 else game.p1
+    """血溅白练：冰冻所有敌方异象。
+    若本回合双方合计使用的策略卡数恰好为3，则额外对所有敌方异象造成3点伤害。
+    利用 GameHistory 查询本回合策略使用总数与敌方异象存活状态。
+    """
+    from card_pools.effect_utils import (
+        all_enemy_minions,
+        total_strategies_played_this_turn,
+        freeze_minion,
+        deal_damage_to_minion,
+    )
+
+    # 通过日志模块获取所有存活敌方异象
+    enemies = all_enemy_minions(game, player)
+    if not enemies:
+        print("  血溅白练：场上无敌方异象")
+        return True
 
     # 冰冻所有敌方异象
-    enemy_minions = [m for m in game.board.minion_place.values()
-                     if m.is_alive() and m.owner == opponent]
-    for m in enemy_minions:
-        m.gain_keyword("冰冻", 1, permanent=True)
-        print(f"  血溅白练：{m.name} 被冰冻")
+    for m in enemies:
+        freeze_minion(m, layers=1)
 
-    # 若这是本回合双方使用的第3张策略，造成额外伤害
-    if getattr(game, "_strategies_played_this_turn", 0) == 3:
-        for m in enemy_minions:
+    # 通过日志模块查询本回合双方合计策略使用数
+    # 血溅白练自身已被计入（由 Game.emit_event EVENT_CARD_PLAYED 自动记录）
+    strategy_count = total_strategies_played_this_turn(game)
+    print(f"  血溅白练：本回合双方已使用 {strategy_count} 张策略卡")
+
+    if strategy_count == 3:
+        for m in enemies:
             if m.is_alive():
-                m.take_damage(3, source_type="strategy")
-        print(f"  血溅白练：本回合第3张策略，对所有敌方异象造成3点伤害")
+                deal_damage_to_minion(m, 3, source=card, game=game)
+        print("  血溅白练：第3张策略触发，对所有敌方异象造成3点伤害")
 
     return True
 

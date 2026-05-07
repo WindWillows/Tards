@@ -89,9 +89,10 @@ class Player:
     def get_enemy_rows(self) -> tuple:
         return (0, 1) if self.side == 0 else (3, 4)
 
-    def health_change(self, delta: int) -> bool:
+    def health_change(self, delta: int, source: Any = None) -> bool:
         """改变生命值。delta < 0 时表示【受到伤害】，触发伤害替换、血契2级、player_damage 事件。
-        delta > 0 时表示恢复生命。"""
+        delta > 0 时表示恢复生命。
+        source: 可选的伤害来源（如攻击者 Minion），用于历史记录追溯。"""
         game = getattr(self.board_ref, "game_ref", None)
 
         # === BEFORE_HEALTH_CHANGE ===
@@ -99,7 +100,7 @@ class Player:
             from .constants import EVENT_BEFORE_HEALTH_CHANGE
             event = game.emit_event(
                 EVENT_BEFORE_HEALTH_CHANGE,
-                source=None,
+                source=source,
                 target=self,
                 player=self,
                 delta=delta,
@@ -130,7 +131,7 @@ class Player:
                     print(f"  {self.name} 血契沉浸度触发：受到不小于3点伤害，获得3S")
             if game:
                 from .constants import EVENT_PLAYER_DAMAGE
-                game.emit_event(EVENT_PLAYER_DAMAGE, source=None, target=self, player=self, damage=-actual_delta)
+                game.emit_event(EVENT_PLAYER_DAMAGE, source=source, target=self, player=self, damage=-actual_delta)
 
         # === HEALTH_CHANGED ===
         if game:
@@ -250,15 +251,22 @@ class Player:
         old = self.t_point_max
         self.t_point_max = max(0, self.t_point_max + delta)
         actual_delta = self.t_point_max - old
-        if actual_delta < 0:
-            game = getattr(self.board_ref, "game_ref", None)
-            if game and hasattr(game, "_state_log"):
-                game._state_log.append({
-                    "event": "t_max_lost",
-                    "player": self,
-                    "amount": abs(actual_delta),
-                    "turn": getattr(game, "current_turn", 0),
-                })
+        game = getattr(self.board_ref, "game_ref", None)
+        if game:
+            from .constants import EVENT_T_MAX_CHANGED
+            game.emit_event(
+                EVENT_T_MAX_CHANGED,
+                player=self,
+                old=old,
+                new=self.t_point_max,
+            )
+        if actual_delta < 0 and game and hasattr(game, "_state_log"):
+            game._state_log.append({
+                "event": "t_max_lost",
+                "player": self,
+                "amount": abs(actual_delta),
+                "turn": getattr(game, "current_turn", 0),
+            })
 
     def c_point_change(self, delta: int):
         game = getattr(self.board_ref, "game_ref", None)

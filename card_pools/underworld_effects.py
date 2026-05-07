@@ -711,7 +711,6 @@ def _liqun_effect(game, event_data, player):
 
 def _ruhe_effect(game, event_data, player):
     """注册回合开始监听器，延迟部署被反制的异象。"""
-    listener_id = id(event_data)
 
     def _redeploy_listener(event):
         pending = getattr(game, "_ruhe_pending", [])
@@ -751,9 +750,9 @@ def _ruhe_effect(game, event_data, player):
             pending.remove(item)
         game._ruhe_pending = pending
         if not pending:
-            game.unregister_listeners_by_owner(listener_id)
+            game.history.unlisten(listener_id)
 
-    game.register_listener(EVENT_TURN_START, _redeploy_listener, priority=50, owner_id=listener_id)
+    listener_id = game.history.listen(EVENT_TURN_START, _redeploy_listener, priority=50)
     print(f"  阴谋 [入河] 效果触发：等待下回合将异象加入原位")
 
 def _guaishi_effect(game, event_data, player):
@@ -1744,11 +1743,11 @@ def _tudao_effect(player, target, game, extras=None):
             player.draw_card(1, game=game)
             print(f"  屠刀：{player.name} 献祭抽1张牌")
 
-    owner_id = game.event_bus.register(EVENT_SACRIFICE, on_sacrifice)
+    listener_id = game.history.listen(EVENT_SACRIFICE, on_sacrifice)
 
     # 本回合结束时注销
     def cleanup():
-        game.event_bus.unregister_by_owner(owner_id)
+        game.history.unlisten(listener_id)
         print(f"  屠刀：献祭抽牌效果结束")
 
     game._delayed_effects.append({
@@ -1980,15 +1979,13 @@ def _gengti_effect(player, target, game, extras=None):
 
 def _poxiao_effect(player, target, game, extras=None):
     """破晓：抽2张牌。若剩余T点≤1，获得两倍于本对局失去T槽数的T点。"""
+    from card_pools.effect_utils import total_t_max_lost
+
     player.draw_card(2, game=game)
     print(f"  破晓：{player.name} 抽2张牌")
 
     if player.t_point <= 1:
-        total_lost = sum(
-            entry.get("amount", 0)
-            for entry in getattr(game, "_state_log", [])
-            if entry.get("event") == "t_max_lost" and entry.get("player") == player
-        )
+        total_lost = total_t_max_lost(game, player)
         gain = total_lost * 2
         if gain > 0:
             player.t_point_change(gain)
@@ -2248,8 +2245,8 @@ def _gaozhi_cost_modifier(card, cost):
     game = getattr(getattr(player, "board_ref", None), "game_ref", None)
     if not game:
         return
-    deployed = getattr(game, "_deployed_this_turn", {})
-    count = len(deployed.get(player, []))
+    from card_pools.effect_utils import minions_deployed_this_turn
+    count = minions_deployed_this_turn(game, player)
     if count > 0:
         cost.t = max(0, cost.t - count)
         print(f"  稿纸费用：本回合部署 {count} 个异象，费用-{count}T")

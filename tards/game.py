@@ -17,6 +17,7 @@ from .constants import (
 )
 from .effect_queue import EffectQueue
 from .events import EventBus, GameEvent
+from .game_history import GameHistory
 from .player import Player
 
 
@@ -50,6 +51,9 @@ class Game:
         self.effect_queue = EffectQueue(self)
         self.event_bus = EventBus(self)
         self.resolve_step_callback = None
+
+        # 机器日志（按回合索引的历史变量，供卡牌监听器查询）
+        self.history = GameHistory(self)
 
         # 雕像拼装待处理队列
         self._pending_statues: List[Dict[str, Any]] = []
@@ -143,6 +147,10 @@ class Game:
                 self._damage_dealt_to_players_this_turn[target_player] = (
                     self._damage_dealt_to_players_this_turn.get(target_player, 0) + damage
                 )
+
+        # 更新机器日志
+        if hasattr(self, "history"):
+            self.history.on_event(event_type, **kwargs)
 
         if not self.effect_queue.is_resolving():
             self.refresh_all_auras()
@@ -494,6 +502,7 @@ class Game:
         second = self.p2 if first == self.p1 else self.p1
         print(f"\n========== 回合 {self.current_turn} | 先手: {first.name} ==========")
         self._strategies_played_this_turn = 0
+        self.history.advance_turn(self.current_turn)
         self.emit_event(EVENT_TURN_START, turn=self.current_turn, first=first, second=second)
         self._process_delayed_effects("turn_start")
         if self.check_game_over():
@@ -905,7 +914,7 @@ class Game:
                                                 m.take_damage(spike)
                                     else:
                                         print(f"  {m.name} 横扫直接攻击 {target.name}，造成 {m.attack} 点伤害")
-                                        target.health_change(-m.attack)
+                                        target.health_change(-m.attack, source=m)
                                         hero_hit = True
                                 else:
                                     # 本列正常攻击
@@ -939,7 +948,7 @@ class Game:
                                 elif hasattr(target, "health_change"):
                                     # 目标是玩家
                                     print(f"  {m.name} 直接攻击 {target.name}")
-                                    target.health_change(-m.current_attack)
+                                    target.health_change(-m.current_attack, source=m)
                                 else:
                                     print(f"  {m.name} 的攻击目标已消失，攻击落空")
                             else:
