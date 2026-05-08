@@ -7,6 +7,7 @@
 
 import random
 
+from tards.targets import target, target_mix
 from tards.cards import Minion
 from tards.player import Player
 from card_pools.effect_decorator import special, strategy
@@ -2124,14 +2125,7 @@ def _jinrenshu_strategy(player, target, game, extras=None):
     return True
 
 
-def _ehanglei_targets(player, board):
-    """恶魂之泪：可指向所有场上异象 + 敌方玩家。"""
-    targets = list(board.minion_place.values())
-    if board.game_ref:
-        for p in board.game_ref.players:
-            if p != player:
-                targets.append(p)
-    return targets
+_ehanglei_targets = target_mix(target("minion"), target("player", enemy=True))
 
 
 @strategy

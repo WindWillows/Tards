@@ -174,3 +174,162 @@ def target_discard_pile(player: "Player", board: "Board" = None) -> List[Any]:
 def target_deck(player: "Player", board: "Board" = None) -> List[Any]:
     """返回玩家牌库中的所有卡牌。"""
     return list(player.card_deck)
+
+
+# =============================================================================
+# 统一目标选择器
+# =============================================================================
+
+def target(source: str, **conditions):
+    """统一目标选择器。
+
+    通过 source 指定目标属性，通过 conditions 叠加额外判断条件。
+    返回一个 (player, board) -> List[Any] 的 callable。
+
+    Args:
+        source: 目标来源属性
+            - "minion"      场上异象
+            - "hand"        手牌
+            - "deck"        牌库
+            - "discard"     弃牌堆
+            - "position"    棋盘位置
+            - "player"      玩家
+            - "column"      列号
+
+        conditions: 额外判断条件
+            - friendly=True/False     仅友方（minion/player）
+            - enemy=True/False        仅敌方（minion/player）
+            - alive=True/False        仅存活（minion，默认 True）
+            - keyword="xxx"           关键词（minion/hand/deck/discard）
+            - tag="xxx"               标签（minion）
+            - injured=True/False      受伤（minion）
+            - empty=True/False        空格（position）
+            - range=[...]             范围（column）
+            - card_type="xxx"         卡牌类型（hand/deck/discard）
+            - custom_filter=callable  自定义过滤函数
+    """
+    friendly = conditions.get("friendly", True)
+    enemy = conditions.get("enemy", True)
+    alive = conditions.get("alive", True)
+    keyword = conditions.get("keyword")
+    tag = conditions.get("tag")
+    injured = conditions.get("injured", False)
+    empty = conditions.get("empty", False)
+    range_ = conditions.get("range")
+    card_type = conditions.get("card_type")
+    custom_filter = conditions.get("custom_filter")
+
+    def _selector(player, board):
+        # 1. 根据 source 获取基础集合
+        if source == "minion":
+            candidates = list(board.minion_place.values())
+            if alive:
+                candidates = [m for m in candidates if m.is_alive()]
+        elif source == "hand":
+            candidates = list(player.card_hand)
+        elif source == "deck":
+            candidates = list(player.card_deck)
+        elif source == "discard":
+            candidates = list(player.card_dis)
+        elif source == "position":
+            if friendly and not enemy:
+                rows = player.get_friendly_rows()
+            elif enemy and not friendly:
+                if board.game_ref:
+                    opponent = board.game_ref.p2 if player == board.game_ref.p1 else board.game_ref.p1
+                    rows = opponent.get_friendly_rows()
+                else:
+                    rows = []
+            else:
+                rows = list(range(board.SIZE))
+            candidates = [(r, c) for r in rows for c in range(5)]
+            if empty:
+                occupied = {m.position for m in board.minion_place.values()}
+                candidates = [pos for pos in candidates if pos not in occupied]
+        elif source == "player":
+            if board.game_ref:
+                candidates = list(board.game_ref.players)
+                if friendly and not enemy:
+                    candidates = [p for p in candidates if p == player]
+                elif enemy and not friendly:
+                    candidates = [p for p in candidates if p != player]
+            else:
+                candidates = []
+        elif source == "column":
+            candidates = range_ if range_ is not None else list(range(board.SIZE))
+        else:
+            raise ValueError(f"未知的目标来源: {source}")
+
+        # 2. 应用通用过滤条件
+        result = []
+        for item in candidates:
+            # 阵营过滤（仅适用于有 owner 的对象）
+            if hasattr(item, "owner"):
+                is_friendly = item.owner == player
+                if is_friendly and not friendly:
+                    continue
+                if not is_friendly and not enemy:
+                    continue
+
+            # 关键词过滤
+            if keyword:
+                kw = None
+                if hasattr(item, "keywords"):
+                    kw = item.keywords.get(keyword)
+                elif hasattr(item, "base_keywords"):
+                    kw = item.base_keywords.get(keyword)
+                if not kw:
+                    continue
+
+            # 标签过滤
+            if tag:
+                tags = getattr(item, "tags", set())
+                if tag not in tags:
+                    continue
+
+            # 受伤过滤
+            if injured:
+                if not hasattr(item, "current_health") or not hasattr(item, "current_max_health"):
+                    continue
+                if item.current_health >= item.current_max_health:
+                    continue
+
+            # 卡牌类型过滤
+            if card_type:
+                from .cards import MinionCard, Strategy, MineralCard
+                type_map = {
+                    "minion": MinionCard,
+                    "strategy": Strategy,
+                    "mineral": MineralCard,
+                }
+                expected_type = type_map.get(card_type)
+                if expected_type and not isinstance(item, expected_type):
+                    continue
+
+            # 自定义过滤
+            if custom_filter and not custom_filter(item):
+                continue
+
+            result.append(item)
+
+        return result
+
+    return _selector
+
+
+def target_mix(*selectors):
+    """混合多个目标选择器的结果，去重。
+
+    用于需要同时指向多种目标类型的效果（如"指向场上异象或敌方玩家"）。
+    """
+    def _selector(player, board):
+        result = []
+        seen = set()
+        for sel in selectors:
+            for item in sel(player, board):
+                key = id(item)
+                if key not in seen:
+                    result.append(item)
+                    seen.add(key)
+        return result
+    return _selector

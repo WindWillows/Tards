@@ -1,6 +1,7 @@
 # 血契卡包人工效果实现
 # 由 blood.py 引用
 
+from tards.targets import target, target_mix
 from card_pools.effect_decorator import special
 from card_pools.effect_utils import (
     add_deathrattle,
@@ -1233,29 +1234,9 @@ def _jiaopian_choice(player, board):
     """胶片：抉择。"""
     return ["造成1点伤害", "移除卡组顶1张"]
 
-def _peiti_targets(player, board):
-    """配体：选择友方纯净异象。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.owner == player and "纯净" in getattr(m, "tags", []) and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
-
-def _yongheng_targets(player, board):
-    """永恒奴役：选择场上具有恐惧的异象。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.keywords.get("恐惧", False) and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
-
-def _wangyi_targets(player, board):
-    """王翼弃兵：选择手牌中的一张牌弃掉。"""
-    return player.card_hand
+_peiti_targets = target("minion", friendly=True, enemy=False, tag="纯净")
+_yongheng_targets = target("minion", keyword="恐惧")
+_wangyi_targets = target("hand")
 
 def _guobao_cost_modifier(card, cost):
     """过曝！：对方手中每有1张牌，费用-1S。"""

@@ -1,6 +1,7 @@
 # 冥刻卡包复杂效果辅助函数
 # 该文件不被 translate_packs.py 覆盖，供 underworld.py 引用
 
+from tards.targets import target, target_mix
 from card_pools.effect_decorator import special, strategy
 from card_pools.effect_utils import (
     add_deathrattle,
@@ -2165,9 +2166,7 @@ def _biyi_special(p, t, g, extras=None):
 def _jinyangpi_effect(p, t, g, extras=None):
     return g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.UNDERWORLD and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION])
 
-def _shudong_targets(player, board):
-    from card_pools.effect_utils import empty_positions
-    return empty_positions(player, board)
+_shudong_targets = target("position", friendly=True, empty=True)
 
 
 
@@ -2178,14 +2177,12 @@ def _pimaoshang_choice(player, board):
 
 
 
-def _lieren_targets(player, board):
-    return player.card_hand[:]
+_lieren_targets = target("hand")
 
 
 
 
-def _yanping_targets(player, board):
-    return list(range(board.SIZE))
+_yanping_targets = target("column", range=[0, 1, 2, 3, 4])
 
 
 
@@ -2198,37 +2195,22 @@ def _shalou_cost_modifier(card, cost):
 
 
 
-def _shizhong_targets(player, board):
-    from tards.cards import MinionCard
-    from card_pools.effect_utils import convert_cost_to_t
-    return [c for c in player.card_hand
-            if isinstance(c, MinionCard) and convert_cost_to_t(c.cost) <= 7]
+_shizhong_targets = target("hand", card_type="minion", custom_filter=lambda c: convert_cost_to_t(c.cost) <= 7)
 
 
 
 
-def _muqi_targets(player, board):
-    return [m for m in board.minion_place.values()
-            if m.owner == player and m.is_alive()
-            and (getattr(m, "statue_top", False) or getattr(m, "statue_bottom", False))]
+_muqi_targets = target("minion", friendly=True, enemy=False, custom_filter=lambda m: getattr(m, "statue_top", False) or getattr(m, "statue_bottom", False))
 
 
 
 
-def _make_targets(player, board):
-    from tards.cards import Minion
-    minions = [m for m in board.minion_place.values() if isinstance(m, Minion)]
-    opponent = None
-    if board.game_ref:
-        opponent = board.game_ref.p2 if player == board.game_ref.p1 else board.game_ref.p1
-    return minions + ([opponent] if opponent else [])
+_make_targets = target_mix(target("minion"), target("player", enemy=True))
 
 
 
 
-def _shanhong_targets(player, board):
-    """山洪：选择一列陆地（0-3）。"""
-    return [0, 1, 2, 3]
+_shanhong_targets = target("column", range=[0, 1, 2, 3])
 
 
 
@@ -2257,78 +2239,38 @@ def _gaozhi_cost_modifier(card, cost):
 
 
 
-def _zhenban_targets(player, board):
-    """砧板：选择手牌中的一张牌。"""
-    return player.card_hand
+_zhenban_targets = target("hand")
 
 
 
 
-def _haichen_targets(player, board):
-    """还尘：选择任意一个受伤异象。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.current_health < m.max_health and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
+_haichen_targets = target("minion", injured=True)
 
 
 
 
-def _yehuo_targets(player, board):
-    """野火：选择手牌中的一张牌弃掉。"""
-    return player.card_hand
+_yehuo_targets = target("hand")
 
 
-def _yehuo_minion_choice(player, board):
-    """野火：选择场上一个异象返回其所有者牌库顶。"""
-    result = []
-    seen = set()
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and id(m) not in seen:
-            result.append(m)
-            seen.add(id(m))
-    return result
+_yehuo_minion_choice = target("minion")
 
 
 
 
-def _lunhui_targets(player, board):
-    """轮回：选择手牌中的一张牌弃掉。"""
-    return player.card_hand
+_lunhui_targets = target("hand")
 
 
-def _lunhui_target_choice(player, board):
-    """轮回：若弃掉回响，选择一个目标（敌方异象或敌方玩家）造成4点伤害。"""
-    opponent = player.board_ref.game_ref.p2 if player == player.board_ref.game_ref.p1 else player.board_ref.game_ref.p1
-    targets = []
-    for m in list(board.minion_place.values()) + list(board.cell_underlay.values()):
-        if m.is_alive() and m.owner == opponent:
-            targets.append(m)
-    targets.append(opponent)
-    return targets
+_lunhui_target_choice = target_mix(target("minion", friendly=False, enemy=True), target("player", enemy=True))
 
 
 
 
-def _gengti_targets(player, board):
-    """更替：选择手牌中的一个回响异象。"""
-    from tards.cards import MinionCard
-    result = []
-    for card in player.card_hand:
-        if isinstance(card, MinionCard) and (card.keywords.get("回响", False) or getattr(card, "echo_level", 0) > 0):
-            result.append(card)
-    return result
+_gengti_targets = target("hand", card_type="minion", custom_filter=lambda c: c.keywords.get("回响", False) or getattr(c, "echo_level", 0) > 0)
 
 
 
 
-def _liulinfengsheng_targets(player, board):
-    """柳林风声：选择手牌中的一个异象弃掉。"""
-    from tards.cards import MinionCard
-    return [c for c in player.card_hand if isinstance(c, MinionCard)]
+_liulinfengsheng_targets = target("hand", card_type="minion")
 
 
 
