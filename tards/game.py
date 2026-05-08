@@ -72,11 +72,6 @@ class Game:
         # 指向保护效果（用于"取消该指向"等机制）
         self._target_protections: List[Dict[str, Any]] = []
 
-        # 本回合部署追踪（跳蛛/鼯鼱/蟒等需要判断部署顺序）
-        self._deployed_this_turn: Dict["Player", List["Minion"]] = {}
-        # 本回合对玩家造成的伤害累计（木鹊等需要查询）
-        self._damage_dealt_to_players_this_turn: Dict["Player", int] = {}
-
         # 结构化状态日志（机器可读，用于全局统计如失去T槽数、出牌数等）
         self._state_log: List[Dict[str, Any]] = []
 
@@ -131,22 +126,6 @@ class Game:
                 self._resolve_statue_fusions()
             if event_type == EVENT_TURN_END:
                 self._resolve_statue_fusions()
-
-        # 部署计数（用于跳蛛/鼯鼱/蟒等判断部署顺序）
-        from .constants import EVENT_DEPLOYED
-        if event_type == EVENT_DEPLOYED:
-            minion = kwargs.get("minion")
-            if minion and hasattr(minion, "owner"):
-                self._deployed_this_turn.setdefault(minion.owner, []).append(minion)
-
-        # 每回合对玩家伤害累计（用于木鹊等）
-        if event_type == EVENT_PLAYER_DAMAGE:
-            target_player = kwargs.get("player")
-            damage = kwargs.get("damage", 0)
-            if target_player and damage:
-                self._damage_dealt_to_players_this_turn[target_player] = (
-                    self._damage_dealt_to_players_this_turn.get(target_player, 0) + damage
-                )
 
         # 更新机器日志
         if hasattr(self, "history"):
@@ -791,8 +770,6 @@ class Game:
             return
 
         # 清空本回合状态追踪（"回合"等价于结算阶段）
-        self._deployed_this_turn.clear()
-        self._damage_dealt_to_players_this_turn.clear()
         self.p1._cards_played_this_phase = 0
         self.p2._cards_played_this_phase = 0
 

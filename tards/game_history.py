@@ -97,6 +97,7 @@ class TurnRecord:
         # ── 战斗与生存 ──
         self.damage_dealt_to_players: Dict["Player", int] = defaultdict(int)
         self.damage_dealt_to_minions: Dict["Player", int] = defaultdict(int)
+        self.damage_received_by_players: Dict["Player", int] = defaultdict(int)  # 受伤方维度（木鹊等需要）
         self.healing_received: Dict["Player", int] = defaultdict(int)
         self.attacks_made: Dict["Player", int] = defaultdict(int)
 
@@ -156,6 +157,9 @@ class TurnRecord:
 
     def add_damage_to_player(self, dealer: "Player", amount: int) -> None:
         self.damage_dealt_to_players[dealer] += amount
+
+    def add_damage_received_by_player(self, target: "Player", amount: int) -> None:
+        self.damage_received_by_players[target] += amount
 
     def add_damage_to_minion(self, dealer: "Player", amount: int) -> None:
         self.damage_dealt_to_minions[dealer] += amount
@@ -319,6 +323,7 @@ class GameHistory:
         elif event_type == EVENT_PLAYER_DAMAGE:
             source = kwargs.get("source")
             damage = kwargs.get("damage", 0)
+            target = kwargs.get("target") or kwargs.get("player")
             dealer = None
             if damage:
                 if hasattr(source, "side"):
@@ -327,6 +332,8 @@ class GameHistory:
                     dealer = source.owner
                 if dealer is not None:
                     self._current.add_damage_to_player(dealer, damage)
+                if target is not None:
+                    self._current.add_damage_received_by_player(target, damage)
 
         elif event_type == EVENT_DAMAGED and minion is not None:
             source_minion = kwargs.get("source_minion")
@@ -675,6 +682,10 @@ class GameHistory:
 
     def damage_dealt_to_players_this_turn(self, dealer: "Player", turn: Optional[int] = None) -> int:
         return self._get_record(turn).damage_dealt_to_players[dealer]
+
+    def damage_received_by_player_this_turn(self, target: "Player", turn: Optional[int] = None) -> int:
+        """本回合某玩家受到的伤害累计（木鹊等需要查询对手受伤量）。"""
+        return self._get_record(turn).damage_received_by_players[target]
 
     def damage_dealt_to_minions_this_turn(self, dealer: "Player", turn: Optional[int] = None) -> int:
         return self._get_record(turn).damage_dealt_to_minions[dealer]

@@ -201,7 +201,7 @@ start_game()
 
 ```
 resolve_phase()
-    ├── 清空本回合临时状态（_deployed_this_turn、_damage_dealt_to_players_this_turn）
+    ├── 清空本回合临时状态（_strategies_played_this_turn）
     ├── 按列倒序遍历（水路 4 → 高地 0）
     │       ├── 收集本列可攻击异象
     │       ├── 按先攻等级 → 距中线距离 → side 排序
@@ -348,9 +348,9 @@ class TargetingRequest:
 │  (新模块)      │  TurnRecord × N + 当前快照                   │
 │                │  自动由 emit_event 驱动更新                  │
 ├─────────────────────────────────────────────────────────────┤
-│  回合级计数器  │  Game._deployed_this_turn                    │
-│  (旧机制，兼容)│  Game._damage_dealt_to_players_this_turn     │
-│                │  Game._strategies_played_this_turn           │
+│  回合级计数器  │  GameHistory.deployed_minions（部署顺序）    │
+│  (新模块)      │  GameHistory.damage_received_by_players      │
+│                │  Game._strategies_played_this_turn（待迁移） │
 ├─────────────────────────────────────────────────────────────┤
 │  实体级快照    │  Minion._last_damage_source/_type/_amount    │
 └─────────────────────────────────────────────────────────────┘
