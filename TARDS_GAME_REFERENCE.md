@@ -371,9 +371,10 @@ effect_fn(player, target, game, extras, card)
 - **代表卡牌**：含垢齿轮（使本回合献祭产血翻倍）。
 - **注意**：只影响**献祭产血**，不影响其他方式获得的 B 点。
 
-### 6.18 本回合策略卡计数器（_strategies_played_this_turn）
-- **`Game._strategies_played_this_turn`**：整数计数器，每回合开始时在 `run_turn()` 中重置为 0。
-- **递增时机**：`Player.play_card()` 打出策略卡（`CardType.STRATEGY`）后自动 `+1`。
+### 6.18 本回合策略卡计数器（GameHistory）
+- **`GameHistory.total_strategies_played_this_turn()`**：查询本回合双方合计打出的策略卡数。
+- **更新时机**：`Player.play_card()` 在策略卡效果执行前预更新（确保血溅白练等效果内查询包含自身），效果失败时回滚。
+- **`EVENT_CARD_PLAYED`** 不再重复更新策略计数，仅更新 `cards_played` / `minerals_played` / `conspiracies_activated`。
 - **用途**：血溅白练等卡检查"本回合打出的第3张策略卡"条件。
 
 ### 6.19 通用词条实现状态（完整清单）
@@ -631,7 +632,7 @@ def _xxx_special(minion, player, game, extras=None):
 - [x] **对局开始时效果**：`Game.start_game()` 扫描并执行 `on_game_start` 回调。
 - [x] **跳过结算阶段**：`Game._skip_resolve_phase` 标志，由钝锈指针等卡使用。
 - [x] **双倍血契**：`Player._double_blood_gain` 动态属性，献祭时自动翻倍。
-- [x] **本回合策略卡计数器**：`Game._strategies_played_this_turn`，用于血溅白练等卡。
+- [x] **本回合策略卡计数器**：`GameHistory.total_strategies_played_this_turn()`，由 player.py 预更新，用于血溅白练等卡。
 
 ### 13.2 卡牌效果层（高优先级）
 - `translate_packs.py` 生成的 416 张卡牌中，绝大多数 `special_fn=None` 或 `effect_fn=None`。

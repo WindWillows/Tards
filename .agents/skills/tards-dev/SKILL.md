@@ -49,7 +49,7 @@ description: |
 | **抽牌** | `Player.draw_card()` | 动作本身，不保证触发抽取（若直接 append 到手牌则不会）。 |
 | **跳过结算阶段** | `game._skip_resolve_phase = True` | `resolve_phase()` 开头检查，跳过整轮攻击并清空标志。 |
 | **双倍血契** | `player._double_blood_gain = True` | 献祭时产血自动翻倍。 |
-| **本回合策略卡计数** | `game._strategies_played_this_turn` | 每回合重置，打出策略卡后自动 +1。 |
+| **本回合策略卡计数** | `game.history.total_strategies_played_this_turn()` | 由 player.py 在效果执行前预更新，GameHistory 统一管理。 |
 | **卡位置追踪** | `Card._location` / `move_to()` | 统一追踪卡牌所在区域（deck/hand/discard/board/exile/resolving）。 |
 | **卡实例事件监听** | `Card.on(event_type, listener)` / `off_all()` | 卡实例级 EventBus 注册/注销。死亡/离场时应调用 `off_all()`。 |
 | **抽取效果设置** | `set_draw_trigger(card, callback)` | 为卡牌绑定抽取触发器，仅 `draw_card()` 入牌时触发。 |

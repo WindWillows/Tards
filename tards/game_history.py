@@ -297,7 +297,13 @@ class GameHistory:
 
         if event_type == EVENT_CARD_PLAYED and player is not None:
             ct = self._classify_card(card)
-            self._current.add_card_played(player, ct)
+            self._current.cards_played[player] += 1
+            if ct == "mineral":
+                self._current.minerals_played[player] += 1
+            elif ct == "conspiracy":
+                self._current.conspiracies_activated[player] += 1
+            # 策略卡的 strategies_played / total_strategies_played
+            # 由 player.py 在效果执行前预更新（血溅白练等需要效果内查询包含自身）
 
         elif event_type == EVENT_DEPLOYED and minion is not None:
             owner = getattr(minion, "owner", None) or player

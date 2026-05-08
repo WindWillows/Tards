@@ -75,9 +75,6 @@ class Game:
         # 结构化状态日志（机器可读，用于全局统计如失去T槽数、出牌数等）
         self._state_log: List[Dict[str, Any]] = []
 
-        # 本回合双方合计打出的策略卡数量（血溅白练等需要查询）
-        self._strategies_played_this_turn: int = 0
-
         # 绑定引用
         self.board.game_ref = self
         for p in self.players:
@@ -487,7 +484,6 @@ class Game:
         first = self.p1 if self.current_turn % 2 == 1 else self.p2
         second = self.p2 if first == self.p1 else self.p1
         print(f"\n========== 回合 {self.current_turn} | 先手: {first.name} ==========")
-        self._strategies_played_this_turn = 0
         self.history.advance_turn(self.current_turn)
         self.emit_event(EVENT_TURN_START, turn=self.current_turn, first=first, second=second)
         self._process_delayed_effects("turn_start")

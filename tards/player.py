@@ -439,9 +439,10 @@ class Player:
                 if card in self.card_hand:
                     self.card_hand.remove(card)
                 card.move_to("resolving", game)
-                # 统计本回合策略卡使用次数（包含此卡本身，血溅白练等需要）
+                # 预更新 GameHistory 策略计数（效果执行期间血溅白练等需要查询包含自身）
                 if not is_mineral:
-                    game._strategies_played_this_turn += 1
+                    game.history._current.strategies_played[self] += 1
+                    game.history._current.total_strategies_played += 1
                 prev = getattr(game, "_current_strategy_player", None)
                 game._current_strategy_player = self
                 try:
@@ -464,7 +465,8 @@ class Player:
                 else:
                     # 效果失败，回滚：卡移回手牌，费用返还，策略计数回滚
                     if not is_mineral:
-                        game._strategies_played_this_turn -= 1
+                        game.history._current.strategies_played[self] -= 1
+                        game.history._current.total_strategies_played -= 1
                     card.move_to("hand", game)
                     self.card_hand.append(card)
                     self.t_point_change(card.cost.t)
