@@ -96,6 +96,7 @@ __all__ = [
     "_guwangzhi_hui_effect",
     "_guwangzhi_shang_effect",
     "_lazhu_effect",
+    "_lazhu_cost_modifier",
     "_zhiwuxuejia_effect",
     "_pimaoshang_effect",
     "_lieren_effect",
@@ -405,22 +406,9 @@ def _tianniu_special(minion, player, game, extras=None):
 # 冥刻包 — 代表性效果（特殊资源机制）
 # =============================================================================
 
-def _register_candle_modifier_and_count(player):
-    """注册蜡烛费用修正器（若尚未注册）并增加烛烟部署计数。"""
-    if not getattr(player, "_candle_modifier_registered", False):
-        def _mod(card, cost):
-            if card.name == "蜡烛":
-                reduction = getattr(player, "_zhuyan_deployed_count", 0) * 2
-                if reduction > 0:
-                    cost.t = max(0, cost.t - reduction)
-        player._cost_modifiers.append(_mod)
-        player._candle_modifier_registered = True
-    player._zhuyan_deployed_count = getattr(player, "_zhuyan_deployed_count", 0) + 1
-
-
 def _zhuyan_special(minion, player, game, extras=None):
-    """烛烟：亡语：抽1张牌。部署时增加烛烟计数并注册蜡烛费用修正。"""
-    _register_candle_modifier_and_count(player)
+    """烛烟：亡语：抽1张牌。部署时增加烛烟使用计数。"""
+    player._zhuyan_used_count = getattr(player, "_zhuyan_used_count", 0) + 1
 
     def _dr(m, p, b):
         draw_cards(p, 1, game=b.game_ref if hasattr(b, "game_ref") else None)
@@ -458,8 +446,8 @@ def _xinge_special(minion, player, game, extras=None):
 
 
 def _datuanzhuyan_special(minion, player, game, extras=None):
-    """大团烛烟：亡语：抽2张牌。部署时增加烛烟计数并注册蜡烛费用修正。"""
-    _register_candle_modifier_and_count(player)
+    """大团烛烟：亡语：抽2张牌。部署时增加烛烟使用计数。"""
+    player._zhuyan_used_count = getattr(player, "_zhuyan_used_count", 0) + 1
 
     def _dr(m, p, b):
         draw_cards(p, 2, game=b.game_ref if hasattr(b, "game_ref") else None)
@@ -974,6 +962,15 @@ def _guwangzhi_shang_effect(player, target, game, extras=None):
             player.card_dis.append(card)
             print(f"  骨王之赏：手牌已满，[{card.name}] 被弃置")
     return True
+
+def _lazhu_cost_modifier(card, cost):
+    """蜡烛费用修正：此前每使用过一次'烛烟'，此牌花费-2T。"""
+    player = getattr(card, "owner", None)
+    if player:
+        reduction = getattr(player, "_zhuyan_used_count", 0) * 2
+        if reduction > 0:
+            cost.t = max(0, cost.t - reduction)
+
 
 def _lazhu_effect(player, target, game, extras=None):
     # 获得+6HP（上限+当前）

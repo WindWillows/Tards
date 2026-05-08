@@ -1946,6 +1946,7 @@ register_card(
     immersion_level=2,
     description="你获得+6HP，抽2张牌。此前你每使用过一次“烛烟”，花费-2T。",
     targets_fn=target_none,
+    cost_modifier=_lazhu_cost_modifier,
     effect_fn=_lazhu_effect,
 )
 

@@ -175,3 +175,32 @@ register_card(
 | [rules-core.md](references/rules-core.md) | 胜利条件、棋盘、回合流程、费用、关键词定义 | 需要理解规则或关键词时 |
 | [hardcoding-guide.md](references/hardcoding-guide.md) | 硬编码禁令、常见违规案例、正确改造方案 | 实现效果或修改引擎时 |
 | [effect-patterns.md](references/effect-patterns.md) | **标准函数签名 + 21个可复制模板 + 完整 API 速查表**（含伤害控制、部署计数、目标记忆、地形覆盖、攻击限制、伤害来源追踪等） | **编写 special_fn / strategy_fn 时（必读）** |
+
+## 用户快捷指令
+
+### `dd` — 清理并报告项目体积
+
+**触发词**：用户说 "dd"
+
+**执行内容**：
+1. 删除项目根目录下不必要的测试文件和执行脚本：
+   - `test_*.py`（测试文件）
+   - `demo*.py`（演示脚本）
+   - `generate_*.py`（文档/架构生成脚本）
+   - `_session_context.md`（临时会话文件）
+2. 统计并报告项目文件总大小
+3. **排除项**（不计入体积）：
+   - `.git/` 目录
+   - `.venv/` 目录
+   - `__pycache__/` 目录及所有 `.pyc` 文件
+   - 原始卡包文本：`血契卡包.txt`、`离散卡包.txt`、`冥刻卡包.txt`
+
+**输出格式**：
+```
+已删除：
+- <文件名1> (<大小> KB)
+- <文件名2> (<大小> KB)
+...
+
+项目体积（不含原始文件及编译内容）：<X.XX> MB
+```
