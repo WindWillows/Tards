@@ -106,7 +106,7 @@ register_card(
     description="部署：对1个异象造成1点伤害。",
     targets_fn=target_friendly_positions,
     extra_targeting_stages=[(target_any_minion, 1, False)],
-    special_fn=lambda p, t, g, extras=None: (t.health_change(-1) if hasattr(t, "health_change") else (t.take_damage(1) if hasattr(t, "take_damage") else False) or True),
+    special_fn=_moyingman_special,
 )
 
 register_card(
@@ -952,7 +952,7 @@ register_card(
     hidden_keywords={},
     description="部署：将1张“金苹果”置入卡组顶。 被“金苹果“指向时，抽1张牌，使你的所有手牌获得-1T花费。",
     targets_fn=target_friendly_positions,
-    special_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    special_fn=_jiangshicunmin_special,
 )
 
 register_card(
@@ -1222,7 +1222,7 @@ register_card(
     is_token=True,
     description="成长时，获得1个C槽，抽1张牌。",
     targets_fn=target_friendly_positions,
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_xiangshu_evolve,
 )
 
 register_card(
@@ -1639,7 +1639,7 @@ register_card(
     is_token=True,
     description="堆叠上限为4。打出：获得1T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现打出效果
+    effect_fn=_tieding_mineral,
 )
 
 register_card(
@@ -1654,7 +1654,7 @@ register_card(
     is_token=True,
     description="堆叠上限为2。打出：获得2T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现打出效果
+    effect_fn=_jinding_mineral,
 )
 
 register_card(
@@ -1669,7 +1669,7 @@ register_card(
     is_token=True,
     description="堆叠上限为1。打出：获得4T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现打出效果
+    effect_fn=_zuanshi_mineral,
 )
 
 register_card(
@@ -1847,7 +1847,7 @@ register_card(
     is_token=True,
     description="对一个异象造成6点伤害。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
+    effect_fn=_fengli_effect,
 )
 
 register_card(
@@ -1889,7 +1889,7 @@ register_card(
     is_token=True,
     description="抽2张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_shiyun_effect,
 )
 
 register_card(
@@ -1945,7 +1945,7 @@ register_card(
     is_token=True,
     description="开发1张卡组中的牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: g.develop_card(p, p.original_deck_defs),
+    effect_fn=_jingzhuicaiji_effect,
 )
 
 register_card(
@@ -1999,7 +1999,7 @@ register_card(
     hidden_keywords={},
     description="开发1张离散金卡异象。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.DISCRETE and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION]),
+    effect_fn=_xingyunfangkuai_effect,
 )
 
 register_card(
@@ -2489,7 +2489,7 @@ register_card(
     hidden_keywords={},
     description="对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (t.health_change(-6) if hasattr(t, "health_change") else (t.take_damage(6) if hasattr(t, "take_damage") else False) or True),
+    effect_fn=_yanhuozhixing_effect,
 )
 
 register_card(
@@ -2712,7 +2712,7 @@ register_card(
     hidden_keywords={},
     description="选择1张手牌中的异象，使场上的1个异象获得“也算作是本异象”。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_mingmingpai_strategy,
 )
 
 register_card(

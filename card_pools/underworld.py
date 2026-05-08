@@ -1269,7 +1269,7 @@ register_card(
     keywords={"横扫": 1, "迅捷": True},
     description="所有花费≤5的非飞禽异象部署时具有休眠I。 部署：使敌方花费不大于4的异象返回手牌。",
     targets_fn=target_friendly_positions,
-    special_fn=lambda p, t, g, extras=None: return_to_hand(t, g, p),
+    special_fn=_peng_special,
 )
 
 register_card(
@@ -1393,7 +1393,7 @@ register_card(
     keywords={"坚韧": 1},
     description="场上有不少于3个友方异象时，花费-2B。部署：开发一张卡组中的牌。",
     targets_fn=target_friendly_positions,
-    special_fn=lambda p, t, g, extras=None: g.develop_card(p, p.original_deck_defs),
+    special_fn=_fushu_special,
 )
 
 register_card(
@@ -1636,7 +1636,7 @@ register_card(
     health=2,
     description="受到不小于4的单次伤害时，改为失去1点HP。 部署：开发1张冥刻阴谋。",
     targets_fn=target_friendly_positions,
-    special_fn=lambda p, t, g, extras=None: g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.UNDERWORLD and c.card_type == CardType.CONSPIRACY]),
+    special_fn=_biyi_special,
 )
 
 register_card(
@@ -1848,7 +1848,7 @@ register_card(
     immersion_level=1,
     description="将一只“松鼠”加入战场，本回合所有B=0友方异象无法选中。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shudong_effect,
 )
 
 register_card(
@@ -1860,7 +1860,7 @@ register_card(
     immersion_level=2,
     description="选择并弃一张异象，获得3B。若非松鼠，抽一张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xueping_effect,
 )
 
 register_card(
@@ -1884,7 +1884,7 @@ register_card(
     immersion_level=1,
     description="对你造成2点伤害，然后对一个异象造成4点伤害。抽一张牌。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_qianzi_effect,
 )
 
 register_card(
@@ -1896,7 +1896,7 @@ register_card(
     immersion_level=2,
     description="对你造成4点伤害，然后造成8点伤害，随机分配至所有敌方目标。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_linshu_daobing_effect,
 )
 
 register_card(
@@ -1908,7 +1908,7 @@ register_card(
     immersion_level=3,
     description="选择并弃一张异象，若其献祭等级与丰饶等级之积不小于2，将一张“骨王之 赏”加入手牌；否则将一张“骨王之惠”加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_guwang_effect,
 )
 
 register_card(
@@ -1921,7 +1921,7 @@ register_card(
     is_token=True,
     description="抽一张牌，使其-2T1B。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_guwangzhi_hui_effect,
 )
 
 register_card(
@@ -1934,7 +1934,7 @@ register_card(
     is_token=True,
     description="抽2张牌，免除其献祭点数。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_guwangzhi_shang_effect,
 )
 
 register_card(
@@ -1946,7 +1946,7 @@ register_card(
     immersion_level=2,
     description="你获得+6HP，抽2张牌。此前你每使用过一次“烛烟”，花费-2T。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_lazhu_effect,
 )
 
 register_card(
@@ -1958,7 +1958,7 @@ register_card(
     immersion_level=2,
     description="选择并弃一张异象，使你手牌中另一张同名异象攻防翻倍且花费+1T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhiwuxuejia_effect,
 )
 
 register_card(
@@ -1970,7 +1970,7 @@ register_card(
     immersion_level=1,
     description="随机将一张手牌洗入卡组。抉择：抽2张异象或获得4T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_pimaoshang_effect,
 )
 
 register_card(
@@ -1982,7 +1982,7 @@ register_card(
     immersion_level=2,
     description="选择并弃一张牌，将其2张复制进入牌库。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_lieren_effect,
 )
 
 register_card(
@@ -1994,7 +1994,7 @@ register_card(
     immersion_level=2,
     description="将一个花费不大于3T的异象移动至友方同一列。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yugou_effect,
 )
 
 register_card(
@@ -2018,7 +2018,7 @@ register_card(
     immersion_level=1,
     description="眩晕一个异象。若是迅捷异象，改为消灭。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_bopidao_effect,
 )
 
 register_card(
@@ -2030,7 +2030,7 @@ register_card(
     immersion_level=2,
     description="使一列陆地也算作是高地。抽一张高地异象。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yanping_effect,
 )
 
 register_card(
@@ -2042,7 +2042,7 @@ register_card(
     immersion_level=2,
     description="下个出牌阶段，你的所有异象献祭等级+1。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_lanyue_effect,
 )
 
 register_card(
@@ -2054,7 +2054,7 @@ register_card(
     immersion_level=2,
     description="使一个异象获得亡语：随机对一个友方异象造成2点伤害，使其获得此亡语。",
     targets_fn=target_friendly_minions,
-    effect_fn=lambda p, t, g, extras=None: (setattr(t, "base_keywords", dict(getattr(t, "base_keywords", {}))) or t.base_keywords.update({"亡语": True}) or t.recalculate() or True) if hasattr(t, "recalculate") else False,
+    effect_fn=_zhadan_yao_effect,
 )
 
 register_card(
@@ -2066,7 +2066,7 @@ register_card(
     immersion_level=2,
     description="将场上的一个异象移动至你的手牌中。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xiangji_effect,
 )
 
 register_card(
@@ -2078,7 +2078,7 @@ register_card(
     immersion_level=3,
     description="手牌数不大于3时，花费-2T。随机将对方一张手牌放置至其卡组顶，你抽1 张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shalou_effect,
 )
 
 register_card(
@@ -2090,7 +2090,7 @@ register_card(
     immersion_level=2,
     description="你的所有异象具有+1攻击力和坚韧1，直到回合结束。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xueyue_effect,
 )
 
 register_card(
@@ -2102,7 +2102,7 @@ register_card(
     immersion_level=1,
     description="使一个异象获得：在受到致命伤害前，+0/1。若因此存活，+1/1。",
     targets_fn=target_any_minion,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jiaoshui_effect,
 )
 
 register_card(
@@ -2114,7 +2114,7 @@ register_card(
     immersion_level=1,
     description="弃掉一个花费不大于7T的异象，在3回合后的抽牌阶段将其加入战场。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_shizhong_effect,
 )
 
 register_card(
@@ -2126,7 +2126,7 @@ register_card(
     immersion_level=2,
     description="使手牌中一个异象获得 +2/3 和亡语：对方抽一张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_yinghuo_effect,
 )
 
 register_card(
@@ -2138,7 +2138,7 @@ register_card(
     immersion_level=1,
     description="使一个友方异象获得 +0/4 并冰冻2回合，期间其拥有坚韧I。",
     targets_fn=target_friendly_minions,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_bingkuai_effect,
 )
 
 register_card(
@@ -2150,7 +2150,7 @@ register_card(
     immersion_level=3,
     description="开发一张座首和一张底座。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_mudiaoshi_effect,
 )
 
 register_card(
@@ -2162,7 +2162,7 @@ register_card(
     immersion_level=3,
     description="使一个木雕组件获得+6HP和绝缘。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_muqi_effect,
 )
 
 register_card(
@@ -2174,7 +2174,7 @@ register_card(
     immersion_level=2,
     description="使一个目标免疫下次伤害。若指向异象，抽1张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_make_effect,
 )
 
 register_card(
@@ -2186,7 +2186,7 @@ register_card(
     immersion_level=3,
     description="本回合你每部署1个异象，花费-1T。你获得1个T槽，对方失去1个T槽。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_gaozhi_effect,
 )
 
 register_card(
@@ -2198,7 +2198,7 @@ register_card(
     immersion_level=1,
     description="开发一张冥刻金卡异象。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: g.develop_card(p, [c for c in DEFAULT_REGISTRY.all_cards() if c.pack == Pack.UNDERWORLD and c.rarity == Rarity.GOLD and c.card_type == CardType.MINION]),
+    effect_fn=_jinyangpi_effect,
 )
 
 register_card(
@@ -2210,7 +2210,7 @@ register_card(
     immersion_level=2,
     description="弃掉所有手牌，你获得：“抽牌阶段：你多抽1张牌。”",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_fansheng_effect,
 )
 
 register_card(
@@ -2294,7 +2294,7 @@ register_card(
     immersion_level=2,
     description="将2张“松鼠”加入手牌。本回合，你每献祭一个异象，抽一张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_tudao_effect,
 )
 
 register_card(
@@ -2330,7 +2330,7 @@ register_card(
     immersion_level=1,
     description="使一个异象获得亡语：将其-1/1的复制加入你的手牌。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (setattr(t, "base_keywords", dict(getattr(t, "base_keywords", {}))) or t.base_keywords.update({"亡语": True}) or t.recalculate() or True) if hasattr(t, "recalculate") else False,
+    effect_fn=_jidai_effect,
 )
 
 register_card(
@@ -2449,8 +2449,8 @@ register_card(
     immersion_level=1,
     description="对方部署异象后，失去4T。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_jiandao_condition,
+    effect_fn=_jiandao_effect,
 )
 
 register_card(
@@ -2475,8 +2475,8 @@ register_card(
     immersion_level=1,
     description="对方额外抽1张牌后，将其弃掉，随机使对方1张手牌花费+1T。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    condition_fn=_jinfeng_condition,
+    effect_fn=_jinfeng_effect,
 )
 
 register_card(
@@ -2488,8 +2488,8 @@ register_card(
     immersion_level=1,
     description="消灭接下来首列进入协同状态的异象。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_liqun_condition,
+    effect_fn=_liqun_effect,
 )
 
 register_card(
@@ -2514,8 +2514,8 @@ register_card(
     immersion_level=1,
     description="对方拉闸时，若其剩余T点等于0，对方失去一个T槽。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_guaishi_condition,
+    effect_fn=_guaishi_effect,
 )
 
 register_card(
@@ -2540,8 +2540,8 @@ register_card(
     immersion_level=1,
     description="场上敌方异象数量成为唯一最多时，抽2张牌。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    condition_fn=_yanxing_condition,
+    effect_fn=_yanxing_effect,
 )
 
 register_card(
@@ -2553,8 +2553,8 @@ register_card(
     immersion_level=1,
     description="对方打出下一张牌时，若是异象，对对手造成等同于其花费的伤害。",
     targets_fn=target_enemy_player,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_fange_condition,
+    effect_fn=_fange_effect,
 )
 
 register_card(
@@ -2566,8 +2566,8 @@ register_card(
     immersion_level=1,
     description="敌方异象对你造成伤害前，使其先获得-2攻击力。若具有迅捷，将其消灭。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_yexi_condition,
+    effect_fn=_yexi_effect,
 )
 
 register_card(
@@ -2579,6 +2579,6 @@ register_card(
     immersion_level=1,
     description="对方下次拍铃时，若此轮次未出牌，你获得4T。",
     targets_fn=target_none,
-    condition_fn=None,  # TODO: 实现触发条件
-    effect_fn=None,  # TODO: 实现效果
+    condition_fn=_xurui_condition,
+    effect_fn=_xurui_effect,
 )

@@ -514,7 +514,7 @@ register_card(
     immersion_level=1,
     description="抽1张牌，获得1S，对1个异象和你造成1点伤害。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_shuangsheng_bishou_effect,
 )
 
 register_card(
@@ -574,7 +574,7 @@ register_card(
     immersion_level=1,
     description="随机将1张对方手牌转换为“己所不欲，勿施于人“，使其具有+2T花费，直到回合 结束。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jisuobuyu_effect,
 )
 
 register_card(
@@ -610,7 +610,7 @@ register_card(
     immersion_level=1,
     description="将1张“胶片”加入对方手牌。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_jiaojuan_effect,
 )
 
 register_card(
@@ -634,7 +634,7 @@ register_card(
     immersion_level=1,
     description="使1个异象获得恐惧。抽1张牌。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_kongju_zhi_effect,
 )
 
 register_card(
@@ -670,7 +670,7 @@ register_card(
     immersion_level=1,
     description="随机将1张对方手牌洗入卡组。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_chahuo_shuji_effect,
 )
 
 register_card(
@@ -706,7 +706,7 @@ register_card(
     immersion_level=1,
     description="抽2张牌。被弃掉时：抽2张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_shenyuan_effect,
 )
 
 register_card(
@@ -874,7 +874,7 @@ register_card(
     immersion_level=1,
     description="抽2张牌。选择1张手牌，将其置入卡组顶。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_zhanweifu3_effect,
 )
 
 register_card(
@@ -899,7 +899,7 @@ register_card(
     is_moment=True,
     description="对1个异象造成3点伤害。抽1张牌。",
     targets_fn=target_any_minion,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_qinchen_effect,
 )
 
 register_card(
@@ -912,7 +912,7 @@ register_card(
     is_moment=True,
     description="你获得+4HP。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_yuzhong_effect,
 )
 
 register_card(
@@ -925,7 +925,7 @@ register_card(
     is_moment=True,
     description="抽2张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(2, game=g) or True),
+    effect_fn=_tingwu_effect,
 )
 
 register_card(
@@ -938,7 +938,7 @@ register_card(
     is_moment=True,
     description="抽1张牌。下个抽牌阶段，对方无法抽牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_bomu_effect,
 )
 
 register_card(
@@ -951,7 +951,7 @@ register_card(
     is_moment=True,
     description="冰冻1个异象及其相邻的1个异象。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_rending_effect,
 )
 
 register_card(
@@ -964,5 +964,5 @@ register_card(
     is_moment=True,
     description="将场上攻击力最高的1个异象返回其所有者手牌。抽1张牌。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_meidan_effect,
 )
