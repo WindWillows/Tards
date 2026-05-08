@@ -6,176 +6,6 @@ if TYPE_CHECKING:
     from .cards import Minion
 
 
-def target_friendly_positions(player: "Player", board: "Board") -> List[Tuple[int, int]]:
-    rows = player.get_friendly_rows()
-    return [(r, c) for r in rows for c in range(5)]
-
-
-def target_enemy_minions(player: "Player", board: "Board") -> List["Minion"]:
-    return [m for m in board.minion_place.values() if m.owner != player]
-
-
-def target_any_minion(player: "Player", board: "Board") -> List["Minion"]:
-    return list(board.minion_place.values())
-
-
-def target_self(player: "Player", board: "Board") -> List["Player"]:
-    return [player]
-
-
-def target_none(player: "Player", board: "Board") -> List[Any]:
-    return [None]
-
-
-def target_enemy_player(player: "Player", board: "Board") -> List["Player"]:
-    if board.game_ref:
-        return [p for p in board.game_ref.players if p != player]
-    return []
-
-
-def target_friendly_minions(player: "Player", board: "Board") -> List["Minion"]:
-    return [m for m in board.minion_place.values() if m.owner == player]
-
-
-def target_hand_minions(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家手牌中的所有异象卡（MinionCard）。"""
-    from .cards import MinionCard
-    return [c for c in player.card_hand if isinstance(c, MinionCard)]
-
-
-# =============================================================================
-# 扩展：高频指向过滤器
-# =============================================================================
-
-def target_injured_minions(player: "Player", board: "Board",
-                           friendly: bool = False, enemy: bool = True) -> List["Minion"]:
-    """返回场上受伤（当前生命值 < 最大生命值）的异象。
-
-    Args:
-        friendly: 是否包含友方异象
-        enemy: 是否包含敌方异象
-    """
-    result = []
-    for m in board.minion_place.values():
-        if not m.is_alive():
-            continue
-        is_friendly = m.owner == player
-        if is_friendly and not friendly:
-            continue
-        if not is_friendly and not enemy:
-            continue
-        if m.current_health < m.current_max_health:
-            result.append(m)
-    return result
-
-
-def target_minions_with_keyword(player: "Player", board: "Board",
-                                keyword: str,
-                                friendly: bool = True, enemy: bool = True) -> List["Minion"]:
-    """返回场上具有指定关键词的存活异象。
-
-    Args:
-        friendly: 是否包含友方
-        enemy: 是否包含敌方
-    """
-    result = []
-    for m in board.minion_place.values():
-        if not m.is_alive():
-            continue
-        is_friendly = m.owner == player
-        if is_friendly and not friendly:
-            continue
-        if not is_friendly and not enemy:
-            continue
-        if m.keywords.get(keyword):
-            result.append(m)
-    return result
-
-
-def target_friendly_minions_with_keyword(player: "Player", board: "Board",
-                                         keyword: str) -> List["Minion"]:
-    """返回场上具有指定关键词的友方存活异象。"""
-    return target_minions_with_keyword(player, board, keyword, friendly=True, enemy=False)
-
-
-def target_enemy_minions_with_keyword(player: "Player", board: "Board",
-                                      keyword: str) -> List["Minion"]:
-    """返回场上具有指定关键词的敌方存活异象。"""
-    return target_minions_with_keyword(player, board, keyword, friendly=False, enemy=True)
-
-
-def target_any_minion_or_enemy_player(player: "Player", board: "Board") -> List[Any]:
-    """返回场上任意存活异象 + 敌方玩家（用于需要选择"一个目标"的效果）。"""
-    result: List[Any] = [m for m in board.minion_place.values() if m.is_alive()]
-    if board.game_ref:
-        for p in board.game_ref.players:
-            if p != player:
-                result.append(p)
-    return result
-
-
-def target_any_minion_or_any_player(player: "Player", board: "Board") -> List[Any]:
-    """返回场上任意存活异象 + 双方玩家。"""
-    result: List[Any] = [m for m in board.minion_place.values() if m.is_alive()]
-    if board.game_ref:
-        result.extend(board.game_ref.players)
-    return result
-
-
-def target_minions_in_columns(player: "Player", board: "Board",
-                              columns: List[int],
-                              friendly: bool = True, enemy: bool = True) -> List["Minion"]:
-    """返回指定列中的存活异象。"""
-    result = []
-    for m in board.minion_place.values():
-        if not m.is_alive():
-            continue
-        if m.position[1] not in columns:
-            continue
-        is_friendly = m.owner == player
-        if is_friendly and not friendly:
-            continue
-        if not is_friendly and not enemy:
-            continue
-        result.append(m)
-    return result
-
-
-def target_friendly_positions_with_minion(player: "Player", board: "Board") -> List[Tuple[int, int]]:
-    """返回有友方存活异象占据的位置。"""
-    return [m.position for m in board.minion_place.values()
-            if m.is_alive() and m.owner == player]
-
-
-def target_empty_friendly_positions(player: "Player", board: "Board") -> List[Tuple[int, int]]:
-    """返回友方区域中的空位。"""
-    rows = player.get_friendly_rows()
-    all_positions = {(r, c) for r in rows for c in range(5)}
-    occupied = {m.position for m in board.minion_place.values()}
-    return [pos for pos in all_positions if pos not in occupied]
-
-
-def target_hand_cards(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家手牌中的所有卡牌（不限类型）。"""
-    return list(player.card_hand)
-
-
-def target_hand_strategies(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家手牌中的所有策略卡（Strategy）。"""
-    from .cards import Strategy
-    return [c for c in player.card_hand if isinstance(c, Strategy)]
-
-
-def target_discard_pile(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家弃牌堆中的所有卡牌。"""
-    return list(player.card_dis)
-
-
-def target_deck(player: "Player", board: "Board" = None) -> List[Any]:
-    """返回玩家牌库中的所有卡牌。"""
-    return list(player.card_deck)
-
-
 # =============================================================================
 # 统一目标选择器
 # =============================================================================
@@ -204,6 +34,7 @@ def target(source: str, **conditions):
             - tag="xxx"               标签（minion）
             - injured=True/False      受伤（minion）
             - empty=True/False        空格（position）
+            - columns=[...]           列号过滤（minion）
             - range=[...]             范围（column）
             - card_type="xxx"         卡牌类型（hand/deck/discard）
             - custom_filter=callable  自定义过滤函数
@@ -215,6 +46,7 @@ def target(source: str, **conditions):
     tag = conditions.get("tag")
     injured = conditions.get("injured", False)
     empty = conditions.get("empty", False)
+    columns = conditions.get("columns")
     range_ = conditions.get("range")
     card_type = conditions.get("card_type")
     custom_filter = conditions.get("custom_filter")
@@ -269,6 +101,11 @@ def target(source: str, **conditions):
                 if is_friendly and not friendly:
                     continue
                 if not is_friendly and not enemy:
+                    continue
+
+            # 列号过滤（仅 minion）
+            if columns:
+                if not hasattr(item, "position") or item.position[1] not in columns:
                     continue
 
             # 关键词过滤
@@ -333,3 +170,125 @@ def target_mix(*selectors):
                     seen.add(key)
         return result
     return _selector
+
+
+# =============================================================================
+# 旧目标选择器（已注释，改用 target() 统一实现，保留函数名作为向后兼容别名）
+# =============================================================================
+
+# def target_friendly_positions(player: "Player", board: "Board") -> List[Tuple[int, int]]:
+#     rows = player.get_friendly_rows()
+#     return [(r, c) for r in rows for c in range(5)]
+target_friendly_positions = target("position", friendly=True)
+
+# def target_enemy_minions(player: "Player", board: "Board") -> List["Minion"]:
+#     return [m for m in board.minion_place.values() if m.owner != player]
+target_enemy_minions = target("minion", friendly=False, enemy=True)
+
+# def target_any_minion(player: "Player", board: "Board") -> List["Minion"]:
+#     return list(board.minion_place.values())
+target_any_minion = target("minion")
+
+# def target_self(player: "Player", board: "Board") -> List["Player"]:
+#     return [player]
+target_self = target("player", friendly=True, enemy=False)
+
+
+def target_none(player: "Player", board: "Board") -> List[Any]:
+    """返回 [None]，表示无需选择目标。"""
+    return [None]
+
+
+# def target_enemy_player(player: "Player", board: "Board") -> List["Player"]:
+#     if board.game_ref:
+#         return [p for p in board.game_ref.players if p != player]
+#     return []
+target_enemy_player = target("player", friendly=False, enemy=True)
+
+# def target_friendly_minions(player: "Player", board: "Board") -> List["Minion"]:
+#     return [m for m in board.minion_place.values() if m.owner == player]
+target_friendly_minions = target("minion", friendly=True, enemy=False)
+
+# def target_hand_minions(player: "Player", board: "Board" = None) -> List[Any]:
+#     from .cards import MinionCard
+#     return [c for c in player.card_hand if isinstance(c, MinionCard)]
+target_hand_minions = target("hand", card_type="minion")
+
+
+def target_injured_minions(player: "Player", board: "Board",
+                           friendly: bool = False, enemy: bool = True) -> List["Minion"]:
+    """返回场上受伤（当前生命值 < 最大生命值）的异象。"""
+    return target("minion", alive=True, injured=True, friendly=friendly, enemy=enemy)(player, board)
+
+
+def target_minions_with_keyword(player: "Player", board: "Board",
+                                keyword: str,
+                                friendly: bool = True, enemy: bool = True) -> List["Minion"]:
+    """返回场上具有指定关键词的存活异象。"""
+    return target("minion", alive=True, keyword=keyword, friendly=friendly, enemy=enemy)(player, board)
+
+
+def target_friendly_minions_with_keyword(player: "Player", board: "Board",
+                                         keyword: str) -> List["Minion"]:
+    """返回场上具有指定关键词的友方存活异象。"""
+    return target("minion", alive=True, keyword=keyword, friendly=True, enemy=False)(player, board)
+
+
+def target_enemy_minions_with_keyword(player: "Player", board: "Board",
+                                      keyword: str) -> List["Minion"]:
+    """返回场上具有指定关键词的敌方存活异象。"""
+    return target("minion", alive=True, keyword=keyword, friendly=False, enemy=True)(player, board)
+
+
+# def target_any_minion_or_enemy_player(player: "Player", board: "Board") -> List[Any]:
+#     result: List[Any] = [m for m in board.minion_place.values() if m.is_alive()]
+#     if board.game_ref:
+#         for p in board.game_ref.players:
+#             if p != player:
+#                 result.append(p)
+#     return result
+target_any_minion_or_enemy_player = target_mix(target("minion"), target("player", enemy=True))
+
+# def target_any_minion_or_any_player(player: "Player", board: "Board") -> List[Any]:
+#     result: List[Any] = [m for m in board.minion_place.values() if m.is_alive()]
+#     if board.game_ref:
+#         result.extend(board.game_ref.players)
+#     return result
+target_any_minion_or_any_player = target_mix(target("minion"), target("player"))
+
+
+def target_minions_in_columns(player: "Player", board: "Board",
+                              columns: List[int],
+                              friendly: bool = True, enemy: bool = True) -> List["Minion"]:
+    """返回指定列中的存活异象。"""
+    return target("minion", alive=True, columns=columns, friendly=friendly, enemy=enemy)(player, board)
+
+
+def target_friendly_positions_with_minion(player: "Player", board: "Board") -> List[Tuple[int, int]]:
+    """返回有友方存活异象占据的位置。"""
+    return [m.position for m in target("minion", friendly=True, enemy=False)(player, board)]
+
+
+# def target_empty_friendly_positions(player: "Player", board: "Board") -> List[Tuple[int, int]]:
+#     rows = player.get_friendly_rows()
+#     all_positions = {(r, c) for r in rows for c in range(5)}
+#     occupied = {m.position for m in board.minion_place.values()}
+#     return [pos for pos in all_positions if pos not in occupied]
+target_empty_friendly_positions = target("position", friendly=True, empty=True)
+
+# def target_hand_cards(player: "Player", board: "Board" = None) -> List[Any]:
+#     return list(player.card_hand)
+target_hand_cards = target("hand")
+
+# def target_hand_strategies(player: "Player", board: "Board" = None) -> List[Any]:
+#     from .cards import Strategy
+#     return [c for c in player.card_hand if isinstance(c, Strategy)]
+target_hand_strategies = target("hand", card_type="strategy")
+
+# def target_discard_pile(player: "Player", board: "Board" = None) -> List[Any]:
+#     return list(player.card_dis)
+target_discard_pile = target("discard")
+
+# def target_deck(player: "Player", board: "Board" = None) -> List[Any]:
+#     return list(player.card_deck)
+target_deck = target("deck")
