@@ -138,6 +138,7 @@ class CardDefinition:
             card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
+            card.stack_limit = self.stack_limit
             return card
         elif self.card_type == CardType.STRATEGY:
             card = Strategy(
@@ -160,6 +161,7 @@ class CardDefinition:
             card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
+            card.stack_limit = self.stack_limit
             return card
         elif self.card_type == CardType.CONSPIRACY:
             card = Conspiracy(
@@ -181,6 +183,7 @@ class CardDefinition:
             card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
+            card.stack_limit = self.stack_limit
             return card
         elif self.card_type == CardType.MINERAL:
             card = MineralCard(

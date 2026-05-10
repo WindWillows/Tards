@@ -42,6 +42,10 @@ class Card:
         self.asset_id: Optional[str] = None
         self.asset_back_id: Optional[str] = None
 
+        # === 堆叠机制 ===
+        self.stack_count: int = 1
+        self.stack_limit: int = 1
+
         # === 卡的位置与事件监听（引擎扩展）===
         self._location: Optional[str] = None  # "deck", "hand", "discard", "board", "exile"
         self._card_listeners: List[tuple] = []  # (event_type, listener_fn)

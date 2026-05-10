@@ -201,6 +201,22 @@ class Player:
             return True
         return False
 
+    def _try_stack_to_hand(self, card: "Card") -> bool:
+        """尝试将卡牌堆叠到手牌中已有的同名卡牌上。
+        
+        仅当卡牌 stack_limit > 1 且手牌中有同名卡牌未达上限时成功。
+        成功时增加目标卡牌的 stack_count，返回 True。
+        失败时返回 False，调用方需要将卡牌 append 到手牌。
+        """
+        if card.stack_limit <= 1:
+            return False
+        for existing in self.card_hand:
+            if existing.name == card.name and existing.stack_count < existing.stack_limit:
+                existing.stack_count += 1
+                print(f"  {self.name} 的 [{card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
+                return True
+        return False
+
     def draw_card(self, amount: int, game: Optional["Game"] = None):
         drawn_names = []
         while amount > 0:
@@ -212,8 +228,13 @@ class Player:
                 self.lose_hp(self.draw_fail)
                 amount -= 1
                 continue
-            if len(self.card_hand) == self.card_hand_max:
-                card = self.card_deck.pop()
+            card = self.card_deck.pop()
+            card.move_to("hand", game)
+            if self._try_stack_to_hand(card):
+                # 堆叠成功，不占用新手牌位
+                pass
+            elif len(self.card_hand) >= self.card_hand_max:
+                # 手牌满且无法堆叠，磨牌
                 card.move_to("discard", game)
                 self.card_dis.append(card)
                 amount -= 1
@@ -222,9 +243,8 @@ class Player:
                     game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
                     game.emit_event(EVENT_MILLED, player=self, card=card)
                 continue
-            card = self.card_deck.pop()
-            card.move_to("hand", game)
-            self.card_hand.append(card)
+            else:
+                self.card_hand.append(card)
             card._acquired_by_draw = True  # 标记为抽牌获得
             drawn_names.append(card.name)
             amount -= 1
@@ -316,7 +336,10 @@ class Player:
             return False
         if not mineral_card.exchange_cost.pay(self):
             return False
-        if len(self.card_hand) >= self.card_hand_max:
+        if self._try_stack_to_hand(mineral_card):
+            mineral_card.move_to("hand", game)
+            print(f"  {self.name} 兑换了 [{mineral_card.name}]（堆叠）")
+        elif len(self.card_hand) >= self.card_hand_max:
             mineral_card.move_to("discard", game)
             self.card_dis.append(mineral_card)
             print(f"  {self.name} 手牌已满，{mineral_card.name} 被弃置")
@@ -395,9 +418,22 @@ class Player:
             return False
         card = self.card_hand[serial - 1]
 
+        # 堆叠处理：若 stack_count > 1，减1并用副本执行效果
+        original_card = card
+        if getattr(card, "stack_count", 1) > 1:
+            card.stack_count -= 1
+            import copy
+            card = copy.copy(card)
+            card.stack_count = 1
+            card._is_stack_copy = True
+            print(f"  [{original_card.name}] 消耗1张，剩余 {original_card.stack_count} 张")
+
         # 支付费用（普通资源+CT+矿物）
         cost = self._get_play_cost(card)
         if not cost.pay(self):
+            # 费用支付失败，回滚堆叠计数
+            if hasattr(card, "_is_stack_copy"):
+                original_card.stack_count += 1
             return False
         self._cards_played_this_phase += 1
 
@@ -409,7 +445,7 @@ class Player:
                 target = event.data.get("target", target)
             def deploy_fn():
                 # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
-                if card in self.card_hand:
+                if card not in getattr(card, "_is_stack_copy", False) and card in self.card_hand:
                     self.card_hand.remove(card)
                 card.move_to("resolving", game)
                 effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
@@ -432,8 +468,11 @@ class Player:
                     game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                 else:
                     # 部署失败，回滚：卡移回手牌，费用返还
-                    card.move_to("hand", game)
-                    self.card_hand.append(card)
+                    if hasattr(card, "_is_stack_copy"):
+                        original_card.stack_count += 1
+                    else:
+                        card.move_to("hand", game)
+                        self.card_hand.append(card)
                     self.t_point_change(cost.t)
                     self.b_point += cost.b
                     self.s_point += cost.s
@@ -450,7 +489,7 @@ class Player:
 
             def play_fn():
                 # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
-                if card in self.card_hand:
+                if not getattr(card, "_is_stack_copy", False) and card in self.card_hand:
                     self.card_hand.remove(card)
                 card.move_to("resolving", game)
                 prev = getattr(game, "_current_strategy_player", None)
@@ -473,9 +512,12 @@ class Player:
                         self.card_hand.append(echo_card)
                         print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                 else:
-                    # 效果失败，回滚：卡移回手牌，费用返还
-                    card.move_to("hand", game)
-                    self.card_hand.append(card)
+                    # 效果失败，回滚
+                    if hasattr(card, "_is_stack_copy"):
+                        original_card.stack_count += 1
+                    else:
+                        card.move_to("hand", game)
+                        self.card_hand.append(card)
                     self.t_point_change(card.cost.t)
                     self.b_point += card.cost.b
                     self.s_point += card.cost.s

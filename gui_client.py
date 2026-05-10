@@ -1618,6 +1618,12 @@ class BattleFrame(tk.Frame):
                 cvs.create_oval(cw - 18, 2, cw - 2, 18, fill="#4caf50", outline="white", width=1, tags="activated_mark")
                 cvs.create_text(cw - 10, 10, text="激", fill="white",
                                 font=("Microsoft YaHei", 7, "bold"), tags="activated_mark")
+            # 堆叠数量显示
+            stack_count = getattr(card, "stack_count", 1)
+            if stack_count > 1:
+                cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
+                cvs.create_text(cw - 12, ch - 12, text=str(stack_count), fill="white",
+                                font=("Microsoft YaHei", 9, "bold"), tags="stack_count")
             # 绑定事件
             cvs.bind("<Button-1>", lambda e, idx=i: self._on_hand_card_click(idx))
             cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
