@@ -214,7 +214,7 @@ class Player:
                 continue
             if len(self.card_hand) == self.card_hand_max:
                 card = self.card_deck.pop()
-                mineral_card.move_to("discard", game)
+                card.move_to("discard", game)
                 self.card_dis.append(card)
                 amount -= 1
                 print(f"  {self.name} 手牌已满，{card.name} 被弃置")
@@ -223,7 +223,7 @@ class Player:
                     game.emit_event(EVENT_MILLED, player=self, card=card)
                 continue
             card = self.card_deck.pop()
-            mineral_card.move_to("hand", game)
+            card.move_to("hand", game)
             self.card_hand.append(card)
             card._acquired_by_draw = True  # 标记为抽牌获得
             drawn_names.append(card.name)
