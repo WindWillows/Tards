@@ -2634,7 +2634,7 @@ register_card(
 
 register_card(
     name="门船穿梭",
-    cost_str="2T",
+    cost_str="1T1I",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.BRONZE,
