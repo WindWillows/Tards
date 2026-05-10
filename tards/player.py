@@ -317,7 +317,7 @@ class Player:
         if not mineral_card.exchange_cost.pay(self):
             return False
         if len(self.card_hand) >= self.card_hand_max:
-            card.move_to("discard", game)
+            mineral_card.move_to("discard", game)
             self.card_dis.append(mineral_card)
             print(f"  {self.name} 手牌已满，{mineral_card.name} 被弃置")
             if game:
@@ -325,7 +325,7 @@ class Player:
                 game.emit_event(EVENT_MILLED, player=self, card=mineral_card)
         else:
             self.card_hand.append(mineral_card)
-            card.move_to("hand", game)
+            mineral_card.move_to("hand", game)
             print(f"  {self.name} 兑换了 [{mineral_card.name}]")
         if game:
             game.emit_event("mineral_exchanged", player=self, card=mineral_card)
