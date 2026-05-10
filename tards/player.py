@@ -214,7 +214,7 @@ class Player:
                 continue
             if len(self.card_hand) == self.card_hand_max:
                 card = self.card_deck.pop()
-                card.move_to("discard", game)
+                mineral_card.move_to("discard", game)
                 self.card_dis.append(card)
                 amount -= 1
                 print(f"  {self.name} 手牌已满，{card.name} 被弃置")
@@ -223,7 +223,7 @@ class Player:
                     game.emit_event(EVENT_MILLED, player=self, card=card)
                 continue
             card = self.card_deck.pop()
-            card.move_to("hand", game)
+            mineral_card.move_to("hand", game)
             self.card_hand.append(card)
             card._acquired_by_draw = True  # 标记为抽牌获得
             drawn_names.append(card.name)
@@ -316,8 +316,17 @@ class Player:
             return False
         if not mineral_card.exchange_cost.pay(self):
             return False
-        self.card_hand.append(mineral_card)
-        print(f"  {self.name} 兑换了 [{mineral_card.name}]")
+        if len(self.card_hand) >= self.card_hand_max:
+            card.move_to("discard", game)
+            self.card_dis.append(mineral_card)
+            print(f"  {self.name} 手牌已满，{mineral_card.name} 被弃置")
+            if game:
+                game.emit_event(EVENT_DISCARDED, player=self, card=mineral_card, reason="mill")
+                game.emit_event(EVENT_MILLED, player=self, card=mineral_card)
+        else:
+            self.card_hand.append(mineral_card)
+            card.move_to("hand", game)
+            print(f"  {self.name} 兑换了 [{mineral_card.name}]")
         if game:
             game.emit_event("mineral_exchanged", player=self, card=mineral_card)
         return True
