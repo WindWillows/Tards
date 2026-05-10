@@ -120,16 +120,17 @@ class Cost:
             if remaining_t + player.c_point < self.ct:
                 return False, f"CT不足（需要{self.ct}CT，当前剩余T+C={remaining_t + player.c_point}）"
 
-        # 检查手牌中的矿物卡
+        # 检查手牌中的矿物卡（考虑堆叠）
         from .cards import MineralCard
         hand_minerals = {}
         for card in player.card_hand:
             if isinstance(card, MineralCard):
-                hand_minerals[card.mineral_type] = hand_minerals.get(card.mineral_type, 0) + 1
+                count = getattr(card, "stack_count", 1)
+                hand_minerals[card.mineral_type] = hand_minerals.get(card.mineral_type, 0) + count
 
         for mtype, need in self.minerals.items():
             if hand_minerals.get(mtype, 0) < need:
-                return False, f"手牌矿物不足（需要{need}张{mtype}，当前{hand_minerals.get(mtype, 0)}张）"
+                return False, f"手牌矿物不足（需要{need}个{mtype}，当前{hand_minerals.get(mtype, 0)}个）"
 
         return True, ""
 
@@ -161,16 +162,21 @@ class Cost:
             if pay_t:
                 player.t_point_change(-pay_t)
 
-        # 支付手牌矿物（从后往前移除，避免索引问题）
+        # 支付手牌矿物（考虑堆叠，从后往前处理避免索引问题）
         if self.minerals:
             for mtype, need in self.minerals.items():
-                removed = 0
+                remaining = need
                 for i in range(len(player.card_hand) - 1, -1, -1):
                     card = player.card_hand[i]
                     if isinstance(card, MineralCard) and card.mineral_type == mtype:
-                        player.card_hand.pop(i)
-                        removed += 1
-                        if removed >= need:
+                        stack = getattr(card, "stack_count", 1)
+                        if stack <= remaining:
+                            player.card_hand.pop(i)
+                            remaining -= stack
+                        else:
+                            card.stack_count -= remaining
+                            remaining = 0
+                        if remaining <= 0:
                             break
 
         return True

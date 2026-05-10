@@ -62,6 +62,11 @@ EVENT_BEFORE_STACK_RESOLVE = "before_stack_resolve"
 EVENT_DEVELOPED = "developed"
 EVENT_CONSPIRACY_TRIGGERED = "conspiracy_triggered"
 
+# 指向系统事件
+EVENT_TARGETING_REQUEST = "targeting_request"
+EVENT_TARGETING_COMPLETED = "targeting_completed"
+EVENT_TARGETING_CANCELLED = "targeting_cancelled"
+
 # 关键词变化事件
 EVENT_KEYWORD_GAINED = "keyword_gained"
 EVENT_KEYWORD_LOST = "keyword_lost"

@@ -1180,8 +1180,7 @@ def _nvwu_special(minion, player, game, extras=None):
     if target and hasattr(target, "current_health"):
         target.current_health -= 2
         print(f"  女巫使 {target.name} 流失2点HP")
-        killed = target.current_health <= 0
-        if killed:
+        if target.current_health <= 0:
             target.minion_death()
             minion._nvwu_active = True
             print("  女巫激活持续效果")
@@ -1195,20 +1194,25 @@ def _nvwu_special(minion, player, game, extras=None):
             # 行动阶段：玩家选择结算阶段目标
             if not minion.is_alive():
                 return
+            from tards.targeting import TargetingRequest
+
             enemies = all_enemy_minions(game, player)
             opponent = game.p2 if player == game.p1 else game.p1
-            options = [f"{i+1}. {m.name}" for i, m in enumerate(enemies)]
-            options.append(f"{len(options)+1}. {opponent.name}")
-            chosen = game.request_choice(player, options, title="女巫：选择结算阶段目标")
-            if chosen:
-                try:
-                    idx = int(chosen.split('.')[0]) - 1
-                    if 0 <= idx < len(enemies):
-                        minion._nvwu_target = enemies[idx]
-                    elif idx == len(enemies):
-                        minion._nvwu_target = opponent
-                except (ValueError, IndexError):
-                    pass
+
+            def scope_fn(p, board):
+                return enemies + [opponent]
+
+            req = TargetingRequest()
+            req.source = minion
+            req.scope_fn = scope_fn
+            req.count = 1
+            req.prompt = "女巫：选择结算阶段目标"
+            req.deciding_player = player
+            t = game.targeting_system.request_target(req)
+            if t is not None:
+                minion._nvwu_target = t
+            else:
+                minion._nvwu_target = None
 
         elif phase == game.PHASE_RESOLVE:
             # 结算阶段：对预选目标造成2点伤害
@@ -1217,21 +1221,32 @@ def _nvwu_special(minion, player, game, extras=None):
             t = getattr(minion, "_nvwu_target", None)
             if t and hasattr(t, "is_alive"):
                 if t.is_alive():
-                    t.current_health -= 2
-                    print(f"  女巫使 {t.name} 流失2点HP")
-                    if t.current_health <= 0:
-                        t.minion_death()
-                        entry = {"filter": lambda target, source: target is minion, "reason": f"女巫无法选中_{id(minion)}", "once": False}
+                    from card_pools.effect_utils import deal_damage_to_minion
+                    deal_damage_to_minion(t, 2, source=minion, game=game)
+                    # take_damage 内部在 HP<=0 时调用 minion_death（延迟执行），
+                    # 此时直接检查血量或 _pending_death 判断是否消灭
+                    if t.current_health <= 0 or getattr(t, "_pending_death", False):
+                        witch_reason = f"女巫无法选中_{id(minion)}"
+                        entry = {
+                            "filter": lambda target, source: target is minion and minion.is_alive(),
+                            "reason": witch_reason,
+                            "once": False,
+                        }
                         game._target_protections.append(entry)
                         print("  女巫获得无法选中")
             elif isinstance(t, Player):
-                t.health_change(-2)
-                print(f"  女巫使 {t.name} 流失2点HP")
+                from card_pools.effect_utils import deal_damage_to_player
+                deal_damage_to_player(t, 2, source=minion, game=game)
+                print(f"  女巫使 {t.name} 受到2点伤害")
 
     def on_phase_end(event):
         if event.data.get("phase") == game.PHASE_RESOLVE:
-            # 清除无法选中
-            game._target_protections = [p for p in game._target_protections if not p.get("reason", "").startswith("女巫无法选中_")]
+            # 精确清理本女巫的无法选中（避免误伤其他女巫）
+            witch_reason = f"女巫无法选中_{id(minion)}"
+            game._target_protections = [
+                p for p in game._target_protections
+                if p.get("reason") != witch_reason
+            ]
 
     on("phase_start", on_phase_start, game, minion)
     on("phase_end", on_phase_end, game, minion)
@@ -1420,19 +1435,30 @@ def _nishiz_special(minion, player, game, extras=None):
 
 
 @special
+@special
 def _dongxuezhizhu_special(minion, player, game, extras=None):
     """洞穴蜘蛛：部署：将1个异象的攻击力设为1。亡语：将1张"蜘蛛眼"加入手牌。"""
+    from tards.targeting import TargetingRequest
 
-    targets = extras or []
-    for target in targets:
-        if isinstance(target, Minion) and target.is_alive():
-            target.base_attack = 1
-            target.perm_attack_bonus = 0
-            target.temp_attack_bonus = 0
-            if hasattr(target, '_aura_attack_fns'):
-                target._aura_attack_fns.clear()
-            target.recalculate()
-            print(f"  {target.name} 的攻击力被设为1")
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "洞穴蜘蛛：选择1个异象将其攻击力设为1"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if isinstance(t, Minion) and t.is_alive():
+        t.base_attack = 1
+        t.perm_attack_bonus = 0
+        t.temp_attack_bonus = 0
+        if hasattr(t, '_aura_attack_fns'):
+            t._aura_attack_fns.clear()
+        t.recalculate()
+        print(f"  {t.name} 的攻击力被设为1")
 
     def _deathrattle(m, p, b):
         from tards.card_db import DEFAULT_REGISTRY
@@ -1446,6 +1472,7 @@ def _dongxuezhizhu_special(minion, player, game, extras=None):
             print(f"  {p.name} 获得蜘蛛眼")
 
     add_deathrattle(minion, _deathrattle)
+    return True
 
 
 @special
@@ -1464,10 +1491,21 @@ def _kuangche_special(minion, player, game, extras=None):
 @special
 def _moyingman_special(minion, player, game, extras=None):
     """末影螨：部署：对1个异象造成1点伤害。"""
-    targets = extras or []
-    for target in targets:
-        if hasattr(target, "is_alive") and target.is_alive():
-            deal_damage_to_minion(target, 1, source=minion, game=game)
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "末影螨：选择1个异象造成1点伤害"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if hasattr(t, "is_alive") and t.is_alive():
+        deal_damage_to_minion(t, 1, source=minion, game=game)
     return True
 
 
@@ -1532,20 +1570,30 @@ def _weidaoshi_special(minion, player, game, extras=None):
 @special
 def _zhizhu_special(minion, player, game, extras=None):
     """蜘蛛：部署：使1个异象失去迅捷，高频和空袭。亡语：将1张"蜘蛛眼"加入手牌。"""
-    # 部署指向效果
-    targets = extras or []
-    if targets:
-        target = targets[0]
-        if hasattr(target, "is_alive") and target.is_alive():
-            remove_keyword(target, "迅捷")
-            remove_keyword(target, "高频")
-            remove_keyword(target, "空袭")
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "蜘蛛：选择1个异象移除迅捷/高频/空袭"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if hasattr(t, "is_alive") and t.is_alive():
+        remove_keyword(t, "迅捷")
+        remove_keyword(t, "高频")
+        remove_keyword(t, "空袭")
 
     # 亡语
     def _dr(m, p, b):
         add_card_to_hand_by_name("蜘蛛眼", p)
 
     add_deathrattle(minion, _dr)
+    return True
 
 
 @special
@@ -1627,9 +1675,73 @@ def _shujia_special(minion, player, game, extras=None):
     on_damaged(minion, game, _on_damaged)
 
 
+def _moyingzhenzhu_targets(player, board):
+    """末影珍珠合法目标：友方存活且处于陆地（非水路）的异象。"""
+    return [
+        m for m in board.minion_place.values()
+        if m.is_alive()
+        and hasattr(m, "owner") and m.owner == player
+        and hasattr(m, "board") and m.board is not None
+        and not m.board._is_water_at(m.position)
+    ]
+
+
+@strategy
+def _moyingzhenzhu_effect(player, target, game, extras=None):
+    """末影珍珠：指向2个同阵营陆地异象，交换它们的位置。
+
+    目标选择在 effect_fn 内部完成，不依赖 targets_fn / extra_targeting_stages。
+    玩家取消时返回 False，由 play_fn() 自动回滚费用与卡牌。
+    """
+    from tards.targeting import TargetingRequest
+
+    # 第一次指向请求
+    req1 = TargetingRequest()
+    req1.source = player
+    req1.scope_fn = _moyingzhenzhu_targets
+    req1.prompt = "末影珍珠：选择第一个陆地异象"
+    req1.deciding_player = player
+    a = game.targeting_system.request_target(req1)
+    if a is None:
+        return False
+
+    # 第二次指向请求（排除已选）
+    def scope2(p, b):
+        return [m for m in _moyingzhenzhu_targets(p, b) if m is not a]
+
+    req2 = TargetingRequest()
+    req2.source = player
+    req2.scope_fn = scope2
+    req2.prompt = "末影珍珠：选择第二个陆地异象"
+    req2.deciding_player = player
+    b = game.targeting_system.request_target(req2)
+    if b is None:
+        return False
+
+    # 校验
+    if not hasattr(a, "is_alive") or not hasattr(b, "is_alive"):
+        print("  末影珍珠：目标必须是异象")
+        return False
+    if not a.is_alive() or not b.is_alive():
+        print("  末影珍珠：目标已死亡")
+        return False
+    if a.owner != player or b.owner != player:
+        print("  末影珍珠：目标必须是同阵营异象")
+        return False
+    if not hasattr(a, "board") or a.board is None or a.board._is_water_at(a.position):
+        print("  末影珍珠：目标必须是陆地异象")
+        return False
+    if not hasattr(b, "board") or b.board is None or b.board._is_water_at(b.position):
+        print("  末影珍珠：目标必须是陆地异象")
+        return False
+
+    swap(a, b, game)
+    return True
+
+
 @special
 def _moyiren_special(minion, player, game, extras=None):
-    """末影人：受到伤害前，与1个友方异象交换位置。"""
+    """末影人：受到伤害前，与1个友方异象交换位置。亡语：将1张'末影珍珠'加入手牌。"""
 
     def _teleport(event):
         if event.get("target") != minion:
@@ -1642,6 +1754,11 @@ def _moyiren_special(minion, player, game, extras=None):
         print(f"  末影人与 {target_friend.name} 交换位置")
 
     on_before_damage(minion, game, _teleport)
+
+    def _dr(m, p, b):
+        add_card_to_hand_by_name("末影珍珠", p)
+
+    add_deathrattle(minion, _dr)
 
 
 @special
@@ -2347,17 +2464,30 @@ def _zhidaojishu_effect(player, target, game, extras=None):
 
 
 @strategy
+@strategy
 def _hongji_effect(player, target, game, extras=None):
     """轰击：消灭1个受伤异象，将1张"TNT炮"加入手牌。"""
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print("  轰击：未选择目标")
-        return True
+    from tards.targeting import TargetingRequest
 
-    if target.current_health >= target.health:
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.current_health < m.health]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "轰击：选择1个受伤异象"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not hasattr(t, "is_alive") or not t.is_alive():
+        print("  轰击：目标无效")
+        return True
+    if t.current_health >= t.health:
         print("  轰击：目标未受伤")
         return True
 
-    destroy_minion(target, game)
+    destroy_minion(t, game)
     add_card_to_hand_by_name("TNT炮", player, game)
     print(f"  轰击：将 TNT炮 加入手牌")
     return True
@@ -2920,16 +3050,30 @@ def _huoshi_targets(player, board):
 
 
 @strategy
+@strategy
 def _huoshi_effect(player, target, game, extras=None):
     """火矢：使1个陆地异象获得+4攻击力。"""
-    if not isinstance(target, Minion):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and not b._is_water_at(m.position)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "火矢：选择1个陆地异象"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not isinstance(t, Minion):
         print("  火矢：目标必须是异象")
         return False
-    if game.board._is_water_at(target.position):
+    if game.board._is_water_at(t.position):
         print("  火矢：目标必须是陆地异象")
         return False
-    target.attack += 4
-    print(f"  火矢：{target.name} 获得 +4 攻击力")
+    t.attack += 4
+    print(f"  火矢：{t.name} 获得 +4 攻击力")
     return True
 
 
@@ -2941,13 +3085,26 @@ def _hengsao_targets(player, board):
 @strategy
 def _hengsao_effect(player, target, game, extras=None):
     """横扫之刃：对1行异象造成3点伤害。"""
-    if not isinstance(target, Minion):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "横扫之刃：选择1个异象（决定目标行）"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not isinstance(t, Minion):
         print("  横扫之刃：目标必须是异象")
         return False
-    if not target.is_alive():
+    if not t.is_alive():
         print("  横扫之刃：目标已死亡")
         return False
-    row = target.position[0]
+    row = t.position[0]
     for col in range(game.board.SIZE):
         pos = (row, col)
         m = game.board.get_minion_at(pos)
@@ -2977,12 +3134,26 @@ def _erdiao_effect(player, target, game, extras=None):
 
 
 @strategy
+@strategy
 def _zhongcheng_effect(player, target, game, extras=None):
     """忠诚：使1个友方异象获得亡语：将本异象的复制加入手牌。"""
-    if not isinstance(target, Minion):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "忠诚：选择1个友方异象"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not isinstance(t, Minion):
         print("  忠诚：目标必须是异象")
         return False
-    if target.owner != player:
+    if t.owner != player:
         print("  忠诚：目标必须是友方异象")
         return False
 
@@ -3000,8 +3171,8 @@ def _zhongcheng_effect(player, target, game, extras=None):
             copy_card.move_to("discard", b)
             print(f"  {m.name} 的亡语：手牌已满，复制被弃置")
 
-    add_deathrattle(target, _dr)
-    print(f"  忠诚：{target.name} 获得亡语")
+    add_deathrattle(t, _dr)
+    print(f"  忠诚：{t.name} 获得亡语")
     return True
 
 
@@ -3029,31 +3200,48 @@ def _shenhaitansuozhe_extra_targets(player, board):
 @strategy
 def _shenhaitansuozhe_effect(player, target, game, extras=None):
     """深海探索者：使1个水路异象获得+2/2 或 对其造成6点伤害。"""
-    if target not in ("+2/2", "造成6点伤害"):
+    from tards.targeting import TargetingRequest
+
+    # 阶段1：选择效果模式
+    req1 = TargetingRequest()
+    req1.source = player
+    req1.scope_fn = lambda p, b: ["+2/2", "造成6点伤害"]
+    req1.prompt = "深海探索者：选择效果模式"
+    req1.deciding_player = player
+    mode = game.targeting_system.request_target(req1)
+    if mode is None:
+        return False
+    if mode not in ("+2/2", "造成6点伤害"):
         print("  深海探索者：效果模式无效")
         return False
-    if not extras:
-        print("  深海探索者：未选择目标")
+
+    # 阶段2：选择水路异象
+    def water_scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and b._is_water_at(m.position)]
+
+    req2 = TargetingRequest()
+    req2.source = player
+    req2.scope_fn = water_scope
+    req2.prompt = "深海探索者：选择1个水路异象"
+    req2.deciding_player = player
+    t = game.targeting_system.request_target(req2)
+    if t is None:
         return False
-    actual_target = extras[0]
-    if not isinstance(actual_target, Minion):
-        print("  深海探索者：目标必须是异象")
+    if not isinstance(t, Minion) or not t.is_alive():
+        print("  深海探索者：目标无效")
         return False
-    if not actual_target.is_alive():
-        print("  深海探索者：目标已死亡")
-        return False
-    if not game.board._is_water_at(actual_target.position):
+    if not game.board._is_water_at(t.position):
         print("  深海探索者：目标必须是水路异象")
         return False
 
-    if target == "+2/2":
-        actual_target.attack += 2
-        actual_target.health += 2
-        actual_target.current_health += 2
-        print(f"  深海探索者：{actual_target.name} 获得 +2/2")
+    if mode == "+2/2":
+        t.attack += 2
+        t.health += 2
+        t.current_health += 2
+        print(f"  深海探索者：{t.name} 获得 +2/2")
     else:
-        deal_damage_to_minion(actual_target, 6, source=None, game=game)
-        print(f"  深海探索者：对 {actual_target.name} 造成6点伤害")
+        deal_damage_to_minion(t, 6, source=None, game=game)
+        print(f"  深海探索者：对 {t.name} 造成6点伤害")
     return True
 
 
@@ -3262,15 +3450,29 @@ def _yelian_effect(player, target, game, extras=None):
 
 
 @strategy
+@strategy
 def _cuiruotongmeng_effect(player, target, game, extras=None):
     """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，回合结束时，将其移除。"""
     from tards.cards import MinionCard, Minion
     from tards.cost import Cost
     import random
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "脆弱同盟：选择1个友方异象消灭"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
 
     # 1. 消灭友方异象
-    if target and hasattr(target, "is_alive") and target.is_alive():
-        destroy_minion(target, game)
+    if t and hasattr(t, "is_alive") and t.is_alive():
+        destroy_minion(t, game)
 
     # 2. 召唤2个具有迅捷的恶魂
     empties = empty_positions(player, game.board)
@@ -3656,18 +3858,24 @@ STRATEGY_MAP = {
 # =============================================================================
 
 @special
+@special
 def _jiangshizhuren_special(minion, player, game, extras=None):
     """僵尸猪人：部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。"""
-    targets = extras or []
-    enemy = None
-    for t in targets:
-        if hasattr(t, "is_alive") and t.is_alive() and is_enemy(t, player):
-            enemy = t
-            break
-    if not enemy:
-        enemy = random_enemy_minion(game, player)
-    if not enemy:
-        return
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner != p]
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "僵尸猪人：选择1个敌方异象对战"
+    req.deciding_player = player
+    enemy = game.targeting_system.request_target(req)
+    if enemy is None:
+        return False
+    if not hasattr(enemy, "is_alive") or not enemy.is_alive():
+        return True
 
     was_alive = enemy.is_alive()
     initiate_combat(minion, enemy, game)
@@ -3675,18 +3883,45 @@ def _jiangshizhuren_special(minion, player, game, extras=None):
     if was_alive and not enemy.is_alive():
         buff_minion(minion, atk_delta=-1, hp_delta=0)
         print(f"  {minion.name} 因消灭目标，攻击力-1")
+    return True
 
 
 @strategy
+@strategy
 def _guaiwulieren_strategy(player, target, game, extras=None):
     """怪物猎人：使1个友方生物异象+1/3，然后与1个敌方异象对战。"""
-    friendly = target
-    enemy = extras[0] if extras else None
-    if not friendly or not hasattr(friendly, "is_alive") or not friendly.is_alive():
-        print(f"  [警告] 怪物猎人：未选择有效的友方异象")
+    from tards.targeting import TargetingRequest
+
+    # 阶段1：选择友方异象
+    def friendly_scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req1 = TargetingRequest()
+    req1.source = player
+    req1.scope_fn = friendly_scope
+    req1.prompt = "怪物猎人：选择1个友方异象"
+    req1.deciding_player = player
+    friendly = game.targeting_system.request_target(req1)
+    if friendly is None:
         return False
-    if not enemy or not hasattr(enemy, "is_alive") or not enemy.is_alive():
-        print(f"  [警告] 怪物猎人：未选择有效的敌方异象")
+    if not hasattr(friendly, "is_alive") or not friendly.is_alive():
+        print("  怪物猎人：目标无效")
+        return False
+
+    # 阶段2：选择敌方异象
+    def enemy_scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner != p]
+
+    req2 = TargetingRequest()
+    req2.source = player
+    req2.scope_fn = enemy_scope
+    req2.prompt = "怪物猎人：选择1个敌方异象对战"
+    req2.deciding_player = player
+    enemy = game.targeting_system.request_target(req2)
+    if enemy is None:
+        return False
+    if not hasattr(enemy, "is_alive") or not enemy.is_alive():
+        print("  怪物猎人：目标无效")
         return False
 
     buff_minion(friendly, atk_delta=1, hp_delta=3)
@@ -3921,6 +4156,8 @@ __all__ = [
     "_jiangshizhuren_special",
     "_guaiwulieren_strategy",
     # 策略效果
+    "_moyingzhenzhu_targets",
+    "_moyingzhenzhu_effect",
     "_mubiao_strategy",
     "_shibiao_strategy",
     "_jinbiao_strategy",
@@ -4211,20 +4448,34 @@ def _jinxiguapian_effect(player, target, game, extras=None):
 
 
 @strategy
+@strategy
 def _yinyu_effect(player, target, game, extras=None):
     """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。"""
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and not m.keywords.get("高地", False)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "阴雨：选择1个非高地异象"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not hasattr(t, "is_alive") or not t.is_alive():
         print("  [警告] 阴雨：未选择有效的目标异象")
         return False
 
     # 造成2点伤害
-    deal_damage_to_minion(target, 2, game=game)
+    deal_damage_to_minion(t, 2, game=game)
 
     # 若存活，临时将攻击力设为0
-    if target.is_alive():
-        target.temp_attack_bonus -= target.attack
-        target.recalculate()
-        print(f"  {target.name} 攻击力被设为0（直到回合结束）")
+    if t.is_alive():
+        t.temp_attack_bonus -= t.attack
+        t.recalculate()
+        print(f"  {t.name} 攻击力被设为0（直到回合结束）")
 
     return True
 
@@ -4257,9 +4508,22 @@ def _anye_effect(player, target, game, extras=None):
 
 
 @strategy
+@strategy
 def _poxi_effect(player, target, game, extras=None):
     """破袭：使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。"""
-    friendly = target
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "破袭：选择1个友方异象"
+    req.deciding_player = player
+    friendly = game.targeting_system.request_target(req)
+    if friendly is None:
+        return False
     if not friendly or not hasattr(friendly, "is_alive") or not friendly.is_alive():
         print("  [警告] 破袭：未选择有效的友方异象")
         return False
@@ -4534,20 +4798,34 @@ def _yanhuaqiaochi_effect(player, target, game, extras=None):
         return False
 
 
+@strategy
 def _menchuanchuansuo_effect(player, target, game, extras=None):
     """门船穿梭：使1个友方异象返回手牌，将其花费设为1I直到回合结束。
     然后若其上回合在场上，使其部署时具有迅捷。
     """
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+    from tards.targeting import TargetingRequest
+
+    def scope(p, b):
+        return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "门船穿梭：选择1个友方异象"
+    req.deciding_player = player
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False
+    if not t or not hasattr(t, "is_alive") or not t.is_alive():
         print("  [警告] 门船穿梭：未选择有效的友方异象")
         return False
 
-    was_on_board_last_turn = not was_minion_deployed_this_turn(game, target)
+    was_on_board_last_turn = not was_minion_deployed_this_turn(game, t)
 
-    card = getattr(target, "source_card", None)
+    card = getattr(t, "source_card", None)
 
     from tards.auto_effects import return_to_hand
-    return_to_hand(target, game, player)
+    return_to_hand(t, game, player)
 
     if card:
         # 保存原花费

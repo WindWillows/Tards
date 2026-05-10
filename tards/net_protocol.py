@@ -121,6 +121,11 @@ def msg_choice(options: list, chosen: str, title: str = "抉择") -> Dict[str, A
     return {"type": "CHOICE", "options": options, "chosen": chosen, "title": title}
 
 
+def msg_targeting(source_name: str, target: Any) -> Dict[str, Any]:
+    """指向结果消息。"""
+    return {"type": "TARGETING", "source_name": source_name, "target": _serialize_target(target)}
+
+
 # ========== Action 序列化/反序列化 ==========
 def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     """将本地 action 转换为可网络传输的 dict。"""
@@ -145,6 +150,9 @@ def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _serialize_target(target: Any) -> Any:
+    # 数字目标（自然数）
+    if isinstance(target, int):
+        return {"numeric": target}
     if isinstance(target, tuple) and len(target) == 2:
         return {"pos": [target[0], target[1]]}
     # Minion 用其当前位置标识
@@ -183,6 +191,8 @@ def _deserialize_target(data: Any, board) -> Any:
     if data is None:
         return None
     if isinstance(data, dict):
+        if "numeric" in data:
+            return data["numeric"]
         if "pos" in data:
             r, c = data["pos"]
             pos = (r, c)

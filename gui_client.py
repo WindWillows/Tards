@@ -36,7 +36,6 @@ from tards.game_logger import BattleLogWriter
 from tards.net_game import NetworkDuel
 from tards.targeting import (
     TargetingRequest,
-    TargetPicker,
     get_attack_target_candidates,
 )
 
@@ -387,6 +386,16 @@ class DeckBuilderFrame(tk.Frame):
         tk.Radiobutton(filter_frame, text="沉浸度", variable=self.sort_by, value="immersion", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
         tk.Radiobutton(filter_frame, text="费用", variable=self.sort_by, value="cost", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
 
+        # ===== 搜索框 =====
+        search_frame = tk.Frame(self)
+        search_frame.pack(fill=tk.X, padx=10, pady=2)
+        tk.Label(search_frame, text="搜索:").pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var, width=30)
+        self.search_entry.pack(side=tk.LEFT, padx=5)
+        self.search_entry.bind("<KeyRelease>", lambda e: self._refresh_available())
+        tk.Label(search_frame, text="#词条 按关键词/标签搜索", fg="gray", font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=5)
+
         # ===== 左侧：可用卡牌列表 =====
         cards_frame = tk.LabelFrame(self, text="可用卡牌 (单击查看详情，双击加入卡组)")
         cards_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=5)
@@ -535,6 +544,12 @@ class DeckBuilderFrame(tk.Frame):
             type_filter.add(CardType.CONSPIRACY)
         sort_by = self.sort_by.get()
         is_test = self.deck.is_test_deck
+        search_text = self.search_var.get().strip()
+        search_term = search_text.lower()
+        is_tag_search = search_term.startswith("#")
+        if is_tag_search:
+            search_term = search_term[1:].strip()
+
         for pack in Pack:
             pts = self.deck.immersion_points.get(pack, 0)
             def _is_implemented(c):
@@ -555,9 +570,30 @@ class DeckBuilderFrame(tk.Frame):
                 and not c.is_token
                 and (not self.hide_unimplemented.get() or _is_implemented(c))
             ]
+            # 应用搜索过滤
+            if search_term:
+                filtered = []
+                for c in cards:
+                    if is_tag_search:
+                        # 词条搜索：关键词 + 标签 + 隐藏关键词
+                        keyword_terms = [k.lower() for k in c.keywords.keys()]
+                        tag_terms = [t.lower() for t in c.tags]
+                        hidden_terms = [k.lower() for k in c.hidden_keywords.keys()]
+                        all_terms = keyword_terms + tag_terms + hidden_terms
+                        if any(search_term in term for term in all_terms):
+                            filtered.append(c)
+                    else:
+                        # 名称搜索
+                        if search_term in c.name.lower():
+                            filtered.append(c)
+                cards = filtered
+
             tab = self.pack_tabs[pack]
             if not cards:
-                tk.Label(tab, text="无可用卡牌（请分配沉浸点）").pack(anchor="w", padx=5, pady=2)
+                if search_term:
+                    tk.Label(tab, text="无匹配卡牌").pack(anchor="w", padx=5, pady=2)
+                else:
+                    tk.Label(tab, text="无可用卡牌（请分配沉浸点）").pack(anchor="w", padx=5, pady=2)
                 continue
             if sort_by == "cost":
                 cards.sort(key=lambda c: (self._cost_sort_key(c), c.immersion_level, c.name))
@@ -921,6 +957,39 @@ class ChoiceDialog(tk.Toplevel):
         self.destroy()
 
 
+class NumericChoiceDialog(tk.Toplevel):
+    """数字选择弹窗，用于自然数目标的指向请求（如"第n行"）。"""
+
+    def __init__(self, parent, title: str, options: List[int], on_choose: Callable[[int], None]):
+        super().__init__(parent)
+        self.title(title)
+        self.options = options
+        self.on_choose = on_choose
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        tk.Label(self, text="请选择一项：", font=("Microsoft YaHei", 12)).pack(pady=10)
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(pady=10)
+        for opt in options:
+            btn = tk.Button(btn_frame, text=str(opt), width=10, height=2, font=("Microsoft YaHei", 10, "bold"),
+                            bg="#e3f2fd", activebackground="#bbdefb",
+                            command=lambda o=opt: self._choose(o))
+            btn.pack(side=tk.LEFT, padx=5)
+
+    def _choose(self, option: int):
+        self.on_choose(option)
+        self.grab_release()
+        self.destroy()
+
+    def _on_close(self):
+        if self.options:
+            self.on_choose(self.options[0])
+        self.grab_release()
+        self.destroy()
+
+
 # ========== 对战界面 ==========
 class BattleFrame(tk.Frame):
     CELL_SIZE = 80
@@ -943,11 +1012,16 @@ class BattleFrame(tk.Frame):
         self.selected_card: Optional[Any] = None
         self.valid_targets: List[Any] = []
         self._tooltip: Optional[Tooltip] = None
-        self.targeting_picker: Optional[TargetPicker] = None
         self._pending_play_data: Optional[Dict[str, Any]] = None
         self._game_thread: Optional[threading.Thread] = None
         self._targeting_source_minion: Optional[Minion] = None
         self._dragging_card = None
+
+        # 指向模式状态（新版）
+        self._in_targeting_mode: bool = False
+        self._targeting_valid_targets: List[Any] = []
+        self._targeting_on_confirm: Optional[Callable[[Any], None]] = None
+        self._targeting_on_cancel: Optional[Callable[[], None]] = None
         self._dragging_serial = None
         self._drag_start_x = 0
         self._drag_start_y = 0
@@ -980,11 +1054,18 @@ class BattleFrame(tk.Frame):
         if key == "space":
             self._on_bell()
             return
-        # Return: 确认指向选择（如果数量已满足）
+        # Return: 确认指向选择（如果处于指向模式且只有一个合法目标）
         if key == "Return":
-            if self.targeting_picker and self.targeting_picker.request.count > 0:
-                if len(self.targeting_picker.selected) >= self.targeting_picker.request.count:
-                    self.targeting_picker.confirm()
+            if self._in_targeting_mode and len(self._targeting_valid_targets) == 1:
+                target = self._targeting_valid_targets[0]
+                self._in_targeting_mode = False
+                on_confirm = self._targeting_on_confirm
+                self._targeting_on_confirm = None
+                self._targeting_on_cancel = None
+                self._targeting_valid_targets = []
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                if on_confirm:
+                    on_confirm(target)
             return
         # a: 自动填充所有攻击目标
         if key.lower() == "a":
@@ -1475,7 +1556,7 @@ class BattleFrame(tk.Frame):
             self.canvas.tag_bind(tag, "<Motion>", lambda e: self._move_tooltip(e.x_root, e.y_root))
             self.canvas.tag_bind(tag, "<Button-1>", lambda e, mm=m: self._on_minion_click(mm))
             # 如果当前在指向模式中且该异象是合法目标，高亮边框
-            if self.targeting_picker and m in self.targeting_picker.valid_targets:
+            if self._in_targeting_mode and m in self._targeting_valid_targets:
                 self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline="yellow", width=4, tags="target_hint")
             # 黄色星号：行动阶段中仍需选择攻击目标的异象
             stars = self._get_minion_pending_stars(m)
@@ -1597,11 +1678,11 @@ class BattleFrame(tk.Frame):
             base_bg = card_type_colors.get(type(card), "white")
             bg = "#fff9c4" if self.selected_card_idx == i else base_bg
             # 若当前处于指向模式且该手牌是合法目标，高亮为亮黄色
-            if self.targeting_picker and card in self.targeting_picker.valid_targets:
+            if self._in_targeting_mode and card in self._targeting_valid_targets:
                 bg = "#ffeb3b"
             # 可操作指示：费用可负担且处于行动阶段且未在指向模式中
             cost_ok, _ = card.cost.can_afford_detail(active)
-            can_play_now = (cost_ok and not self.targeting_picker
+            can_play_now = (cost_ok and not self._in_targeting_mode
                             and self.duel.game
                             and self.duel.game.current_phase == "action")
             frame_bg = "#4caf50" if can_play_now else "white"
@@ -1715,7 +1796,7 @@ class BattleFrame(tk.Frame):
             # 绑定点击事件以支持将玩家作为指向目标
             lbl.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
             # 高亮提示：如果当前处于指向模式且该玩家是合法目标，改变背景色
-            if self.targeting_picker and player and player in self.targeting_picker.valid_targets:
+            if self._in_targeting_mode and player and player in self._targeting_valid_targets:
                 lbl.config(bg="#fff59d", cursor="hand2")
             elif self.duel.game.current_player and self.duel.game.current_player.name == pname:
                 lbl.config(bg="#e8f5e9", cursor="arrow")
@@ -1723,52 +1804,84 @@ class BattleFrame(tk.Frame):
                 lbl.config(bg="SystemButtonFace", cursor="arrow")
 
     def _on_minion_click(self, minion: Minion):
-        if not self.targeting_picker:
+        if not self._in_targeting_mode:
             # 没有指向模式时，尝试触发视野/高频设置
             self._handle_board_unit_click(minion.position)
             return
-        if minion in self.targeting_picker.valid_targets:
-            self.targeting_picker.select(minion)
-            if self.targeting_picker:
-                self.hint_label.config(text=self.targeting_picker.get_prompt())
-                self._render_board()
-                self._render_info()
+        if minion in self._targeting_valid_targets:
+            self._in_targeting_mode = False
+            on_confirm = self._targeting_on_confirm
+            self._targeting_on_confirm = None
+            self._targeting_on_cancel = None
+            self._targeting_valid_targets = []
+            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+            self._render_board()
+            self._render_info()
+            if on_confirm:
+                on_confirm(minion)
 
     def _on_player_label_click(self, player: Optional[Player]):
-        if not self.targeting_picker or not player:
+        if not self._in_targeting_mode or not player:
             return
-        if player in self.targeting_picker.valid_targets:
-            self.targeting_picker.select(player)
-            if self.targeting_picker:
-                self.hint_label.config(text=self.targeting_picker.get_prompt())
-                self._render_board()
-                self._render_info()
+        if player in self._targeting_valid_targets:
+            self._in_targeting_mode = False
+            on_confirm = self._targeting_on_confirm
+            self._targeting_on_confirm = None
+            self._targeting_on_cancel = None
+            self._targeting_valid_targets = []
+            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+            self._render_board()
+            self._render_info()
+            if on_confirm:
+                on_confirm(player)
 
-    def process_targeting_request(self, request: TargetingRequest):
-        """通用指向入口。任何需要玩家选择目标的行为都调用此方法。"""
-        self.targeting_picker = TargetPicker(request)
-        self.valid_targets = request.valid_targets
-        self.hint_label.config(text=self.targeting_picker.get_prompt(), font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f")
+    def _enter_local_targeting(self, valid_targets: List[Any], on_confirm: Callable[[Any], None],
+                                on_cancel: Optional[Callable[[], None]] = None, prompt: str = "请选择目标"):
+        """进入本地指向模式（用于 action 阶段的主目标选择或攻击预设）。"""
+        self._in_targeting_mode = True
+        self._targeting_valid_targets = valid_targets
+        self._targeting_on_confirm = on_confirm
+        self._targeting_on_cancel = on_cancel
+        self.valid_targets = valid_targets
+        self.hint_label.config(text=prompt, font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f")
         self._render_board()
         self._render_info()
 
-    def _enter_targeting_mode(self, picker: TargetPicker, clear_card_selection: bool = True):
-        """兼容旧入口，内部转发到 process_targeting_request。"""
-        req = TargetingRequest(
-            valid_targets=picker.valid_targets,
-            count=picker.request.count if hasattr(picker, 'request') else 1,
-            allow_repeat=picker.request.allow_repeat if hasattr(picker, 'request') else False,
-            prompt=picker.get_prompt().split(" (")[0] if hasattr(picker, 'get_prompt') else "请选择目标",
-            on_confirm=picker.on_confirm,
-            on_cancel=picker.on_cancel,
+    def _show_targeting(self, request: TargetingRequest, valid_targets: List[Any]):
+        """响应 targeting_request 事件，渲染指向选项。"""
+        if not valid_targets:
+            # 无合法目标，直接取消
+            if request.on_cancel:
+                request.on_cancel()
+            if hasattr(self.duel, 'submit_local_targeting'):
+                self.duel.submit_local_targeting(None)
+            return
+
+        # 数字选项：弹出 NumericChoiceDialog
+        if request.numeric_options is not None:
+            def on_choose(val: int):
+                if hasattr(self.duel, 'submit_local_targeting'):
+                    self.duel.submit_local_targeting(val)
+            NumericChoiceDialog(self, request.prompt, request.numeric_options, on_choose)
+            return
+
+        # 对象选项：进入本地指向模式
+        self._enter_local_targeting(
+            valid_targets=valid_targets,
+            on_confirm=lambda target: (
+                self.duel.submit_local_targeting(target) if hasattr(self.duel, 'submit_local_targeting') else None
+            ),
+            on_cancel=lambda: (
+                self.duel.submit_local_targeting(None) if hasattr(self.duel, 'submit_local_targeting') else None
+            ),
+            prompt=request.prompt,
         )
-        self.process_targeting_request(req)
-        if clear_card_selection:
-            self.selected_card = None
-            self.selected_card_idx = None
 
     def _exit_targeting_mode(self):
-        self.targeting_picker = None
+        self._in_targeting_mode = False
+        self._targeting_valid_targets = []
+        self._targeting_on_confirm = None
+        self._targeting_on_cancel = None
         self.valid_targets = []
         self._pending_play_data = None
         self.selected_card = None
@@ -1821,24 +1934,28 @@ class BattleFrame(tk.Frame):
         if not atk_candidates:
             return
 
+        # 攻击目标预设：多目标简化为单目标多次提交（保持向后兼容）
         count = multi_attack if isinstance(multi_attack, int) else 1
-        req = TargetingRequest(
-            valid_targets=atk_candidates,
-            count=count,
-            allow_repeat=True,
-            prompt=f"请选择 {m.name} 的 {count} 个攻击目标",
-            on_confirm=lambda selected_atks: (
+        selected_atks: List[Any] = []
+
+        def pick_next():
+            if len(selected_atks) >= count:
                 self.duel.submit_local_action({
                     "type": "set_attack_targets",
                     "pos": m.position,
                     "targets": selected_atks,
-                }),
-                self._exit_targeting_mode(),
-            ),
-            on_cancel=self._exit_targeting_mode,
-        )
+                })
+                self._exit_targeting_mode()
+                return
+            self._enter_local_targeting(
+                valid_targets=atk_candidates,
+                on_confirm=lambda t: (selected_atks.append(t), pick_next()),
+                on_cancel=self._exit_targeting_mode,
+                prompt=f"请选择 {m.name} 的攻击目标 ({len(selected_atks)+1}/{count})",
+            )
+
         self._targeting_source_minion = m
-        self.process_targeting_request(req)
+        pick_next()
 
     def _on_hand_card_click(self, idx: int):
         # 防重复点击/按键：出牌流程进行中时忽略新输入
@@ -1856,36 +1973,34 @@ class BattleFrame(tk.Frame):
         card = active.card_hand[idx]
 
         # 若当前处于指向模式且该手牌是合法目标，选择它作为指向目标
-        if self.targeting_picker and card in self.targeting_picker.valid_targets:
-            self.targeting_picker.select(card)
-            if self.targeting_picker:
-                self.hint_label.config(text=self.targeting_picker.get_prompt())
-                self._render_board()
-                self._render_info()
-                self._render_hand()
+        if self._in_targeting_mode and card in self._targeting_valid_targets:
+            self._in_targeting_mode = False
+            on_confirm = self._targeting_on_confirm
+            self._targeting_on_confirm = None
+            self._targeting_on_cancel = None
+            self._targeting_valid_targets = []
+            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+            self._render_board()
+            self._render_info()
+            self._render_hand()
+            if on_confirm:
+                on_confirm(card)
             return
 
         serial = idx + 1
 
-        # Conspiracy：先选虚张声势，再进入通用指向管道
+        # Conspiracy：先选虚张声势，再选择主目标
         if isinstance(card, Conspiracy):
             def on_bluff_choice(is_true: bool):
                 if is_true:
                     valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
                     if valid:
-                        req = TargetingRequest(
+                        self._enter_local_targeting(
                             valid_targets=valid,
-                            count=getattr(card, "targets_count", 1),
-                            allow_repeat=getattr(card, "targets_repeat", False),
-                            prompt=f"请选择 [{card.name}] 的目标",
-                            on_confirm=lambda selected: (
-                                self._submit_play(serial, selected[0], bluff=False,
-                                                  extra_targets=selected[1:] or None),
-                                self._exit_targeting_mode(),
-                            ),
+                            on_confirm=lambda t: self._submit_play(serial, t, bluff=False),
                             on_cancel=self._exit_targeting_mode,
+                            prompt=f"请选择 [{card.name}] 的目标",
                         )
-                        self.process_targeting_request(req)
                     else:
                         self._submit_play(serial, None, bluff=False)
                 else:
@@ -1894,7 +2009,7 @@ class BattleFrame(tk.Frame):
             BluffDialog(self, card.name, on_bluff_choice)
             return
 
-        # 随从卡：先处理献祭，再进入通用多阶段指向管道
+        # 随从卡：先处理献祭，再选择部署位置
         if isinstance(card, MinionCard):
             if card.cost.b > 0:
                 minions = list(self.duel.game.board.get_minions_of_player(active)) if self.duel.game else []
@@ -1907,106 +2022,55 @@ class BattleFrame(tk.Frame):
                         self.hint_label.config(text="献祭不足，无法部署")
                         return
                     self._pending_sacrifices = selected
-                    self._run_targeting_pipeline(serial, card, idx, is_minion=True)
+                    self._enter_deploy_targeting(serial, card, active)
                 SacrificeDialog(self, minions, card.cost.b, on_sacrifice_confirm)
                 return
-            self._run_targeting_pipeline(serial, card, idx, is_minion=True)
+            self._enter_deploy_targeting(serial, card, active)
             return
 
-        # 策略/矿物/阴谋卡等：进入通用多阶段指向管道
-        self._run_targeting_pipeline(serial, card, idx, is_minion=False)
+        # 策略/矿物卡：选择效果主目标
+        self._enter_effect_targeting(serial, card, active)
 
-    def _run_targeting_pipeline(self, serial: int, card, idx: int, is_minion: bool):
-        """通用多阶段指向管道。随从卡和策略卡共用。
-        第一阶段：随从卡选部署位置，策略卡选效果主目标。
-        后续阶段：extra_targeting_stages 定义的额外目标。"""
-        active = self.duel.game.current_player
-        stages = list(getattr(card, "extra_targeting_stages", []))
-        selected_targets: List[Any] = []
-        total_stages = len(stages) + 1
+    def _enter_deploy_targeting(self, serial: int, card, active):
+        """进入随从卡部署位置选择。"""
+        valid = [t for t in active.get_valid_targets(card)
+                 if isinstance(t, tuple) and self.duel.game
+                 and self.duel.game.board.is_valid_deploy(t, active, card)
+                 and self.duel.game.board.get_minion_at(t) is None]
+        if not valid:
+            self._submit_play(serial, None)
+            return
+        # 单目标自动确认
+        if len(valid) == 1:
+            self._submit_play(serial, valid[0])
+            return
+        self._enter_local_targeting(
+            valid_targets=valid,
+            on_confirm=lambda t: self._submit_play(serial, t),
+            on_cancel=self._exit_targeting_mode,
+            prompt=f"[{card.name}] 请选择部署位置",
+        )
 
-        def run_stage(stage_idx: int):
-            if stage_idx == 0:
-                # 第一阶段：主目标
-                if is_minion:
-                    valid = [t for t in active.get_valid_targets(card)
-                             if isinstance(t, tuple) and self.duel.game
-                             and self.duel.game.board.is_valid_deploy(t, active, card)
-                             and self.duel.game.board.get_minion_at(t) is None]
-                    prompt = f"[{card.name}] 阶段 1/{total_stages}：请选择部署位置"
-                    count = 1
-                    repeat = False
-                else:
-                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
-                    prompt = f"[{card.name}] 阶段 1/{total_stages}：请选择效果目标"
-                    count = getattr(card, "targets_count", 1)
-                    repeat = getattr(card, "targets_repeat", False)
-            else:
-                stage_def = stages[stage_idx - 1]
-                if isinstance(stage_def, (list, tuple)):
-                    fn, count, repeat = stage_def[0], stage_def[1], stage_def[2]
-                else:
-                    fn = stage_def.get("fn")
-                    count = stage_def.get("count", 1)
-                    repeat = stage_def.get("repeat", False)
-                valid = list(fn(active, self.duel.game.board))
-                prompt = f"[{card.name}] 阶段 {stage_idx + 1}/{total_stages}：请选择额外目标"
-
-            if not valid:
-                if stage_idx < len(stages):
-                    run_stage(stage_idx + 1)
-                else:
-                    self._submit_play(serial, selected_targets[0] if selected_targets else None,
-                                      extra_targets=selected_targets[1:] or None)
-                    self._exit_targeting_mode()
-                return
-
-            # 快捷路径：唯一合法目标是 None（非指向性）
-            if len(valid) == 1 and valid[0] is None:
-                if stage_idx < len(stages):
-                    run_stage(stage_idx + 1)
-                else:
-                    self._submit_play(serial, selected_targets[0] if selected_targets else None,
-                                      extra_targets=selected_targets[1:] or None)
-                    self._exit_targeting_mode()
-                return
-
-            # 单目标自动确认：只有一个合法目标时直接选中
-            if count == 1 and len(valid) == 1:
-                selected_targets.extend([valid[0]])
-                if stage_idx < len(stages):
-                    run_stage(stage_idx + 1)
-                else:
-                    self._submit_play(serial, selected_targets[0] if selected_targets else None,
-                                      extra_targets=selected_targets[1:] or None)
-                    self._exit_targeting_mode()
-                return
-
-            req = TargetingRequest(
-                valid_targets=valid,
-                count=count,
-                allow_repeat=repeat,
-                prompt=prompt,
-                on_confirm=lambda sel: (
-                    selected_targets.extend(sel),
-                    run_stage(stage_idx + 1) if stage_idx < len(stages) else (
-                        self._submit_play(serial, selected_targets[0],
-                                          extra_targets=selected_targets[1:] or None),
-                        self._exit_targeting_mode(),
-                    ),
-                ),
-                on_cancel=self._exit_targeting_mode,
-            )
-            self.process_targeting_request(req)
-
-        run_stage(0)
-        self.selected_card_idx = idx
-        self.selected_card = card
-
-    def _on_deploy_pos_selected(self, serial: int, card, pos):
-        """[兼容 shim] 部署位置选定后直接提交。额外目标已由 _run_targeting_pipeline 处理。"""
-        self._submit_play(serial, pos)
-        self._exit_targeting_mode()
+    def _enter_effect_targeting(self, serial: int, card, active):
+        """进入策略/矿物卡效果目标选择。"""
+        valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
+        if not valid:
+            self._submit_play(serial, None)
+            return
+        # 唯一目标是 None（非指向性）
+        if len(valid) == 1 and valid[0] is None:
+            self._submit_play(serial, None)
+            return
+        # 单目标自动确认
+        if len(valid) == 1:
+            self._submit_play(serial, valid[0])
+            return
+        self._enter_local_targeting(
+            valid_targets=valid,
+            on_confirm=lambda t: self._submit_play(serial, t),
+            on_cancel=self._exit_targeting_mode,
+            prompt=f"[{card.name}] 请选择效果目标",
+        )
 
     def _flash_invalid_at(self, target):
         """在指定位置闪烁红色边框，提示非法操作。"""
@@ -2036,22 +2100,27 @@ class BattleFrame(tk.Frame):
         r = (event.y - self.BOARD_OFFSET_Y) // self.CELL_SIZE
         target = (r, c)
 
-        # 1. 如果有目标选择器进行中，优先处理目标选择
-        if self.targeting_picker:
+        # 1. 如果处于指向模式，优先处理目标选择
+        if self._in_targeting_mode:
             clicked_target = None
-            if target in self.valid_targets:
+            if target in self._targeting_valid_targets:
                 clicked_target = target
             else:
                 if self.duel.game:
                     m = self.duel.game.board.get_minion_at(target)
-                    if m and m in self.valid_targets:
+                    if m and m in self._targeting_valid_targets:
                         clicked_target = m
             if clicked_target is not None:
-                self.targeting_picker.select(clicked_target)
-                if self.targeting_picker:
-                    self.hint_label.config(text=self.targeting_picker.get_prompt())
-                    self._render_board()
-                    self._render_info()
+                self._in_targeting_mode = False
+                on_confirm = self._targeting_on_confirm
+                self._targeting_on_confirm = None
+                self._targeting_on_cancel = None
+                self._targeting_valid_targets = []
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                self._render_board()
+                self._render_info()
+                if on_confirm:
+                    on_confirm(clicked_target)
             else:
                 self._flash_invalid_at(target)
                 self.hint_label.config(text="点击的不是合法目标", fg="red")
@@ -2083,7 +2152,7 @@ class BattleFrame(tk.Frame):
         self.hint_label.config(text="点击的不是合法目标", fg="red")
         self.after(1000, self._reset_guide_hint)
 
-    def _submit_play(self, serial: int, target: Any, bluff: bool = False, extra_targets: Optional[List[Any]] = None):
+    def _submit_play(self, serial: int, target: Any, bluff: bool = False):
         active = self.duel.game.current_player if self.duel.game else None
         card_name = "未知卡牌"
         is_conspiracy = False
@@ -2097,8 +2166,6 @@ class BattleFrame(tk.Frame):
                     return
         self._exit_targeting_mode()
         action = {"type": "play", "serial": serial, "target": target, "bluff": bluff}
-        if extra_targets:
-            action["extra_targets"] = extra_targets
         sacrifices = getattr(self, "_pending_sacrifices", None)
         if sacrifices:
             action["sacrifices"] = sacrifices
@@ -2121,7 +2188,7 @@ class BattleFrame(tk.Frame):
             return
         phase = self.duel.game.current_phase
         if phase == "action":
-            if self.targeting_picker:
+            if self._in_targeting_mode:
                 self.hint_label.config(text="指向模式：点击目标确认 | Enter确认 | ESC取消", fg="#d32f2f", font=("Microsoft YaHei", 12, "bold"))
             else:
                 self.hint_label.config(text="出牌阶段：点击手牌出牌 | 点击异象设攻击目标 | 双击拍铃/拉闸 | B拉闸 Space拍铃 | 1~9快捷选牌 | ESC取消", fg="blue", font=("Microsoft YaHei", 10))
@@ -2167,9 +2234,11 @@ class BattleFrame(tk.Frame):
         self.after(1500, self._reset_guide_hint)
 
     def _on_cancel(self):
-        if self.targeting_picker:
-            self.targeting_picker.cancel()
+        if self._in_targeting_mode:
+            on_cancel = self._targeting_on_cancel
             self._exit_targeting_mode()
+            if on_cancel:
+                on_cancel()
         else:
             self._clear_selection()
 
@@ -2337,6 +2406,7 @@ class BattleFrame(tk.Frame):
         self.duel.game_over_callback = lambda winner: self.after(0, lambda: self._on_gameover(winner))
         self.duel.discover_request_callback = lambda names: self.after(0, lambda: self._show_discover(names))
         self.duel.choice_request_callback = lambda options, title: self.after(0, lambda: self._show_choice(options, title))
+        self.duel.targeting_request_callback = lambda req, vt: self.after(0, lambda: self._show_targeting(req, vt))
         self.local_player.sacrifice_chooser = self._make_sacrifice_chooser()
         self.opponent.sacrifice_chooser = self._make_sacrifice_chooser()
 

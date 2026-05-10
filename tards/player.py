@@ -437,6 +437,20 @@ class Player:
             return False
         self._cards_played_this_phase += 1
 
+        # === 若未传入 extra_targets，串行获取 ===
+        if extra_targets is None:
+            extra_targets = self._resolve_extra_targets(card, game)
+            if extra_targets is None:
+                # 玩家取消：回滚费用与堆叠计数
+                if hasattr(card, "_is_stack_copy"):
+                    original_card.stack_count += 1
+                self.t_point_change(cost.t)
+                self.b_point += cost.b
+                self.s_point += cost.s
+                self.c_point_change(cost.c)
+                self._cards_played_this_phase -= 1
+                return False
+
         if isinstance(card, MinionCard):
             card._deploy_target = target
             # 指向异象前的事件（供海市蜃楼等阴谋拦截）
@@ -543,6 +557,48 @@ class Player:
                 return True
 
         return True
+
+    def _resolve_extra_targets(self, card: Card, game: "Game") -> Optional[List[Any]]:
+        """串行解析 extra_targeting_stages，返回目标列表；取消返回 None。"""
+        stages = list(getattr(card, "extra_targeting_stages", []))
+        if not stages:
+            return []
+
+        from .targeting import TargetingRequest
+
+        results: List[Any] = []
+        for stage_def in stages:
+            if isinstance(stage_def, (list, tuple)) and len(stage_def) >= 3:
+                fn, count, repeat = stage_def[0], stage_def[1], stage_def[2]
+            elif isinstance(stage_def, dict):
+                fn = stage_def.get("fn")
+                count = stage_def.get("count", 1)
+                repeat = stage_def.get("repeat", False)
+            else:
+                continue
+
+            # 单目标：count > 1 拆分为 count 次独立请求
+            for i in range(count):
+                scope = fn
+                # 若不允许重复，排除已选目标
+                if not repeat and results:
+                    original_fn = fn
+                    excluded = list(results)
+                    def scope(p, b, orig=original_fn, exc=excluded):
+                        return [c for c in orig(p, b) if c not in exc]
+
+                req = TargetingRequest(
+                    source=card,
+                    scope_fn=scope,
+                    prompt=f"[{card.name}] 请选择额外目标 ({i+1}/{count})",
+                    deciding_player=self,
+                )
+                result = game.targeting_system.request_target(req)
+                if result is None:
+                    return None
+                results.append(result)
+
+        return results
 
     def request_sacrifice(self, required_blood: int) -> Optional[List["Minion"]]:
         """请求玩家选择献祭目标。若外部未注入选择器，返回 None。"""

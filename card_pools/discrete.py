@@ -105,7 +105,6 @@ register_card(
     hidden_keywords={},
     description="部署：对1个异象造成1点伤害。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
     special_fn=_moyingman_special,
 )
 
@@ -121,9 +120,23 @@ register_card(
     keywords={"协同": True, "迅捷": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    description="受到伤害前，与1个友方异象交换位置。",
+    description="受到伤害前，与1个友方异象交换位置。亡语：将1张'末影珍珠'加入手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_moyiren_special,
+)
+
+register_card(
+    name="末影珍珠",
+    cost_str="1T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.DISCRETE,
+    immersion_level=1,
+    tags=['非生命'],
+    hidden_keywords={},
+    is_token=True,
+    description="指向2个同阵营陆地异象，交换它们的位置。",
+    targets_fn=target_none,
+    effect_fn=_moyingzhenzhu_effect,
 )
 
 register_card(
@@ -798,7 +811,6 @@ register_card(
     hidden_keywords={},
     description="部署：使1个异象失去迅捷，高频和空袭。 亡语：将1张“蜘蛛眼“加入手牌。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
     special_fn=_zhizhu_special,
 )
 
@@ -830,7 +842,6 @@ register_card(
     hidden_keywords={},
     description="部署：将1个异象的攻击力设为1。 亡语：将1张“蜘蛛眼“加入手牌。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
     special_fn=_dongxuezhizhu_special,
 )
 
@@ -1501,7 +1512,6 @@ register_card(
     hidden_keywords={},
     description="部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion", friendly=False, enemy=True), 1, False)],
     special_fn=_jiangshizhuren_special,
 )
 
@@ -1792,7 +1802,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个陆地异象获得+4攻击力。",
-    targets_fn=_huoshi_targets,
+    targets_fn=target_none,
     effect_fn=_huoshi_effect,
 )
 
@@ -1805,7 +1815,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="对1行异象造成3点伤害。",
-    targets_fn=_hengsao_targets,
+    targets_fn=target_none,
     effect_fn=_hengsao_effect,
 )
 
@@ -1844,7 +1854,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个友方异象获得亡语：将本异象的复制加入手牌。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_zhongcheng_effect,
 )
 
@@ -1883,8 +1893,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个水路异象获得+2/2 或 对其造成6点伤害。",
-    targets_fn=_shenhaitansuozhe_targets,
-    extra_targeting_stages=[(_shenhaitansuozhe_extra_targets, 1, False)],
+    targets_fn=target_none,
     effect_fn=_shenhaitansuozhe_effect,
 )
 
@@ -2105,7 +2114,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="消灭1个友方异象，将2张具有迅捷的“恶魂“加入战场，回合结束时，将其移除。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_cuiruotongmeng_effect,
 )
 
@@ -2353,7 +2362,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="消灭1个受伤异象 将1张“TNT炮“加入手牌。",
-    targets_fn=target("minion", injured=True),
+    targets_fn=target_none,
     effect_fn=_hongji_effect,
 )
 
@@ -2524,7 +2533,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。",
-    targets_fn=target("minion", custom_filter=lambda m: not m.keywords.get("高地", False)),
+    targets_fn=target_none,
     effect_fn=_yinyu_effect,
 )
 
@@ -2550,7 +2559,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_poxi_effect,
 )
 
@@ -2615,7 +2624,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="抉择：对所有后排异象造成4点伤害 或 对对手造成6点伤害。",
-    targets_fn=target("player", enemy=True),
+    targets_fn=target_none,
     effect_fn=_rongyan_effect,
 )
 
@@ -2642,7 +2651,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个友方异象返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_menchuanchuansuo_effect,
 )
 
@@ -2655,8 +2664,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个友方生物异象+1/3，然后与1个敌方异象对战。",
-    targets_fn=target("minion", friendly=True, enemy=False),
-    extra_targeting_stages=[(target("minion", friendly=False, enemy=True), 1, False)],
+    targets_fn=target_none,
     effect_fn=_guaiwulieren_strategy,
 )
 

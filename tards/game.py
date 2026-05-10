@@ -20,6 +20,7 @@ from .effect_queue import EffectQueue
 from .events import EventBus, GameEvent
 from .game_history import GameHistory
 from .player import Player
+from .targeting import TargetingRequest, TargetingSystem
 
 
 class Game:
@@ -35,6 +36,7 @@ class Game:
         player2: Player,
         action_provider: Optional[Callable[["Game", Player, Player], Optional[Dict[str, Any]]]] = None,
         discover_provider: Optional[Callable[["Game", Player, List[Any], int], Optional[Any]]] = None,
+        targeting_provider: Optional[Callable[["Game", TargetingRequest, List[Any]], Optional[Any]]] = None,
     ):
         self.p1 = player1
         self.p2 = player2
@@ -48,9 +50,11 @@ class Game:
         self.winner: Optional[Player] = None
         self.action_provider = action_provider
         self.discover_provider = discover_provider
+        self.targeting_provider = targeting_provider
         self.choice_provider: Optional[Callable[["Game", "Player", List[str], str], Optional[str]]] = None
         self.effect_queue = EffectQueue(self)
         self.event_bus = EventBus(self)
+        self.targeting_system = TargetingSystem(self)
         self.resolve_step_callback = None
 
         # 机器日志（按回合索引的历史变量，供卡牌监听器查询）
@@ -537,20 +541,24 @@ class Game:
             discrete_pts = p.immersion_points.get(Pack.DISCRETE, 0)
             max_t = 8 if discrete_pts >= 2 else 10
             old_t_max = p.t_point_max
-            if p.t_point_max < max_t:
+
+            # 判断本回合是否增加T槽（离散沉浸度≥2时，第5和第10回合为C回合，不加T）
+            should_increase_t = True
+            if discrete_pts >= 2 and self.current_turn in (5, 10):
+                should_increase_t = False
+
+            if should_increase_t and p.t_point_max < max_t:
                 p.t_point_max += 1
 
-            if discrete_pts >= 2 and self.current_turn in (5, 10):
-                # 离散沉浸度2级：第5和第10回合抽牌阶段获得2C（取代1T），C槽上限4
-                p.c_point_max = 4
-                p.c_point = min(p.c_point + 2, 4)
-                print(f"  {p.name} 离散沉浸度2级：第{self.current_turn}回合获得2C（取代1T），C槽上限4")
-            else:
-                p.t_point = p.t_point_max
-                print(f"  {p.name} T槽={p.t_point_max}，获得 {p.t_point} T点")
+            # C槽自然增长（离散沉浸度≥2：第5和第10回合各+2C，上限4）
+            if discrete_pts >= 2:
+                if self.current_turn == 5 or self.current_turn == 10:
+                    p.c_point_max = min(p.c_point_max + 2, 4)
 
-            # C点回满到上限（木镐等卡牌增加的额外C槽在回合开始时生效）
-            if p.c_point_max > 0 and not (discrete_pts >= 2 and self.current_turn in (5, 10)):
+            # 每回合资源点数回满
+            p.t_point = p.t_point_max
+            print(f"  {p.name} T槽={p.t_point_max}，获得 {p.t_point} T点")
+            if p.c_point_max > 0:
                 p.c_point = p.c_point_max
                 print(f"  {p.name} C槽={p.c_point_max}，获得 {p.c_point} C点")
 
@@ -675,7 +683,6 @@ class Game:
                 target = action.get("target")
                 bluff = action.get("bluff", False)
                 sacrifices = action.get("sacrifices", [])
-                extra_targets = action.get("extra_targets")
                 # 过滤掉因不同步而丢失的牺牲目标（只剩 tuple 位置），以及献祭次数已耗尽的异象
                 valid_sacs = [m for m in sacrifices if hasattr(m, "keywords") and getattr(m, "is_alive", lambda: True)() and getattr(m, '_sacrifice_remaining', 0) > 0]
                 temp_b = 0
@@ -704,7 +711,7 @@ class Game:
                             if blocked:
                                 continue
                         print(f"  {active.name} 尝试打出 {card.name} (目标: {self._fmt_target(target)})")
-                        ok = active.play_card(serial, target, self, bluff=bluff, extra_targets=extra_targets)
+                        ok = active.play_card(serial, target, self, bluff=bluff)
                         if not ok:
                             print(f"  出牌失败")
                     else:

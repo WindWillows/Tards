@@ -15,6 +15,7 @@ from .net_protocol import (
     msg_gameover,
     msg_hello,
     msg_start,
+    msg_targeting,
     start_host,
 )
 from .player import Player
@@ -55,6 +56,7 @@ class NetworkDuel:
         self.game_over_callback: Optional[Callable[[Optional[str]], None]] = None
         self.discover_request_callback: Optional[Callable[[list], None]] = None
         self.choice_request_callback: Optional[Callable[[list, str], None]] = None
+        self.targeting_request_callback: Optional[Callable[[Any, list], None]] = None
 
         # 本地玩家行动同步
         self._local_action: Optional[Dict[str, Any]] = None
@@ -71,6 +73,12 @@ class NetworkDuel:
         self._choice_result: Optional[str] = None
         self._choice_event = threading.Event()
         self._choice_title: str = "抉择"
+
+        # Targeting 同步
+        self._targeting_request: Optional[Any] = None
+        self._targeting_valid_targets: Optional[list] = None
+        self._targeting_result: Optional[Any] = None
+        self._targeting_event = threading.Event()
 
     # ========== 连接与握手 ==========
     def connect(self) -> bool:
@@ -144,6 +152,7 @@ class NetworkDuel:
             second,
             action_provider=action_provider or self._make_action_provider(),
             discover_provider=self._make_discover_provider(),
+            targeting_provider=self._make_targeting_provider(),
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -296,6 +305,47 @@ class NetworkDuel:
         self._choice_result = chosen
         self._choice_event.set()
 
+    def _make_targeting_provider(self):
+        def provider(game, request, valid_targets):
+            if request.deciding_player == self.local_player:
+                self._targeting_request = request
+                self._targeting_valid_targets = valid_targets
+                self._targeting_result = None
+                self._targeting_event.clear()
+                if self.targeting_request_callback:
+                    self.targeting_request_callback(request, valid_targets)
+                self._targeting_event.wait()
+                result = self._targeting_result
+                if self.conn:
+                    from .net_protocol import _serialize_target
+                    self.conn.send(msg_targeting(
+                        getattr(request.source, "name", str(request.source)),
+                        result,
+                    ))
+                return result
+            else:
+                # 远端玩家抉择：阻塞等待网络消息
+                while True:
+                    try:
+                        msg = self.conn.msg_queue.get(timeout=0.2)
+                    except queue.Empty:
+                        if game.game_over:
+                            return None
+                        continue
+                    if msg.get("type") == "TARGETING":
+                        return _deserialize_target(msg.get("target"), game.board)
+                    if msg.get("type") == "GAMEOVER":
+                        return None
+                    if msg.get("type") == "DISCONNECT":
+                        print("[Net] 对手断开连接")
+                        return None
+        return provider
+
+    def submit_local_targeting(self, target: Any):
+        """GUI 调用：提交本地玩家的指向选择。"""
+        self._targeting_result = target
+        self._targeting_event.set()
+
     def submit_local_action(self, action: Dict[str, Any]):
         """GUI 调用：提交本地玩家的行动。"""
         self._local_action = action
@@ -315,3 +365,5 @@ class NetworkDuel:
             self.conn.close()
         self._local_action_event.set()
         self._discover_event.set()
+        self._choice_event.set()
+        self._targeting_event.set()
