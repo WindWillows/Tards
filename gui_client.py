@@ -2093,6 +2093,12 @@ class BattleFrame(tk.Frame):
             self.hint_label.config(text="抽牌阶段...", fg="#1565c0", font=("Microsoft YaHei", 10))
 
     def _on_bell(self):
+        # 防重复点击/按键
+        if getattr(self, "_is_belling", False):
+            return
+        self._is_belling = True
+        self.after(500, lambda: setattr(self, "_is_belling", False))
+
         active = self.duel.game and self.duel.game.current_player
         if not active:
             return
@@ -2105,6 +2111,12 @@ class BattleFrame(tk.Frame):
         self.after(1500, self._reset_guide_hint)
 
     def _on_brake(self):
+        # 防重复点击/按键
+        if getattr(self, "_is_braking", False):
+            return
+        self._is_braking = True
+        self.after(500, lambda: setattr(self, "_is_braking", False))
+
         active = self.duel.game and self.duel.game.current_player
         if not active:
             return
