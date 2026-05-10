@@ -1543,6 +1543,38 @@ class BattleFrame(tk.Frame):
                                                  fill="#fff59d", stipple="gray50",
                                                  tags="target_hint")
 
+    def _update_detail_canvas(self, card):
+        if not hasattr(self, "detail_canvas"):
+            return
+        cvs = self.detail_canvas
+        cvs.delete("all")
+        am = get_asset_manager()
+        cw, ch = 160, 220
+        img = None
+        if getattr(card, "asset_id", None):
+            img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+        if img:
+            cvs.create_image(cw // 2, ch // 2, image=img)
+            cvs.image = img
+        else:
+            lines = [card.name, str(card.cost), card.card_type.value]
+            if isinstance(card, MinionCard):
+                lines.append(f"{card.attack}/{card.health}")
+            y = 40
+            for line in lines:
+                cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
+                y += 24
+            desc = getattr(card, "description", "")
+            if desc:
+                cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+
+    def _clear_detail_canvas(self):
+        if not hasattr(self, "detail_canvas"):
+            return
+        cvs = self.detail_canvas
+        cvs.delete("all")
+        cvs.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
+
     def _render_hand(self):
         for w in list(self.hand_inner.winfo_children()):
             w.destroy()
