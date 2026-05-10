@@ -1803,6 +1803,12 @@ class BattleFrame(tk.Frame):
         self.process_targeting_request(req)
 
     def _on_hand_card_click(self, idx: int):
+        # 防重复点击/按键：出牌流程进行中时忽略新输入
+        if getattr(self, "_is_playing_card", False):
+            return
+        self._is_playing_card = True
+        self.after(500, lambda: setattr(self, "_is_playing_card", False))
+
         active = self.duel.game and self.duel.game.current_player
         if not active or idx >= len(active.card_hand):
             return
