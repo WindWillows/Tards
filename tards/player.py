@@ -445,7 +445,7 @@ class Player:
                 target = event.data.get("target", target)
             def deploy_fn():
                 # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
-                if card not in getattr(card, "_is_stack_copy", False) and card in self.card_hand:
+                if not getattr(card, "_is_stack_copy", False) and card in self.card_hand:
                     self.card_hand.remove(card)
                 card.move_to("resolving", game)
                 effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
