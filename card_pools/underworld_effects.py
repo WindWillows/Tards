@@ -1957,23 +1957,23 @@ def _gengti_effect(player, target, game, extras=None):
         print("  更替：目标不合法")
         return False
 
-    if not (target.keywords.get("回响", False) or getattr(target, "echo_level", 0) > 0):
-        print("  更替：目标不是回响异象")
+    if getattr(target, "echo_level", 0) <= 0:
+        print("  更替：目标不是异放异象")
         return False
 
-    # 增加回响等级
-    target.echo_level = getattr(target, "echo_level", 0) + 1
+    # 增加异放等级
+    target.echo_level += 1
     # 同步更新关键词
-    if "回响" in target.keywords:
-        current = target.keywords["回响"]
+    if "异放" in target.keywords:
+        current = target.keywords["异放"]
         if isinstance(current, int):
-            target.keywords["回响"] = current + 1
+            target.keywords["异放"] = current + 1
         elif current is True:
-            target.keywords["回响"] = 2
+            target.keywords["异放"] = 2
     else:
-        target.keywords["回响"] = target.echo_level
+        target.keywords["异放"] = target.echo_level
 
-    print(f"  更替：{target.name} 回响等级+1（当前 {target.echo_level}）")
+    print(f"  更替：{target.name} 异放等级+1（当前 {target.echo_level}）")
     return True
 
 def _poxiao_effect(player, target, game, extras=None):
@@ -2262,7 +2262,7 @@ _lunhui_target_choice = target_mix(target("minion", friendly=False, enemy=True),
 
 
 
-_gengti_targets = target("hand", card_type="minion", custom_filter=lambda c: c.keywords.get("回响", False) or getattr(c, "echo_level", 0) > 0)
+_gengti_targets = target("hand", card_type="minion", custom_filter=lambda c: getattr(c, "echo_level", 0) > 0)
 
 
 

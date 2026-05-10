@@ -225,6 +225,7 @@ class Player:
             card = self.card_deck.pop()
             card.move_to("hand", game)
             self.card_hand.append(card)
+            card._acquired_by_draw = True  # 标记为抽牌获得
             drawn_names.append(card.name)
             amount -= 1
             if game:
@@ -323,8 +324,12 @@ class Player:
 
     def _get_play_cost(self, card):
         """获取经过修正后的实际支付费用。"""
-        cost = card.cost.copy()
         from .cards import MinionCard, Strategy
+        # 回响：异象部署花费固定为 2T
+        if isinstance(card, MinionCard) and card.keywords.get("回响", False):
+            cost = Cost(t=2)
+        else:
+            cost = card.cost.copy()
         if isinstance(card, (MinionCard, Strategy)):
             # 玩家级修正器
             for fn in self._cost_modifiers:
@@ -414,7 +419,7 @@ class Player:
                         )
                         echo_card.echo_level = card.echo_level - 1
                         self.card_hand.append(echo_card)
-                        print(f"  {self.name} 获得回响 [{echo_card.name}]（回响 {echo_card.echo_level}）")
+                        print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                     game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                 else:
                     # 部署失败，回滚：卡移回手牌，费用返还
@@ -439,10 +444,6 @@ class Player:
                 if card in self.card_hand:
                     self.card_hand.remove(card)
                 card.move_to("resolving", game)
-                # 预更新 GameHistory 策略计数（效果执行期间血溅白练等需要查询包含自身）
-                if not is_mineral:
-                    game.history._current.strategies_played[self] += 1
-                    game.history._current.total_strategies_played += 1
                 prev = getattr(game, "_current_strategy_player", None)
                 game._current_strategy_player = self
                 try:
@@ -461,12 +462,9 @@ class Player:
                         echo_card = copy.copy(card)
                         echo_card.echo_level = card.echo_level - 1
                         self.card_hand.append(echo_card)
-                        print(f"  {self.name} 获得回响 [{echo_card.name}]（回响 {echo_card.echo_level}）")
+                        print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                 else:
-                    # 效果失败，回滚：卡移回手牌，费用返还，策略计数回滚
-                    if not is_mineral:
-                        game.history._current.strategies_played[self] -= 1
-                        game.history._current.total_strategies_played -= 1
+                    # 效果失败，回滚：卡移回手牌，费用返还
                     card.move_to("hand", game)
                     self.card_hand.append(card)
                     self.t_point_change(card.cost.t)

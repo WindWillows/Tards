@@ -162,9 +162,10 @@ class Deck:
                 )
 
             # 稀有度上限
-            max_copies = card_def.rarity.value
-            if count > max_copies:
-                errors.append(f"[{name}] 为 {self._rarity_name(card_def.rarity)}，最多携带 {max_copies} 张，当前 {count} 张")
+            if card_def.rarity is not None:
+                max_copies = card_def.rarity.value
+                if count > max_copies:
+                    errors.append(f"[{name}] 为 {self._rarity_name(card_def.rarity)}，最多携带 {max_copies} 张，当前 {count} 张")
 
         return errors
 
@@ -249,12 +250,15 @@ class Deck:
         for name, count in sorted(self.card_entries.items(), key=lambda x: x[0]):
             card_def = self.registry.get(name)
             if card_def:
-                info = f"[{card_def.pack.value} {card_def.immersion_display} {self._rarity_name(card_def.rarity)}]"
+                rarity_str = self._rarity_name(card_def.rarity) if card_def.rarity else "无"
+                info = f"[{card_def.pack.value} {card_def.immersion_display} {rarity_str}]"
                 lines.append(f"    {name} x{count} {info}")
         return "\n".join(lines)
 
     @staticmethod
     def _rarity_name(rarity: Rarity) -> str:
+        if rarity is None:
+            return "无"
         names = {
             Rarity.GOLD: "金",
             Rarity.SILVER: "银",

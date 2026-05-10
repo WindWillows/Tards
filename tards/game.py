@@ -316,11 +316,11 @@ class Game:
             return new_minion
         return None
 
-    def move_minion(self, minion: "Minion", new_pos: Any) -> bool:
+    def move_minion(self, minion: "Minion", new_pos: Any, allow_cross_side: bool = False) -> bool:
         """安全移动异象到新的空格子。"""
         if not minion or not minion.is_alive():
             return False
-        return self.board.move_minion(minion, new_pos)
+        return self.board.move_minion(minion, new_pos, allow_cross_side=allow_cross_side)
 
     def swap_minions(self, m1: "Minion", m2: "Minion") -> bool:
         """安全交换两个异象的位置。"""
@@ -433,9 +433,8 @@ class Game:
             if discrete_pts >= 1:
                 p.card_hand_max += 1
                 print(f"  {p.name} 离散沉浸度 {discrete_pts}：手牌上限+1")
-            if discrete_pts >= 2:
-                p.c_point_max = 4
-                print(f"  {p.name} 离散沉浸度 {discrete_pts}：C槽上限设为4")
+            # 离散沉浸度2级：第5和第10回合抽牌阶段获得2C（取代1T），C槽上限4
+            # 具体实现在抽牌阶段
 
             underworld_pts = p.immersion_points.get(Pack.UNDERWORLD, 0)
             if underworld_pts >= 1:
@@ -539,12 +538,18 @@ class Game:
             if p.t_point_max < max_t:
                 p.t_point_max += 1
 
-            p.t_point = p.t_point_max
-            print(f"  {p.name} T槽={p.t_point_max}，获得 {p.t_point} T点")
+            if discrete_pts >= 2 and self.current_turn in (5, 10):
+                # 离散沉浸度2级：第5和第10回合抽牌阶段获得2C（取代1T），C槽上限4
+                p.c_point_max = 4
+                p.c_point = min(p.c_point + 2, 4)
+                print(f"  {p.name} 离散沉浸度2级：第{self.current_turn}回合获得2C（取代1T），C槽上限4")
+            else:
+                p.t_point = p.t_point_max
+                print(f"  {p.name} T槽={p.t_point_max}，获得 {p.t_point} T点")
 
             # C点回满到上限（木镐等卡牌增加的额外C槽在回合开始时生效）
-            p.c_point = p.c_point_max
-            if p.c_point_max > 0:
+            if p.c_point_max > 0 and not (discrete_pts >= 2 and self.current_turn in (5, 10)):
+                p.c_point = p.c_point_max
                 print(f"  {p.name} C槽={p.c_point_max}，获得 {p.c_point} C点")
 
             # 发射通用 T槽上限变化事件（信标、火把等卡牌通过监听此事件触发）

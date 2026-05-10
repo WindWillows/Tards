@@ -186,6 +186,66 @@ def summon_token(
     return token
 
 
+def summon_minion_by_name(
+    game: "Game",
+    name: str,
+    owner: "Player",
+    position: Tuple[int, int],
+) -> Optional["Minion"]:
+    """在指定位置召唤一个指定名称的异象（不扣除费用）。
+
+    用于变形、token召唤等场景。召唤出的异象会执行其 special_fn。
+    位置被占用时返回 None。
+    """
+    from tards.cards import Minion
+
+    card = create_card_by_name(name, owner)
+    if not card:
+        print(f"  [警告] 注册表中找不到卡牌 [{name}]")
+        return None
+
+    if position in game.board.minion_place:
+        print(f"  无法召唤 {name}：位置 {position} 已被占用")
+        return None
+
+    new_minion = Minion(
+        name=card.name,
+        owner=owner,
+        position=position,
+        attack=card.attack,
+        health=card.health,
+        source_card=card,
+        board=game.board,
+        keywords=card.keywords.copy(),
+        on_turn_start=card.on_turn_start,
+        on_turn_end=card.on_turn_end,
+        on_phase_start=card.on_phase_start,
+        on_phase_end=card.on_phase_end,
+        tags=list(card.tags) if hasattr(card, 'tags') else [],
+        hidden_keywords=getattr(card, 'hidden_keywords', None),
+    )
+    new_minion._extra_targets = []
+    new_minion.asset_id = getattr(card, 'asset_id', None)
+
+    if game.board.place_minion(new_minion, position):
+        new_minion.summon_turn = game.current_turn
+        # 休眠处理
+        if "迅捷" not in new_minion.keywords and "休眠" not in new_minion.base_keywords:
+            new_minion.base_keywords["休眠"] = 1
+            new_minion.recalculate()
+        # 触发 special
+        if card.special:
+            import inspect
+            sig = inspect.signature(card.special)
+            if len(sig.parameters) >= 4:
+                card.special(new_minion, owner, game, [])
+            else:
+                card.special(new_minion, owner, game)
+        print(f"  {owner.name} 在 {position} 召唤了 {name}")
+        return new_minion
+    return None
+
+
 def convert_cost_to_t(cost: "Cost") -> int:
     """将费用折算为等效T点数，向下取整。
 
@@ -534,9 +594,10 @@ def copy_card_to_hand(
 
 
 def create_echo_card(source_card: "MinionCard", echo_level: int) -> "MinionCard":
-    """根据源卡创建回响版本（花费2T，1/1，回响等级-1）。
+    """根据源卡创建"回响"版本（花费2T，1/1，异放等级-1）。
 
-    回响卡部署后不会触发特殊效果（special=None），关键词继承原卡。
+    用于"异放n"效果：异象部署时加入手牌的复制即为"回响复制"
+    （2T/1/1，special=None，关键词继承原卡，echo_level=n-1）。
     """
     from tards.cards import MinionCard
     from tards.cost import Cost
@@ -2321,115 +2382,208 @@ def get_history(game: "Game") -> Optional[Any]:
 def cards_played_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家打出的卡牌总数（含异象、策略、矿物、阴谋）。"""
     h = get_history(game)
-    return h.cards_played_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    return len(h.query_events(event_type=EVENT_CARD_PLAYED, filter_fn=lambda e: e.get("player") is player))
 
 
 def minions_deployed_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家部署的异象数。"""
     h = get_history(game)
-    return h.minions_deployed_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEPLOYED
+    return len(h.query_events(event_type=EVENT_DEPLOYED, filter_fn=lambda e: getattr(e.get("minion"), "owner", None) is player))
 
 
 def strategies_played_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家使用的策略卡数。"""
     h = get_history(game)
-    return h.strategies_played_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import Strategy
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Strategy)
+    ))
 
 
 def total_strategies_played_this_turn(game: "Game") -> int:
     """本回合双方合计使用的策略卡数（血溅白练等需要）。"""
     h = get_history(game)
-    return h.total_strategies_played_this_turn() if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import Strategy
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: isinstance(e.get("card"), Strategy)
+    ))
 
 
 def minerals_played_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家使用的矿物数。"""
     h = get_history(game)
-    return h.minerals_played_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import MineralCard
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), MineralCard)
+    ))
 
 
 def conspiracies_activated_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家激活的阴谋数。"""
     h = get_history(game)
-    return h.conspiracies_activated_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import Conspiracy
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Conspiracy)
+    ))
 
 
 def sacrifices_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家献祭的次数。"""
     h = get_history(game)
-    return h.sacrifices_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_SACRIFICE
+    return len(h.query_events(event_type=EVENT_SACRIFICE, filter_fn=lambda e: e.get("player") is player))
 
 
 def blood_spent_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家支付的血液总量。"""
     h = get_history(game)
-    return h.blood_spent_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_SACRIFICE
+    return sum(e.get("blood", 0) for e in h.query_events(
+        event_type=EVENT_SACRIFICE, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def developed_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家开发的次数。"""
     h = get_history(game)
-    return h.developed_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEVELOPED
+    return len(h.query_events(event_type=EVENT_DEVELOPED, filter_fn=lambda e: e.get("player") is player))
 
 
 def cards_drawn_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家抽牌数。"""
     h = get_history(game)
-    return h.cards_drawn_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DRAW
+    return len(h.query_events(event_type=EVENT_DRAW, filter_fn=lambda e: e.get("player") is player))
 
 
 def cards_discarded_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家弃牌数。"""
     h = get_history(game)
-    return h.cards_discarded_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DISCARDED
+    return len(h.query_events(event_type=EVENT_DISCARDED, filter_fn=lambda e: e.get("player") is player))
 
 
 def cards_milled_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家磨牌数。"""
     h = get_history(game)
-    return h.cards_milled_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_MILLED
+    return len(h.query_events(event_type=EVENT_MILLED, filter_fn=lambda e: e.get("player") is player))
 
 
 def damage_dealt_to_players_this_turn(game: "Game", dealer: "Player") -> int:
     """本回合该玩家对敌方玩家造成的伤害。"""
     h = get_history(game)
-    return h.damage_dealt_to_players_this_turn(dealer) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_PLAYER_DAMAGE
+    def _dealer(e):
+        source = e.get("source")
+        if hasattr(source, "side"):
+            return source
+        elif hasattr(source, "owner"):
+            return source.owner
+        return None
+    return sum(e.get("damage", 0) for e in h.query_events(
+        event_type=EVENT_PLAYER_DAMAGE, filter_fn=lambda e: _dealer(e) is dealer
+    ))
 
 
 def damage_dealt_to_minions_this_turn(game: "Game", dealer: "Player") -> int:
     """本回合该玩家对异象造成的伤害。"""
     h = get_history(game)
-    return h.damage_dealt_to_minions_this_turn(dealer) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DAMAGED
+    return sum(e.get("actual", 0) for e in h.query_events(
+        event_type=EVENT_DAMAGED,
+        filter_fn=lambda e: getattr(e.get("source_minion"), "owner", None) is dealer
+    ))
 
 
 def healing_received_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家获得的治疗量。"""
     h = get_history(game)
-    return h.healing_received_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_HEALTH_CHANGED
+    return sum(e.get("delta", 0) for e in h.query_events(
+        event_type=EVENT_HEALTH_CHANGED,
+        filter_fn=lambda e: e.get("player") is player and e.get("delta", 0) > 0
+    ))
 
 
 def attacks_made_this_turn(game: "Game", player: "Player") -> int:
     """本回合该玩家场上异象发起的攻击次数。"""
     h = get_history(game)
-    return h.attacks_made_this_turn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_ATTACKED
+    return len(h.query_events(
+        event_type=EVENT_ATTACKED,
+        filter_fn=lambda e: getattr(e.get("source") or e.get("minion"), "owner", None) is player
+    ))
 
 
 def minions_deployed_list_this_turn(game: "Game") -> List["Minion"]:
     """本回合部署的所有异象（按部署顺序）。"""
     h = get_history(game)
-    return h.minions_deployed_list_this_turn() if h else []
+    if not h:
+        return []
+    from tards.constants import EVENT_DEPLOYED
+    return [e.get("minion") for e in h.query_events(event_type=EVENT_DEPLOYED) if e.get("minion")]
 
 
 def minions_died_list_this_turn(game: "Game") -> List["Minion"]:
     """本回合死亡的所有异象。"""
     h = get_history(game)
-    return h.minions_died_list_this_turn() if h else []
+    if not h:
+        return []
+    from tards.constants import EVENT_DEATH
+    return [e.get("minion") for e in h.query_events(event_type=EVENT_DEATH) if e.get("minion")]
 
 
 def minions_sacrificed_list_this_turn(game: "Game") -> List["Minion"]:
     """本回合被献祭的所有异象。"""
     h = get_history(game)
-    return h.minions_sacrificed_list_this_turn() if h else []
+    if not h:
+        return []
+    from tards.constants import EVENT_SACRIFICE
+    return [e.get("minion") for e in h.query_events(event_type=EVENT_SACRIFICE) if e.get("minion")]
 
 
 # ── 跨回合聚合查询（本局累计）──
@@ -2437,85 +2591,170 @@ def minions_sacrificed_list_this_turn(game: "Game") -> List["Minion"]:
 def total_cards_played(game: "Game", player: "Player") -> int:
     """本局该玩家打出的卡牌总数。"""
     h = get_history(game)
-    return h.total_cards_played(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_minions_deployed(game: "Game", player: "Player") -> int:
     """本局该玩家部署的异象总数。"""
     h = get_history(game)
-    return h.total_minions_deployed(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEPLOYED
+    return len(h.query_events(
+        event_type=EVENT_DEPLOYED,
+        filter_fn=lambda e: getattr(e.get("minion"), "owner", None) is player
+    ))
 
 
 def total_strategies_played(game: "Game", player: "Player") -> int:
     """本局该玩家使用的策略卡总数。"""
     h = get_history(game)
-    return h.total_strategies_played(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import Strategy
+    return len(h.query_events(
+        event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Strategy)
+    ))
 
 
 def total_sacrifices(game: "Game", player: "Player") -> int:
     """本局该玩家献祭的总次数。"""
     h = get_history(game)
-    return h.total_sacrifices(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_SACRIFICE
+    return len(h.query_events(
+        event_type=EVENT_SACRIFICE, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_blood_spent(game: "Game", player: "Player") -> int:
     """本局该玩家支付的血液总量。"""
     h = get_history(game)
-    return h.total_blood_spent(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_SACRIFICE
+    return sum(e.get("blood", 0) for e in h.query_events(
+        event_type=EVENT_SACRIFICE, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_developed(game: "Game", player: "Player") -> int:
     """本局该玩家开发的总次数。"""
     h = get_history(game)
-    return h.total_developed(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEVELOPED
+    return len(h.query_events(
+        event_type=EVENT_DEVELOPED, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_cards_drawn(game: "Game", player: "Player") -> int:
     """本局该玩家抽牌总数。"""
     h = get_history(game)
-    return h.total_cards_drawn(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DRAW
+    return len(h.query_events(
+        event_type=EVENT_DRAW, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_cards_discarded(game: "Game", player: "Player") -> int:
     """本局该玩家弃牌总数。"""
     h = get_history(game)
-    return h.total_cards_discarded(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DISCARDED
+    return len(h.query_events(
+        event_type=EVENT_DISCARDED, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_cards_milled(game: "Game", player: "Player") -> int:
     """本局该玩家磨牌总数。"""
     h = get_history(game)
-    return h.total_cards_milled(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_MILLED
+    return len(h.query_events(
+        event_type=EVENT_MILLED, filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def total_damage_to_players(game: "Game", dealer: "Player") -> int:
     """本局该玩家对敌方玩家造成的总伤害。"""
     h = get_history(game)
-    return h.total_damage_to_players(dealer) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_PLAYER_DAMAGE
+    def _dealer(e):
+        source = e.get("source")
+        if hasattr(source, "side"):
+            return source
+        elif hasattr(source, "owner"):
+            return source.owner
+        return None
+    return sum(e.get("damage", 0) for e in h.query_events(
+        event_type=EVENT_PLAYER_DAMAGE, filter_fn=lambda e: _dealer(e) is dealer
+    ))
 
 
 def total_damage_to_minions(game: "Game", dealer: "Player") -> int:
     """本局该玩家对异象造成的总伤害。"""
     h = get_history(game)
-    return h.total_damage_to_minions(dealer) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DAMAGED
+    return sum(e.get("actual", 0) for e in h.query_events(
+        event_type=EVENT_DAMAGED,
+        filter_fn=lambda e: getattr(e.get("source_minion"), "owner", None) is dealer
+    ))
 
 
 def total_healing_received(game: "Game", player: "Player") -> int:
     """本局该玩家获得的总治疗量。"""
     h = get_history(game)
-    return h.total_healing_received(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_HEALTH_CHANGED
+    return sum(e.get("delta", 0) for e in h.query_events(
+        event_type=EVENT_HEALTH_CHANGED,
+        filter_fn=lambda e: e.get("player") is player and e.get("delta", 0) > 0
+    ))
 
 
 def total_attacks_made(game: "Game", player: "Player") -> int:
     """本局该玩家场上异象发起的攻击总次数。"""
     h = get_history(game)
-    return h.total_attacks_made(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_ATTACKED
+    return len(h.query_events(
+        event_type=EVENT_ATTACKED,
+        filter_fn=lambda e: getattr(e.get("source") or e.get("minion"), "owner", None) is player
+    ))
 
 
 def total_minion_deaths(game: "Game", player: Optional["Player"] = None) -> int:
     """本局死亡的异象总数。若指定 player，只统计该玩家拥有的异象。"""
     h = get_history(game)
-    return h.total_minion_deaths(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEATH
+    events = h.query_events(event_type=EVENT_DEATH)
+    if player:
+        return sum(1 for e in events if getattr(e.get("minion"), "owner", None) is player)
+    return len(events)
 
 
 # ── 指定回合查询 ──
@@ -2523,283 +2762,100 @@ def total_minion_deaths(game: "Game", player: Optional["Player"] = None) -> int:
 def cards_played_in_turn(game: "Game", turn: int, player: "Player") -> int:
     """第 turn 回合该玩家打出的卡牌数。"""
     h = get_history(game)
-    return h.cards_played_this_turn(player, turn) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    return len(h.query_events(
+        turn=turn, event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def minions_deployed_in_turn(game: "Game", turn: int, player: "Player") -> int:
     """第 turn 回合该玩家部署的异象数。"""
     h = get_history(game)
-    return h.minions_deployed_this_turn(player, turn) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_DEPLOYED
+    return len(h.query_events(
+        turn=turn, event_type=EVENT_DEPLOYED,
+        filter_fn=lambda e: getattr(e.get("minion"), "owner", None) is player
+    ))
 
 
 def strategies_played_in_turn(game: "Game", turn: int, player: "Player") -> int:
     """第 turn 回合该玩家使用的策略卡数。"""
     h = get_history(game)
-    return h.strategies_played_this_turn(player, turn) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_CARD_PLAYED
+    from tards.cards import Strategy
+    return len(h.query_events(
+        turn=turn, event_type=EVENT_CARD_PLAYED,
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Strategy)
+    ))
 
 
 def sacrifices_in_turn(game: "Game", turn: int, player: "Player") -> int:
     """第 turn 回合该玩家献祭的次数。"""
     h = get_history(game)
-    return h.sacrifices_this_turn(player, turn) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_SACRIFICE
+    return len(h.query_events(
+        turn=turn, event_type=EVENT_SACRIFICE,
+        filter_fn=lambda e: e.get("player") is player
+    ))
 
 
 def damage_to_players_in_turn(game: "Game", turn: int, dealer: "Player") -> int:
     """第 turn 回合该玩家对敌方玩家造成的伤害。"""
     h = get_history(game)
-    return h.damage_dealt_to_players_this_turn(dealer, turn) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_PLAYER_DAMAGE
+    def _dealer(e):
+        source = e.get("source")
+        if hasattr(source, "side"):
+            return source
+        elif hasattr(source, "owner"):
+            return source.owner
+        return None
+    return sum(e.get("damage", 0) for e in h.query_events(
+        turn=turn, event_type=EVENT_PLAYER_DAMAGE,
+        filter_fn=lambda e: _dealer(e) is dealer
+    ))
 
 
 def history_summary(game: "Game") -> Dict[str, Any]:
     """返回机器日志摘要（调试用）。"""
     h = get_history(game)
-    return h.summary() if h else {}
-
-
-# =============================================================================
-# 30. 选择接口封装（减少 boilerplate）
-# =============================================================================
-
-def request_choice_index(
-    game: "Game",
-    player: "Player",
-    candidates: List[Any],
-    title: str = "请选择",
-) -> Optional[int]:
-    """让玩家从候选列表中选择一项，返回整数索引（从0开始）。
-
-    若玩家取消或候选为空，返回 None。
-    自动处理选项字符串生成和结果解析。
-    """
-    if not candidates:
-        return None
-    if len(candidates) == 1:
-        return 0
-
-    options = [f"{i+1}. {getattr(c, 'name', str(c))}" for i, c in enumerate(candidates)]
-    chosen = game.request_choice(player, options, title=title)
-    if not chosen:
-        return None
-    try:
-        idx = int(chosen.split('.')[0]) - 1
-        if 0 <= idx < len(candidates):
-            return idx
-    except (ValueError, IndexError):
-        pass
-    return None
-
-
-def request_target(
-    game: "Game",
-    player: "Player",
-    candidates: List[Any],
-    title: str = "请选择目标",
-) -> Optional[Any]:
-    """让玩家从候选列表中选择一个目标，返回选中的对象。
-
-    若玩家取消或候选为空，返回 None。
-    """
-    idx = request_choice_index(game, player, candidates, title=title)
-    return candidates[idx] if idx is not None else None
-
-
-def request_targets(
-    game: "Game",
-    player: "Player",
-    candidates: List[Any],
-    count: int,
-    title: str = "请选择目标",
-    allow_repeat: bool = False,
-) -> List[Any]:
-    """让玩家从候选列表中选择多个目标，返回选中的对象列表。
-
-    若 count <= 0 或候选为空，返回空列表。
-    allow_repeat=True 时允许重复选择同一目标。
-    """
-    if count <= 0 or not candidates:
-        return []
-    if len(candidates) == 1 and count == 1:
-        return [candidates[0]]
-
-    selected: List[Any] = []
-    remaining = list(candidates)
-    for i in range(count):
-        if not remaining:
-            break
-        current_title = f"{title} ({i+1}/{count})"
-        options = [f"{j+1}. {getattr(c, 'name', str(c))}" for j, c in enumerate(remaining)]
-        chosen = game.request_choice(player, options, title=current_title)
-        if not chosen:
-            break
-        try:
-            idx = int(chosen.split('.')[0]) - 1
-            if 0 <= idx < len(remaining):
-                target = remaining[idx]
-                selected.append(target)
-                if not allow_repeat:
-                    remaining.pop(idx)
-        except (ValueError, IndexError):
-            break
-    return selected
-
-
-# =============================================================================
-# 31. 场上异象遍历（带去重，含 underlay）
-# =============================================================================
-
-def all_minions_on_board(
-    game: "Game",
-    alive_only: bool = True,
-    include_underlay: bool = True,
-) -> List["Minion"]:
-    """返回场上所有异象（含覆盖物），自动去重。
-
-    Args:
-        alive_only: 是否只返回存活异象
-        include_underlay: 是否包含 cell_underlay 中的覆盖物
-    """
-    seen: set[int] = set()
-    result: List["Minion"] = []
-    pools = [game.board.minion_place.values()]
-    if include_underlay:
-        pools.append(game.board.cell_underlay.values())
-    for pool in pools:
-        for m in pool:
-            if alive_only and not m.is_alive():
-                continue
-            mid = id(m)
-            if mid in seen:
-                continue
-            seen.add(mid)
-            result.append(m)
-    return result
-
-
-def all_friendly_minions_on_board(
-    game: "Game",
-    player: "Player",
-    alive_only: bool = True,
-    include_underlay: bool = True,
-) -> List["Minion"]:
-    """返回场上所有友方异象（含覆盖物），自动去重。"""
-    return [m for m in all_minions_on_board(game, alive_only, include_underlay)
-            if m.owner == player]
-
-
-def all_enemy_minions_on_board(
-    game: "Game",
-    player: "Player",
-    alive_only: bool = True,
-    include_underlay: bool = True,
-) -> List["Minion"]:
-    """返回场上所有敌方异象（含覆盖物），自动去重。"""
-    return [m for m in all_minions_on_board(game, alive_only, include_underlay)
-            if m.owner != player]
-
-
-# =============================================================================
-# 32. MinionCard 复制（减少 boilerplate）
-# =============================================================================
-
-def copy_minion_card(source_card: "MinionCard", new_owner: "Player") -> "MinionCard":
-    """基于现有 MinionCard 创建一份完整复制（含扩展属性）。
-
-    自动复制以下属性（若存在）：
-    pack, asset_id, statue_top, statue_bottom, statue_pair,
-    on_statue_activate, on_statue_fuse, tags, hidden_keywords,
-    echo_level, bluff。
-    """
-    from tards.cards import MinionCard
-    from tards.cost import Cost
-
-    new_card = MinionCard(
-        name=source_card.name,
-        owner=new_owner,
-        cost=Cost(
-            t=source_card.cost.t,
-            b=source_card.cost.b,
-            s=source_card.cost.s,
-            c=source_card.cost.c,
-        ),
-        targets=source_card.targets,
-        attack=source_card.attack,
-        health=source_card.health,
-        special=source_card.special,
-        keywords=source_card.keywords.copy() if source_card.keywords else None,
+    if not h:
+        return {}
+    # 基于事件流统计摘要
+    from tards.constants import (
+        EVENT_CARD_PLAYED, EVENT_DEPLOYED, EVENT_SACRIFICE,
+        EVENT_DEATH, EVENT_DRAW, EVENT_DISCARDED, EVENT_MILLED,
     )
-
-    # 复制扩展属性
-    for attr in (
-        "pack", "asset_id", "statue_top", "statue_bottom", "statue_pair",
-        "on_statue_activate", "on_statue_fuse", "echo_level", "bluff",
-    ):
-        if hasattr(source_card, attr):
-            setattr(new_card, attr, getattr(source_card, attr))
-
-    if hasattr(source_card, "tags"):
-        new_card.tags = list(source_card.tags)
-    if hasattr(source_card, "hidden_keywords"):
-        new_card.hidden_keywords = (
-            source_card.hidden_keywords.copy()
-            if isinstance(source_card.hidden_keywords, dict)
-            else source_card.hidden_keywords
-        )
-
-    return new_card
-
-
-# =============================================================================
-# 33. 延迟效果封装
-# =============================================================================
-
-def register_delayed_effect(
-    game: "Game",
-    trigger: str,
-    turn_offset: int,
-    fn: Callable[[], None],
-) -> None:
-    """注册一个延迟效果，在指定回合触发。
-
-    Args:
-        trigger: "turn_start" 或 "turn_end"
-        turn_offset: 相对于当前回合的偏移（0=本回合，1=下回合）
-        fn: 无参回调函数
-    """
-    target_turn = getattr(game, "current_turn", 0) + turn_offset
-    game._delayed_effects.append({
-        "trigger": trigger,
-        "turn": target_turn,
-        "fn": fn,
-    })
-
-
-def register_until_next_turn_end(game: "Game", fn: Callable[[], None]) -> None:
-    """注册一个效果，在下个回合结束时触发。"""
-    register_delayed_effect(game, "turn_end", 1, fn)
-
-
-def register_until_turn_end(game: "Game", fn: Callable[[], None]) -> None:
-    """注册一个效果，在本回合结束时触发。"""
-    register_delayed_effect(game, "turn_end", 0, fn)
-
-
-# =============================================================================
-# 34. 目标合法性快捷检查
-# =============================================================================
-
-def is_valid_minion_target(target: Any) -> bool:
-    """检查目标是否为存活的场上异象。"""
-    from tards.cards import Minion
-    return isinstance(target, Minion) and target.is_alive()
-
-
-def ensure_minion_target(target: Any, warn_name: str = "") -> bool:
-    """确保目标是存活的场上异象，否则打印警告并返回 False。"""
-    if is_valid_minion_target(target):
-        return True
-    name = warn_name or "效果"
-    print(f"  [警告] {name} 没有有效的异象目标")
-    return False
+    summary = {"turns": len(h._records) + (1 if h._current else 0)}
+    for rec in h._records + [h._current]:
+        for entry in rec._event_log:
+            et = entry.get("event_type")
+            if et == EVENT_CARD_PLAYED:
+                summary["card_played"] = summary.get("card_played", 0) + 1
+            elif et == EVENT_DEPLOYED:
+                summary["deployed"] = summary.get("deployed", 0) + 1
+            elif et == EVENT_SACRIFICE:
+                summary["sacrificed"] = summary.get("sacrificed", 0) + 1
+            elif et == EVENT_DEATH:
+                summary["deaths"] = summary.get("deaths", 0) + 1
+            elif et == EVENT_DRAW:
+                summary["drawn"] = summary.get("drawn", 0) + 1
+            elif et == EVENT_DISCARDED:
+                summary["discarded"] = summary.get("discarded", 0) + 1
+            elif et == EVENT_MILLED:
+                summary["milled"] = summary.get("milled", 0) + 1
+    return summary
 
 
 # =============================================================================
@@ -2809,40 +2865,115 @@ def ensure_minion_target(target: Any, warn_name: str = "") -> bool:
 def last_died_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
     """返回最近一只死亡的异象。"""
     h = get_history(game)
-    return h.last_died_minion(player) if h else None
+    if not h:
+        return None
+    from tards.constants import EVENT_DEATH
+    events = h.query_events(event_type=EVENT_DEATH)
+    if player:
+        for e in reversed(events):
+            m = e.get("minion")
+            if getattr(m, "owner", None) is player:
+                return m
+    else:
+        for e in reversed(events):
+            m = e.get("minion")
+            if m:
+                return m
+    return None
 
 
 def last_sacrificed_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
     """返回最近一只被献祭的异象。"""
     h = get_history(game)
-    return h.last_sacrificed_minion(player) if h else None
+    if not h:
+        return None
+    from tards.constants import EVENT_SACRIFICE
+    events = h.query_events(event_type=EVENT_SACRIFICE)
+    if player:
+        for e in reversed(events):
+            m = e.get("minion")
+            if getattr(m, "owner", None) is player:
+                return m
+    else:
+        for e in reversed(events):
+            m = e.get("minion")
+            if m:
+                return m
+    return None
 
 
 def last_deployed_minion(game: "Game", player: Optional["Player"] = None) -> Optional["Minion"]:
     """返回最近一只部署的异象。"""
     h = get_history(game)
-    return h.last_deployed_minion(player) if h else None
+    if not h:
+        return None
+    from tards.constants import EVENT_DEPLOYED
+    events = h.query_events(event_type=EVENT_DEPLOYED)
+    if player:
+        for e in reversed(events):
+            m = e.get("minion")
+            if getattr(m, "owner", None) is player:
+                return m
+    else:
+        for e in reversed(events):
+            m = e.get("minion")
+            if m:
+                return m
+    return None
 
 
 def was_minion_deployed_this_turn(game: "Game", minion: "Minion") -> bool:
     """检查某异象是否在本回合部署。"""
     h = get_history(game)
-    return h.was_minion_deployed_this_turn(minion) if h else False
+    if not h:
+        return False
+    from tards.constants import EVENT_DEPLOYED
+    return any(e.get("minion") is minion for e in h.query_events(event_type=EVENT_DEPLOYED))
 
 
 def player_deployed_any_minion_this_turn(game: "Game", player: "Player") -> bool:
     """检查某玩家本回合是否部署过任何异象。"""
     h = get_history(game)
-    return h.player_deployed_any_minion_this_turn(player) if h else False
+    if not h:
+        return False
+    from tards.constants import EVENT_DEPLOYED
+    return any(
+        getattr(e.get("minion"), "owner", None) is player
+        for e in h.query_events(event_type=EVENT_DEPLOYED)
+    )
 
 
 def total_t_max_lost(game: "Game", player: "Player") -> int:
     """本局该玩家失去的T槽上限总数。"""
     h = get_history(game)
-    return h.total_t_max_lost(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_T_MAX_CHANGED
+    return sum(
+        e.get("old", 0) - e.get("new", 0)
+        for e in h.query_events(event_type=EVENT_T_MAX_CHANGED)
+        if e.get("player") is player and e.get("new", 0) < e.get("old", 0)
+    )
 
 
 def health_lost_this_phase(game: "Game", player: "Player") -> int:
     """本出牌阶段该玩家失去的HP总量（含伤害）。"""
     h = get_history(game)
-    return h.health_lost_this_phase(player) if h else 0
+    if not h:
+        return 0
+    from tards.constants import EVENT_HEALTH_CHANGED, EVENT_PHASE_START
+    events = h.query_events(up_to_turn=None)
+    # 找到最近一次结算阶段开始的位置
+    start_idx = 0
+    resolve_phase = getattr(game, "PHASE_RESOLVE", None)
+    for i, e in enumerate(events):
+        if e.get("event_type") == EVENT_PHASE_START and e.get("phase") == resolve_phase:
+            start_idx = i + 1
+    total = 0
+    for e in events[start_idx:]:
+        if e.get("event_type") == EVENT_HEALTH_CHANGED and e.get("player") is player:
+            delta = e.get("delta", 0)
+            if delta < 0:
+                total += -delta
+    return total
+

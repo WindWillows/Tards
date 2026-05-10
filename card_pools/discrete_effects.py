@@ -7,8 +7,9 @@
 
 import random
 
+from tards import Pack, Rarity, CardType
 from tards.targets import target, target_mix
-from tards.cards import Minion
+from tards.cards import Minion, MineralCard
 from tards.player import Player
 from card_pools.effect_decorator import special, strategy
 from card_pools.effect_utils import (
@@ -30,6 +31,7 @@ from card_pools.effect_utils import (
     discard_card,
     draw_cards,
     draw_cards_of_type,
+    empty_positions,
     gain_keyword,
     get_adjacent_positions,
     get_all_minions,
@@ -53,10 +55,12 @@ from card_pools.effect_utils import (
     remove_minion_no_death,
     remove_top_of_deck,
     return_minion_to_hand,
+    search_deck,
     shuffle_into_deck,
     summon_token,
     swap,
     was_minion_deployed_this_turn,
+    convert_cost_to_t,
 )
 
 @special
@@ -670,12 +674,12 @@ def _moyingxiang_special(minion, player, game, extras=None):
             return
         target = random_enemy_minion(game, player)
         if target:
-            deal_damage_to_minion(target, 2, source=minion, game=game)
-            print(f"  末影箱对 {target.name} 造成2点伤害（手牌已满时抽牌）")
+            deal_damage_to_minion(target, 3, source=minion, game=game)
+            print(f"  末影箱对 {target.name} 造成3点伤害（手牌已满时抽牌）")
         else:
             opponent = game.p2 if player == game.p1 else game.p1
-            deal_damage_to_player(opponent, 2, source=minion, game=game)
-            print(f"  末影箱对 {opponent.name} 造成2点伤害（手牌已满时抽牌）")
+            deal_damage_to_player(opponent, 3, source=minion, game=game)
+            print(f"  末影箱对 {opponent.name} 造成3点伤害（手牌已满时抽牌）")
 
     on("milled", on_milled, game, minion)
 
@@ -1276,7 +1280,7 @@ def _zhongshengmao_special(minion, player, game, extras=None):
 
     # 回响异象花费设为1G
     def modifier(card, cost):
-        if getattr(card, "echo_level", 0) > 0:
+        if card.keywords.get("回响", False):
             cost.t = 1
             cost.c = cost.b = cost.s = 0
             cost.ct = 0
@@ -1787,8 +1791,24 @@ def _baomao_special(minion, player, game, extras=None):
 
 @special
 def _jiangshi_special(minion, player, game, extras=None):
-    """僵尸：造成伤害时，你获得等量HP。"""
+    """僵尸：具有两栖。部署在高地时变化为尸壳，部署在水路时变化为溺尸。
+    否则：造成伤害时，你获得等量HP。"""
+    pos = minion.position
+    if pos:
+        r, c = pos
+        transform_name = None
+        if c == 0:
+            transform_name = "尸壳"
+        elif game.board._is_water_at(pos):
+            transform_name = "溺尸"
 
+        if transform_name:
+            from card_pools.effect_utils import remove_minion_no_death, summon_minion_by_name
+            remove_minion_no_death(minion, game)
+            summon_minion_by_name(game, transform_name, player, pos)
+            return
+
+    # 非变形情况：吸血
     def _leech(event):
         source = event.source
         if source != minion:
@@ -2046,13 +2066,66 @@ def _zhanlipin_strategy(player, target, game, extras=None):
 
 
 @strategy
+def _fuxing_effect(player, target, game, extras=None):
+    """复兴：使你获得：你不因抽牌而获得手牌时，将其复制加入手牌，使其花费+1。"""
+    import copy
+
+    # 记录已处理的手牌ID（避免重复触发）
+    processed_ids = {id(c) for c in player.card_hand}
+
+    def _on_phase_end(event):
+        # 只在结算阶段结束时检查
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+
+        for card in list(player.card_hand):
+            cid = id(card)
+            if cid in processed_ids:
+                continue
+            processed_ids.add(cid)
+
+            # 跳过抽牌获得的卡
+            if getattr(card, "_acquired_by_draw", False):
+                continue
+
+            # 非抽牌获得：复制并+1T
+            copied = copy.copy(card)
+            if copied.keywords:
+                copied.keywords = copied.keywords.copy()
+            copied.cost = copy.copy(card.cost)
+            copied.cost.t += 1
+
+            if len(player.card_hand) < player.card_hand_max:
+                player.card_hand.append(copied)
+                copied.move_to("hand", game)
+                print(f"  复兴：复制 {card.name} 加入手牌，花费+1T")
+                processed_ids.add(id(copied))
+            else:
+                player.card_dis.append(copied)
+                copied.move_to("discard", game)
+                print(f"  复兴：手牌已满，{card.name} 的复制被弃置")
+
+    from card_pools.effect_utils import on
+    on("phase_end", _on_phase_end, game, minion=None)
+    print("  复兴：效果已激活")
+    return True
+
+
+@strategy
 def _yiqi_strategy(player, target, game, extras=None):
     """遗弃：将1个异象的HP设为1。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 遗弃没有有效目标")
         return False
-    # 将当前生命值设为1（直接扣到1，不触发伤害事件）
+    # 清除临时最大生命值加成
+    target.temp_max_health_bonus = 0
+    # 调整永久加成使最大生命值变为1
+    delta = 1 - target.health
+    if delta != 0:
+        target.gain_health_bonus(delta, permanent=True)
+    # 将当前生命值也设为1（不触发伤害事件）
     target.current_health = 1
+    target.recalculate()
     print(f"  {target.name} 的HP被设为1")
     return True
 
@@ -2076,13 +2149,217 @@ def _gaoshan_strategy(player, target, game, extras=None):
 
 
 @strategy
+def _yulin_effect(player, target, game, extras=None):
+    """雨林：使1个异象获得亡语：随机消灭1个距离不大于3的敌方异象。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  雨林：未选择目标")
+        return True
+
+    def _deathrattle(minion, owner, board):
+        import random
+        g = board.game_ref
+        if not g:
+            return
+        # 找距离不大于3的敌方异象
+        candidates = []
+        for pos, m in board.minion_place.items():
+            if m.is_alive() and m.owner != minion.owner:
+                dist = abs(pos[0] - minion.position[0]) + abs(pos[1] - minion.position[1])
+                if dist <= 3:
+                    candidates.append(m)
+        if candidates:
+            chosen = random.choice(candidates)
+            destroy_minion(chosen, g)
+            print(f"  雨林亡语：{minion.name} 消灭 {chosen.name}")
+        else:
+            print(f"  雨林亡语：{minion.name} 范围内没有敌方异象")
+
+    add_deathrattle(target, _deathrattle)
+    print(f"  雨林：{target.name} 获得亡语")
+    return True
+
+
+@strategy
+def _xueyuan_effect(player, target, game, extras=None):
+    """雪原：对1行异象造成等同于此行异象数的伤害。"""
+    # 让玩家选择横行
+    rows = ["第0行", "第1行", "第2行", "第3行", "第4行"]
+    choice = game.request_choice(player, rows, title="雪原：选择1个横行")
+    if choice < 0:
+        print("  雪原：未选择")
+        return True
+
+    chosen_row = choice  # 0-4
+
+    # 统计该行上的存活异象
+    targets = [m for pos, m in game.board.minion_place.items()
+               if pos[0] == chosen_row and m.is_alive()]
+
+    count = len(targets)
+    if count == 0:
+        print(f"  雪原：第{chosen_row}行没有异象")
+        return True
+
+    # 对每个异象造成 count 点伤害
+    for m in targets:
+        if m.is_alive():
+            deal_damage_to_minion(m, count, source=None, game=game)
+            print(f"  雪原：对 {m.name} 造成{count}点伤害")
+
+    return True
+
+
+@strategy
 def _erdi_strategy(player, target, game, extras=None):
     """恶地：对所有花费不大于3的异象造成3点伤害。"""
-    for m in get_all_minions(game):
+    # 筛选全场花费折算后不大于3的存活异象
+    targets = []
+    for pos, m in game.board.minion_place.items():
         if m.is_alive():
-            cost = getattr(m.source_card, "cost", None)
-            if cost and cost.t <= 3:
-                deal_damage_to_minion(m, 3, source=None, game=game)
+            source = getattr(m, "source_card", None)
+            if source:
+                cost_value = convert_cost_to_t(source.cost) + source.cost.ct
+                if cost_value <= 3:
+                    targets.append((pos, m))
+
+    # 按列从高地(0)到水路(4)，同列内按行从小到大排序
+    targets.sort(key=lambda x: (x[0][1], x[0][0]))
+
+    for pos, m in targets:
+        if m.is_alive():
+            deal_damage_to_minion(m, 3, source=None, game=game)
+            print(f"  恶地：对 {m.name}({pos}) 造成3点伤害")
+
+    return True
+
+
+@strategy
+def _fuzhijishu_effect(player, target, game, extras=None):
+    """复制技术：抉择：将1张"轰击"或1张"制导技术"加入手牌。"""
+    choice = game.request_choice(
+        player,
+        ["轰击", "制导技术"],
+        title="复制技术：抉择",
+    )
+    if choice == 0:
+        add_card_to_hand_by_name("轰击", player, game)
+    elif choice == 1:
+        add_card_to_hand_by_name("制导技术", player, game)
+    return True
+
+
+@strategy
+def _c418_effect(player, target, game, extras=None):
+    """C418：对方手牌具有+2花费，直到下一个出牌阶段结束。"""
+    opponent = game.p2 if player == game.p1 else game.p1
+
+    # 修改对方当前手牌费用+2T
+    modified_cards = []
+    for card in opponent.card_hand:
+        card.cost.t += 2
+        modified_cards.append(card)
+
+    trigger_turn = game.current_turn + 1
+
+    def _on_phase_end(event):
+        if event.data.get("phase") != game.PHASE_ACTION:
+            return
+        if game.current_turn < trigger_turn:
+            return
+        # 恢复费用
+        for card in modified_cards:
+            if card in opponent.card_hand:
+                card.cost.t -= 2
+        print(f"  C418效果结束：{opponent.name} 手牌费用恢复")
+        # 注销自己
+        game.history.unlisten(listener_id)
+
+    listener_id = on("phase_end", _on_phase_end, game, minion=None)
+    print(f"  C418：{opponent.name} 手牌费用+2T，直到回合{trigger_turn}出牌阶段结束")
+    return True
+
+
+@strategy
+def _shitiyaji_effect(player, target, game, extras=None):
+    """实体挤压：指向1个异象，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  实体挤压：未选择目标")
+        return True
+
+    def _on_phase_start(g, event_data, m):
+        if event_data.get("phase") != g.PHASE_ACTION:
+            return
+        if m is not target:
+            return
+        if not m.is_alive():
+            return
+        # 只触发一次
+        m.on_phase_start = None
+        # 先伤害
+        deal_damage_to_minion(m, 4, game=g)
+        print(f"  实体挤压：{m.name} 受到4点伤害")
+        # 后眩晕
+        gain_keyword(m, "眩晕")
+        print(f"  实体挤压：{m.name} 获得眩晕")
+
+    target.on_phase_start = _on_phase_start
+    print(f"  实体挤压：{target.name} 将在下一个出牌阶段开始时受到伤害和眩晕")
+    return True
+
+
+@strategy
+def _zhenzhuta_effect(player, target, game, extras=None):
+    """珍珠塔：开发4张卡组中的牌，将其花费设为4T。"""
+    from tards.cost import Cost
+
+    def _set_cost_4t(card):
+        card.cost = Cost(t=4)
+
+    for i in range(4):
+        result = game.develop_card(
+            player,
+            player.original_deck_defs,
+            count=3,
+            modify_fn=_set_cost_4t,
+            return_card=True,
+        )
+        if result:
+            print(f"  珍珠塔：开发第{i+1}张 {result.name}，花费设为4T")
+        else:
+            print(f"  珍珠塔：开发第{i+1}张失败")
+
+    return True
+
+
+@strategy
+def _zhidaojishu_effect(player, target, game, extras=None):
+    """制导技术：抉择：将1张"矢量炮"或1张"珍珠塔"加入手牌。"""
+    choice = game.request_choice(
+        player,
+        ["矢量炮", "珍珠塔"],
+        title="制导技术：抉择",
+    )
+    if choice == 0:
+        add_card_to_hand_by_name("矢量炮", player, game)
+    elif choice == 1:
+        add_card_to_hand_by_name("珍珠塔", player, game)
+    return True
+
+
+@strategy
+def _hongji_effect(player, target, game, extras=None):
+    """轰击：消灭1个受伤异象，将1张"TNT炮"加入手牌。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  轰击：未选择目标")
+        return True
+
+    if target.current_health >= target.health:
+        print("  轰击：目标未受伤")
+        return True
+
+    destroy_minion(target, game)
+    add_card_to_hand_by_name("TNT炮", player, game)
+    print(f"  轰击：将 TNT炮 加入手牌")
     return True
 
 
@@ -2113,15 +2390,15 @@ def _hongshifen_strategy(player, target, game, extras=None):
 
 @strategy
 def _jinrenshu_strategy(player, target, game, extras=None):
-    """禁人书：使1个异象及其相邻异象获得眩晕。"""
+    """禁人书：使1个异象及其相邻异象获得眩晕（持续到回合结束）。"""
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 禁人书没有有效目标")
         return False
-    gain_keyword(target, "眩晕", 1)
+    gain_keyword(target, "眩晕", permanent=False)
     for pos in get_adjacent_positions(target.position, game.board):
         neighbor = game.board.get_minion_at(pos)
         if neighbor and neighbor.is_alive():
-            gain_keyword(neighbor, "眩晕", 1)
+            gain_keyword(neighbor, "眩晕", permanent=False)
     return True
 
 
@@ -2495,6 +2772,45 @@ def _jielue_strategy(player, target, game, extras=None):
     return True
 
 
+def _gaolu_draw_trigger(player, game, card):
+    """高炉抽取：随机将"铁锭"、"金锭"、"钻石"中的1张加入手牌。"""
+    import random
+    mineral_names = ["铁锭", "金锭", "钻石"]
+    chosen_name = random.choice(mineral_names)
+    mineral = create_card_by_name(chosen_name, player)
+    if mineral is None:
+        print(f"  高炉抽取：无法创建 {chosen_name}")
+        return
+    if len(player.card_hand) < player.card_hand_max:
+        player.card_hand.append(mineral)
+        mineral.move_to("hand", game)
+        print(f"  高炉抽取：将 {chosen_name} 加入手牌")
+    else:
+        player.card_dis.append(mineral)
+        mineral.move_to("discard", game)
+        print(f"  高炉抽取：手牌已满，{chosen_name} 被弃置")
+
+
+@special
+def _kuqideheiyaoshi_special(minion, player, game, extras=None):
+    """哭泣的黑曜石：友方回响异象具有"部署：获得+2/2。"""
+
+    def on_deployed(event):
+        deployed = event.data.get("minion")
+        if deployed is None or deployed.owner != player:
+            return
+        if not deployed.source_card:
+            return
+        if not deployed.source_card.keywords.get("回响", False):
+            return
+        deployed.attack += 2
+        deployed.health += 2
+        deployed.current_health += 2
+        print(f"  哭泣的黑曜石：{deployed.name} 部署时获得 +2/2")
+
+    on("deployed", on_deployed, game, minion)
+
+
 # =============================================================================
 # 映射表
 # =============================================================================
@@ -2516,6 +2832,7 @@ SPECIAL_MAP = {
     "驴": "_lv_special",
     "鲑鱼": "_guiyu_special",
     "雪傀儡": "_xuewulou_special",
+    "哭泣的黑曜石": "_kuqideheiyaoshi_special",
     "禁人塔": "_jinrenta_special",
     "侦测器": "_zhenceqi_special",
     "潮涌核心": "_chaoonghexin_special",
@@ -2568,11 +2885,710 @@ SPECIAL_MAP = {
     "僵尸猪人": "_jiangshizhuren_special",
 }
 
+@strategy
+def _tiegao_effect(player, target, game, extras=None):
+    """铁镐：获得2个额外的C槽。回合结束：抽一张牌。（一次性）"""
+    player.c_point_max += 2
+    print(f"  {player.name} 获得2个额外C槽")
+
+    def on_phase_end(event):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        player.draw_card(1, game=game)
+        print(f"  铁镐：{player.name} 回合结束抽1张牌")
+
+    on("phase_end", on_phase_end, game, once=True)
+    return True
+
+
+@strategy
+def _duochongsheji_effect(player, target, game, extras=None):
+    """多重射击：对所有敌方目标造成2点伤害。"""
+    enemy = game.get_opponent(player)
+    for minion in all_enemy_minions(game, player):
+        if minion.is_alive():
+            deal_damage_to_minion(minion, 2, source=None, game=game)
+            print(f"  多重射击：对 {minion.name} 造成2点伤害")
+    deal_damage_to_player(enemy, 2, source=None, game=game)
+    print(f"  多重射击：对 {enemy.name} 造成2点伤害")
+    return True
+
+
+def _huoshi_targets(player, board):
+    """火矢目标：所有位于非水路列上的异象（友方+敌方）。"""
+    return [m for pos, m in board.minion_place.items() if not board._is_water_at(pos)]
+
+
+@strategy
+def _huoshi_effect(player, target, game, extras=None):
+    """火矢：使1个陆地异象获得+4攻击力。"""
+    if not isinstance(target, Minion):
+        print("  火矢：目标必须是异象")
+        return False
+    if game.board._is_water_at(target.position):
+        print("  火矢：目标必须是陆地异象")
+        return False
+    target.attack += 4
+    print(f"  火矢：{target.name} 获得 +4 攻击力")
+    return True
+
+
+def _hengsao_targets(player, board):
+    """横扫之刃目标：所有在场异象（通过选择异象来选定其所在行）。"""
+    return [m for m in board.minion_place.values() if m.is_alive()]
+
+
+@strategy
+def _hengsao_effect(player, target, game, extras=None):
+    """横扫之刃：对1行异象造成3点伤害。"""
+    if not isinstance(target, Minion):
+        print("  横扫之刃：目标必须是异象")
+        return False
+    if not target.is_alive():
+        print("  横扫之刃：目标已死亡")
+        return False
+    row = target.position[0]
+    for col in range(game.board.SIZE):
+        pos = (row, col)
+        m = game.board.get_minion_at(pos)
+        if m and m.is_alive():
+            deal_damage_to_minion(m, 3, source=None, game=game)
+            print(f"  横扫之刃：对 {m.name} 造成3点伤害")
+    return True
+
+
+@strategy
+def _erdiao_effect(player, target, game, extras=None):
+    """饵钓：将2张"书"加入手牌。"""
+    for i in range(2):
+        book = create_card_by_name("书", player)
+        if book is None:
+            print(f"  饵钓：无法创建书")
+            continue
+        if len(player.card_hand) < player.card_hand_max:
+            player.card_hand.append(book)
+            book.move_to("hand", game)
+            print(f"  饵钓：将书加入手牌")
+        else:
+            player.card_dis.append(book)
+            book.move_to("discard", game)
+            print(f"  饵钓：手牌已满，书被弃置")
+    return True
+
+
+@strategy
+def _zhongcheng_effect(player, target, game, extras=None):
+    """忠诚：使1个友方异象获得亡语：将本异象的复制加入手牌。"""
+    if not isinstance(target, Minion):
+        print("  忠诚：目标必须是异象")
+        return False
+    if target.owner != player:
+        print("  忠诚：目标必须是友方异象")
+        return False
+
+    def _dr(m, p, b):
+        copy_card = create_card_by_name(m.name, p)
+        if copy_card is None:
+            print(f"  {m.name} 的亡语：无法创建复制")
+            return
+        if len(p.card_hand) < p.card_hand_max:
+            p.card_hand.append(copy_card)
+            copy_card.move_to("hand", b)
+            print(f"  {m.name} 的亡语：将复制加入手牌")
+        else:
+            p.card_dis.append(copy_card)
+            copy_card.move_to("discard", b)
+            print(f"  {m.name} 的亡语：手牌已满，复制被弃置")
+
+    add_deathrattle(target, _dr)
+    print(f"  忠诚：{target.name} 获得亡语")
+    return True
+
+
+@strategy
+def _jitui_effect(player, target, game, extras=None):
+    """击退：将1个异象返回其所有者手牌。"""
+    if not isinstance(target, Minion):
+        print("  击退：目标必须是异象")
+        return False
+    from tards.auto_effects import return_to_hand
+    return_to_hand(target, game, target.owner)
+    return True
+
+
+def _shenhaitansuozhe_targets(player, board):
+    """深海探索者主目标：选择效果模式。"""
+    return ["+2/2", "造成6点伤害"]
+
+
+def _shenhaitansuozhe_extra_targets(player, board):
+    """深海探索者额外目标：选择水路异象。"""
+    return [m for m in board.minion_place.values() if m.is_alive() and board._is_water_at(m.position)]
+
+
+@strategy
+def _shenhaitansuozhe_effect(player, target, game, extras=None):
+    """深海探索者：使1个水路异象获得+2/2 或 对其造成6点伤害。"""
+    if target not in ("+2/2", "造成6点伤害"):
+        print("  深海探索者：效果模式无效")
+        return False
+    if not extras:
+        print("  深海探索者：未选择目标")
+        return False
+    actual_target = extras[0]
+    if not isinstance(actual_target, Minion):
+        print("  深海探索者：目标必须是异象")
+        return False
+    if not actual_target.is_alive():
+        print("  深海探索者：目标已死亡")
+        return False
+    if not game.board._is_water_at(actual_target.position):
+        print("  深海探索者：目标必须是水路异象")
+        return False
+
+    if target == "+2/2":
+        actual_target.attack += 2
+        actual_target.health += 2
+        actual_target.current_health += 2
+        print(f"  深海探索者：{actual_target.name} 获得 +2/2")
+    else:
+        deal_damage_to_minion(actual_target, 6, source=None, game=game)
+        print(f"  深海探索者：对 {actual_target.name} 造成6点伤害")
+    return True
+
+
+@strategy
+def _baohu_effect(player, target, game, extras=None):
+    """保护：使1个异象获得+0/3 和坚韧1。"""
+    if not isinstance(target, Minion):
+        print("  保护：目标必须是异象")
+        return False
+    target.health += 3
+    target.current_health += 3
+    target.keywords["坚韧"] = target.keywords.get("坚韧", 0) + 1
+    target.recalculate()
+    print(f"  保护：{target.name} 获得 +0/3 和坚韧1")
+    return True
+
+
+@strategy
+def _xiaolv_effect(player, target, game, extras=None):
+    """效率：获得1个额外的C槽。"""
+    player.c_point_max += 1
+    print(f"  {player.name} 获得1个额外C槽")
+    return True
+
+
+@strategy
+def _jingyanxiubu_effect(player, target, game, extras=None):
+    """经验修补：将手牌抽至6张。获得1个额外的C槽和T槽。使所有友方异象获得+4HP。"""
+    # 1. 将手牌抽至6张
+    to_draw = max(0, 6 - len(player.card_hand))
+    if to_draw > 0:
+        player.draw_card(to_draw, game=game)
+        print(f"  经验修补：{player.name} 将手牌补至6张")
+    # 2. 获得额外槽位
+    player.c_point_max += 1
+    player.t_point_max += 1
+    print(f"  经验修补：{player.name} 获得1个额外C槽和T槽")
+    # 3. 友方异象+4HP（含上限）
+    for minion in all_friendly_minions(game, player):
+        if minion.is_alive():
+            minion.health += 4
+            minion.current_health += 4
+            print(f"  经验修补：{minion.name} 获得 +4HP")
+    return True
+
+
+@strategy
+def _kanfa_effect(player, target, game, extras=None):
+    """砍伐！：开发1张花费不大于3的非敌对生物异象。将1张"掘进！"加入手牌。"""
+    from tards import DEFAULT_REGISTRY, CardType
+    # 1. 开发：从全局范围中筛选候选，随机3张3选1加入手牌
+    candidates = [
+        d for d in DEFAULT_REGISTRY.all_cards()
+        if d.card_type == CardType.MINION
+        and "生物" in d.tags
+        and "敌对" not in d.tags
+        and convert_cost_to_t(d.cost) <= 3
+    ]
+    if candidates:
+        game.develop_card(player, candidates)
+    else:
+        print("  砍伐！：无符合条件的非敌对生物异象")
+    # 2. 将掘进！加入手牌
+    juejin = create_card_by_name("掘进！", player)
+    if juejin:
+        if len(player.card_hand) < player.card_hand_max:
+            player.card_hand.append(juejin)
+            juejin.move_to("hand", game)
+            print("  砍伐！：将掘进！加入手牌")
+        else:
+            player.card_dis.append(juejin)
+            juejin.move_to("discard", game)
+            print("  砍伐！：手牌已满，掘进！被弃置")
+    return True
+
+
+@strategy
+def _juejin_effect(player, target, game, extras=None):
+    """掘进！：开发1张花费不小于4的非友好生物异象，使其具有迅捷。"""
+    from tards import DEFAULT_REGISTRY, CardType
+    candidates = [
+        d for d in DEFAULT_REGISTRY.all_cards()
+        if d.card_type == CardType.MINION
+        and "生物" in d.tags
+        and "友好" not in d.tags
+        and convert_cost_to_t(d.cost) >= 4
+    ]
+    if not candidates:
+        print("  掘进！：无符合条件的非友好生物异象")
+        return True
+
+    def _add_xunjie(card):
+        card.keywords["迅捷"] = True
+        print(f"  掘进！：{card.name} 获得迅捷")
+
+    game.develop_card(player, candidates, modify_fn=_add_xunjie)
+    return True
+
+
+@strategy
+def _tiezhen_effect(player, target, game, extras=None):
+    """铁砧：选择并弃掉1张附魔书，将2张复制加入手牌。然后若你有铁锭，抽1张牌。"""
+    import copy as _copy
+    # 1. 找到手牌中的附魔书
+    enchanted_books = [c for c in player.card_hand if c.name in ENCHANTED_BOOK_POOL]
+    if not enchanted_books:
+        print("  铁砧：手牌中没有附魔书")
+        return False
+    # 2. 让玩家选择1张（选项含序号以区分同名卡）
+    options = [f"{i+1}. {c.name}" for i, c in enumerate(enchanted_books)]
+    choice = game.request_choice(player, options, title="铁砧：选择1张附魔书弃掉")
+    if not choice:
+        print("  铁砧：未选择附魔书")
+        return False
+    idx = int(choice.split('.')[0]) - 1
+    chosen_card = enchanted_books[idx]
+    player.discard_card(chosen_card, game, reason="effect")
+    # 3. 将2张复制加入手牌
+    for i in range(2):
+        copied = _copy.copy(chosen_card)
+        if copied.keywords:
+            copied.keywords = copied.keywords.copy()
+        if len(player.card_hand) < player.card_hand_max:
+            player.card_hand.append(copied)
+            copied.move_to("hand", game)
+            print(f"  铁砧：将 {chosen_card.name} 的复制加入手牌")
+        else:
+            player.card_dis.append(copied)
+            copied.move_to("discard", game)
+            print(f"  铁砧：手牌已满，{chosen_card.name} 的复制被弃置")
+    # 4. 若有铁锭，抽1张牌
+    has_tieding = any(c.name == "铁锭" for c in player.card_hand)
+    if has_tieding:
+        player.draw_card(1, game=game)
+        print("  铁砧：有铁锭，抽1张牌")
+    return True
+
+
+@strategy
+def _yelian_effect(player, target, game, extras=None):
+    """冶炼：移除所有矿物，将3个花费之和等于移除矿物的打出总和的非生命异象加入战场。"""
+    from tards import DEFAULT_REGISTRY, CardType, Pack
+    from tards.cards import MinionCard, Minion
+    import itertools
+    import random
+
+    # 1. 从手牌中移除所有矿物
+    minerals = [c for c in player.card_hand if isinstance(c, MineralCard)]
+    total_value = 0
+    for c in minerals:
+        total_value += convert_cost_to_t(c.cost) + c.cost.ct
+        player.card_hand.remove(c)
+        c.move_to("exile", game)
+        print(f"  冶炼：移除 {c.name}")
+    if not minerals:
+        print("  冶炼：手牌中没有矿物")
+        return True
+
+    print(f"  冶炼：移除矿物的总费用 = {total_value}")
+
+    # 2. 筛选离散卡包的非生命异象候选池
+    candidates = [
+        d for d in DEFAULT_REGISTRY.all_cards()
+        if d.pack == Pack.DISCRETE
+        and d.card_type == CardType.MINION
+        and "非生命" in d.tags
+    ]
+    if len(candidates) < 3:
+        print("  冶炼：候选池不足3个非生命异象")
+        return True
+
+    # 3. 找所有3个异象组合，使费用之和等于 total_value
+    valid_combos = []
+    for combo in itertools.combinations(candidates, 3):
+        combo_cost = sum(convert_cost_to_t(d.cost) + d.cost.ct for d in combo)
+        if combo_cost == total_value:
+            valid_combos.append(combo)
+
+    if not valid_combos:
+        print(f"  冶炼：找不到3个费用之和为 {total_value} 的非生命异象组合")
+        return True
+
+    # 4. 随机选一组，直接放置到随机空位（不触发部署效果）
+    chosen_combo = random.choice(valid_combos)
+    empties = empty_positions(player, game.board)
+    random.shuffle(empties)
+    for i, card_def in enumerate(chosen_combo):
+        if i >= len(empties):
+            print(f"  冶炼：战场已满，无法放置 {card_def.name}")
+            break
+        pos = empties[i]
+        minion_card = card_def.to_game_card(player)
+        minion = Minion(
+            name=minion_card.name,
+            owner=player,
+            position=pos,
+            attack=minion_card.attack,
+            health=minion_card.health,
+            source_card=minion_card,
+            board=game.board,
+            keywords=minion_card.keywords.copy(),
+        )
+        game.board.place_minion(minion, pos)
+        print(f"  冶炼：将 {minion_card.name} 加入战场 ({pos})")
+    return True
+
+
+@strategy
+def _cuiruotongmeng_effect(player, target, game, extras=None):
+    """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，回合结束时，将其移除。"""
+    from tards.cards import MinionCard, Minion
+    from tards.cost import Cost
+    import random
+
+    # 1. 消灭友方异象
+    if target and hasattr(target, "is_alive") and target.is_alive():
+        destroy_minion(target, game)
+
+    # 2. 召唤2个具有迅捷的恶魂
+    empties = empty_positions(player, game.board)
+    random.shuffle(empties)
+
+    ghasts = []
+    for i in range(min(2, len(empties))):
+        pos = empties[i]
+        card = MinionCard(
+            name="恶魂",
+            owner=player,
+            cost=Cost(t=3),
+            targets=lambda p, b: [],
+            attack=3,
+            health=3,
+            keywords={"亡语": True, "迅捷": True},
+        )
+        minion = Minion(
+            name="恶魂",
+            owner=player,
+            position=pos,
+            attack=3,
+            health=3,
+            source_card=card,
+            board=game.board,
+            keywords={"亡语": True, "迅捷": True},
+        )
+        game.board.place_minion(minion, pos)
+        minion.summon_turn = game.current_turn
+        print(f"  {player.name} 在 {pos} 召唤了恶魂")
+        ghasts.append(minion)
+
+    # 3. 回合结束时移除
+    def _remove_self(g, event_data, m):
+        if m.is_alive():
+            remove_minion_no_death(m, g)
+
+    for g in ghasts:
+        g.on_turn_end = _remove_self
+
+    return True
+
+
+@strategy
+def _zhengzhuangshangzhen_effect(player, target, game, extras=None):
+    """整装上阵：抉择：使所有友方离散异象获得+1/1，或获得+1HP和+1坚韧等级。
+    若本回合此前未部署异象，两项都触发。"""
+    from tards import Pack
+    from card_pools.effect_utils import minions_deployed_this_turn
+
+    # 筛选友方离散异象
+    discrete_minions = [
+        m for m in all_friendly_minions(game, player)
+        if m.is_alive()
+        and getattr(getattr(m, "source_card", None), "pack", None) == Pack.DISCRETE
+    ]
+
+    if not discrete_minions:
+        print("  整装上阵：场上没有友方离散异象")
+        return True
+
+    # 检查本回合是否已部署异象
+    no_deploy = minions_deployed_this_turn(game, player) == 0
+
+    def apply_buff_a():
+        for m in discrete_minions:
+            buff_minion(m, atk_delta=1, hp_delta=1, permanent=True)
+            m.current_health += 1
+            print(f"  整装上阵：{m.name} 获得 +1/1")
+
+    def apply_buff_b():
+        for m in discrete_minions:
+            buff_minion(m, atk_delta=0, hp_delta=1, permanent=True)
+            m.current_health += 1
+            modify_keyword_number(m, "坚韧", 1)
+            print(f"  整装上阵：{m.name} 获得 +1HP 和 +1坚韧")
+
+    if no_deploy:
+        apply_buff_a()
+        apply_buff_b()
+        print("  整装上阵：本回合未部署异象，两项都触发")
+    else:
+        choice = game.request_choice(
+            player,
+            ["所有友方离散异象获得 +1/1", "所有友方离散异象获得 +1HP 和 +1坚韧等级"],
+            title="整装上阵：抉择",
+        )
+        if choice == 0:
+            apply_buff_a()
+        else:
+            apply_buff_b()
+
+    return True
+
+
+@strategy
+def _zhushi_effect(player, target, game, extras=None):
+    """蛀蚀：对方抽1张牌，失去与此牌花费相同的T点。若场上有蠹虫，再弃掉此牌。"""
+    opponent = game.p2 if player == game.p1 else game.p1
+
+    if not opponent.card_deck:
+        print("  蛀蚀：对方牌库已空")
+        return True
+
+    # 1. 对方抽1张牌
+    drawn_card = opponent.card_deck.pop()
+    drawn_card.move_to("hand", game)
+
+    # 处理手牌满的情况（mill）
+    if len(opponent.card_hand) >= opponent.card_hand_max:
+        drawn_card.move_to("discard", game)
+        opponent.card_dis.append(drawn_card)
+        print(f"  蛀蚀：{opponent.name} 手牌已满，{drawn_card.name} 被弃置")
+        return True
+
+    opponent.card_hand.append(drawn_card)
+    print(f"  蛀蚀：{opponent.name} 抽到 {drawn_card.name}")
+
+    # 2. 失去与此牌花费相同的T点
+    cost_value = convert_cost_to_t(drawn_card.cost) + drawn_card.cost.ct
+    opponent.t = max(0, opponent.t - cost_value)
+    print(f"  蛀蚀：{opponent.name} 失去 {cost_value} T点")
+
+    # 3. 若场上有蠹虫，再弃掉此牌
+    has_silverfish = any(
+        m.is_alive() and m.name == "蠹虫"
+        for m in game.board.minion_place.values()
+    )
+    if has_silverfish:
+        opponent.discard_card(drawn_card, game, reason="effect")
+        print(f"  蛀蚀：场上有蠹虫，弃掉 {drawn_card.name}")
+
+    return True
+
+
+@strategy
+def _mishi_effect(player, target, game, extras=None):
+    """迷失：移除1个异象，将其2张复制置入其所有者卡组顶。"""
+    import copy
+
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  迷失：未选择目标")
+        return True
+
+    # 1. 移除异象（不触发亡语）
+    owner = target.owner
+    remove_minion_no_death(target, game)
+
+    # 2. 创建2张复制，置入所有者卡组顶
+    source_card = getattr(target, "source_card", None)
+    if not source_card:
+        print("  迷失：目标没有 source_card，无法复制")
+        return True
+
+    for i in range(2):
+        copied = copy.copy(source_card)
+        if copied.keywords:
+            copied.keywords = copied.keywords.copy()
+        copied.owner = owner
+        owner.card_deck.append(copied)
+        copied.move_to("deck", game)
+        print(f"  迷失：将 {copied.name} 的复制置入 {owner.name} 卡组顶")
+
+    return True
+
+
+@strategy
+def _yuguwajue_effect(player, target, game, extras=None):
+    """鱼骨挖掘：开发1张攻击力不大于4的非友好生物异象，将其复制加入战场。"""
+    from tards import DEFAULT_REGISTRY, CardType, Pack
+    from tards.cards import MinionCard, Minion
+    import random
+
+    # 1. 筛选候选池：离散、异象、攻击≤4、非友好、生物
+    candidates = [
+        d for d in DEFAULT_REGISTRY.all_cards()
+        if d.pack == Pack.DISCRETE
+        and d.card_type == CardType.MINION
+        and getattr(d, "attack", 99) <= 4
+        and "友好" not in d.tags
+        and "生物" in d.tags
+    ]
+
+    if not candidates:
+        print("  鱼骨挖掘：找不到符合条件的非友好生物异象")
+        return True
+
+    # 2. 随机3选1
+    pool = random.sample(candidates, min(3, len(candidates)))
+    options = [d.name for d in pool]
+    choice = game.request_choice(player, options, title="鱼骨挖掘：开发1张异象")
+    if choice < 0 or choice >= len(pool):
+        print("  鱼骨挖掘：未选择")
+        return True
+
+    chosen_def = pool[choice]
+
+    # 3. 复制加入战场（不触发部署效果）
+    empties = empty_positions(player, game.board)
+    if not empties:
+        print("  鱼骨挖掘：战场已满")
+        return True
+
+    pos = random.choice(empties)
+    minion_card = chosen_def.to_game_card(player)
+    minion = Minion(
+        name=minion_card.name,
+        owner=player,
+        position=pos,
+        attack=minion_card.attack,
+        health=minion_card.health,
+        source_card=minion_card,
+        board=game.board,
+        keywords=minion_card.keywords.copy() if minion_card.keywords else {},
+    )
+    game.board.place_minion(minion, pos)
+    print(f"  鱼骨挖掘：将 {minion_card.name} 加入战场 ({pos})")
+    return True
+
+
+@strategy
+def _chuizhushujing_effect(player, target, game, extras=None, card=None):
+    """垂直竖井：抉择：抽1张牌，将一张"垂直竖井"加入对方手牌（费用+1，抽牌数+1），或受到5点伤害。"""
+    import copy
+
+    # 获取当前这张卡的抽牌数（击鼓传花递增）
+    draw_count = getattr(card, "_chuizhushujing_draw", 1) if card else 1
+
+    choice = game.request_choice(
+        player,
+        [f"抽{draw_count}张牌，将一张增强的垂直竖井交给对方", "受到5点伤害"],
+        title="垂直竖井：抉择",
+    )
+
+    if choice == 1:
+        deal_damage_to_player(player, 5, game)
+        return True
+
+    # 选项A：抽牌 + 传花
+    draw_cards(player, draw_count, game)
+
+    opponent = game.p2 if player == game.p1 else game.p1
+    if card:
+        new_card = copy.copy(card)
+        # 费用+1
+        from tards.cost import Cost
+        new_card.cost = copy.copy(card.cost)
+        new_card.cost.t += 1
+        # 抽牌数+1
+        new_card._chuizhushujing_draw = draw_count + 1
+        # 转交给对方
+        new_card.owner = opponent
+        if len(opponent.card_hand) < opponent.card_hand_max:
+            opponent.card_hand.append(new_card)
+            new_card.move_to("hand", game)
+            print(f"  垂直竖井：将费用+1的垂直竖井交给 {opponent.name}（下回抽{draw_count + 1}张）")
+        else:
+            opponent.card_dis.append(new_card)
+            new_card.move_to("discard", game)
+            print(f"  垂直竖井：对方手牌已满，增强的垂直竖井被弃置")
+    else:
+        print("  垂直竖井：无法获取卡牌实例，传花失败")
+
+    return True
+
+
+@strategy
+def _yiribaqiu_effect(player, target, game, extras=None):
+    """一日八秋：抽3张牌，然后若场上有不少于4个友方地狱生物异象，跳过对方的下一个抽牌阶段。"""
+    # 1. 抽3张牌
+    draw_cards(player, 3, game)
+
+    # 2. 统计友方地狱生物异象数量
+    hell_bio_count = 0
+    for m in all_friendly_minions(game, player):
+        if m.is_alive():
+            tags = getattr(m, "tags", [])
+            if "地狱" in tags and "生物" in tags:
+                hell_bio_count += 1
+
+    # 3. 若不少于4个，跳过对方下一次抽牌
+    if hell_bio_count >= 4:
+        opponent = game.p2 if player == game.p1 else game.p1
+        opponent._skip_next_draw = True
+        print(f"  一日八秋：场上有 {hell_bio_count} 个友方地狱生物异象，{opponent.name} 跳过下一次抽牌")
+    else:
+        print(f"  一日八秋：场上仅有 {hell_bio_count} 个友方地狱生物异象，条件未满足")
+
+    return True
+
+
 # 策略效果函数名列表（供 discrete.py 手动挂接）
 STRATEGY_MAP = {
     "木镐": "_mubiao_strategy",
     "石镐": "_shibiao_strategy",
     "金镐": "_jinbiao_strategy",
+    "铁镐": "_tiegao_effect",
+    "多重射击": "_duochongsheji_effect",
+    "火矢": "_huoshi_effect",
+    "横扫之刃": "_hengsao_effect",
+    "饵钓": "_erdiao_effect",
+    "忠诚": "_zhongcheng_effect",
+    "击退": "_jitui_effect",
+    "深海探索者": "_shenhaitansuozhe_effect",
+    "保护": "_baohu_effect",
+    "效率": "_xiaolv_effect",
+    "经验修补": "_jingyanxiubu_effect",
+    "砍伐！": "_kanfa_effect",
+    "掘进！": "_juejin_effect",
+    "铁砧": "_tiezhen_effect",
+    "冶炼": "_yelian_effect",
+    "脆弱同盟": "_cuiruotongmeng_effect",
+    "一日八秋": "_yiribaqiu_effect",
+    "整装上阵": "_zhengzhuangshangzhen_effect",
+    "垂直竖井": "_chuizhushujing_effect",
+    "鱼骨挖掘": "_yuguwajue_effect",
+    "迷失": "_mishi_effect",
+    "蛀蚀": "_zhushi_effect",
     "钻石镐": "_zuanshibiao_strategy",
     "雪球": "_xueqiu_strategy",
     "蜘蛛眼": "_zhizhuyan_strategy",
@@ -2581,9 +3597,19 @@ STRATEGY_MAP = {
     "光灵箭": "_guanglingjian_strategy",
     "战利品": "_zhanlipin_strategy",
     "遗弃": "_yiqi_strategy",
+    "复兴": "_fuxing_effect",
     "高山": "_gaoshan_strategy",
     "恶地": "_erdi_strategy",
+    "雨林": "_yulin_effect",
+    "雪原": "_xueyuan_effect",
     "TNT": "_tnt_strategy",
+    "复制技术": "_fuzhijishu_effect",
+    "轰击": "_hongji_effect",
+    "制导技术": "_zhidaojishu_effect",
+    "珍珠塔": "_zhenzhuta_effect",
+    "实体挤压": "_shitiyaji_effect",
+    "C418": "_c418_effect",
+    "禁人书": "_jinrenshu_strategy",
     "红石粉": "_hongshifen_strategy",
     "禁人书": "_jinrenshu_strategy",
     "恶魂之泪": "_ehanglei_strategy",
@@ -2607,6 +3633,22 @@ STRATEGY_MAP = {
     "金苹果": "_jinpingguo_strategy",
     "丛林神殿": "_conglin_shendian_strategy",
     "沙漠神殿": "_shamo_shendian_strategy",
+    "金西瓜片": "_jinxiguapian_effect",
+    "雷暴": "_leibao_effect",
+    "阴雨": "_yinyu_effect",
+    "暗夜": "_anye_effect",
+    "破袭": "_poxi_effect",
+    "火灾": "_huozhai_effect",
+    "遗迹机关": "_yiji_jiguan_effect",
+    "临界点": "_linjiepoint_effect",
+    "药水箭": "_yaoshuijian_effect",
+    "熔岩": "_rongyan_effect",
+    "充能铁轨": "_chongnengtiegui_effect",
+    "调试棒": "_tiaoshibang_effect",
+    "门船穿梭": "_menchuanchuansuo_effect",
+    "冰霜行者": "_bingshuangxingzhe_effect",
+    "耐久": "_naijiu_effect",
+    "挖三填一": "_wasan_tianyi_effect",
 }
 
 # =============================================================================
@@ -2796,7 +3838,9 @@ __all__ = [
     "_lv_special",
     "_guiyu_special",
     "_xuewulou_special",
+    "_kuqideheiyaoshi_special",
     "_jinrenta_special",
+    "_gaolu_draw_trigger",
     "_zhenceqi_special",
     "_chaoonghexin_special",
     "_huosai_feiting_special",
@@ -2880,6 +3924,28 @@ __all__ = [
     "_mubiao_strategy",
     "_shibiao_strategy",
     "_jinbiao_strategy",
+    "_tiegao_effect",
+    "_duochongsheji_effect",
+    "_huoshi_effect",
+    "_hengsao_effect",
+    "_erdiao_effect",
+    "_zhongcheng_effect",
+    "_jitui_effect",
+    "_shenhaitansuozhe_effect",
+    "_baohu_effect",
+    "_xiaolv_effect",
+    "_jingyanxiubu_effect",
+    "_kanfa_effect",
+    "_juejin_effect",
+    "_tiezhen_effect",
+    "_yelian_effect",
+    "_cuiruotongmeng_effect",
+    "_yiribaqiu_effect",
+    "_zhengzhuangshangzhen_effect",
+    "_chuizhushujing_effect",
+    "_yuguwajue_effect",
+    "_mishi_effect",
+    "_zhushi_effect",
     "_zuanshibiao_strategy",
     "_xueqiu_strategy",
     "_zhizhuyan_strategy",
@@ -2888,13 +3954,26 @@ __all__ = [
     "_guanglingjian_strategy",
     "_zhanlipin_strategy",
     "_yiqi_strategy",
+    "_fuxing_effect",
     "_gaoshan_strategy",
     "_erdi_strategy",
+    "_yulin_effect",
+    "_xueyuan_effect",
     "_tnt_strategy",
+    "_fuzhijishu_effect",
+    "_hongji_effect",
+    "_zhidaojishu_effect",
+    "_zhenzhuta_effect",
+    "_shitiyaji_effect",
+    "_c418_effect",
     "_hongshifen_strategy",
     "_jinrenshu_strategy",
     "_ehanglei_strategy",
     "_ehanglei_targets",
+    "_huoshi_targets",
+    "_hengsao_targets",
+    "_shenhaitansuozhe_targets",
+    "_shenhaitansuozhe_extra_targets",
     "_baoweiyaosai_strategy",
     "_chongshishitou_strategy",
     "_zisongguo_strategy",
@@ -2912,12 +3991,29 @@ __all__ = [
     "_tieding_mineral",
     "_jinding_mineral",
     "_zuanshi_mineral",
+    "_qingjinshi_mineral",
     # 策略效果（原 discrete.py 内联 lambda）
     "_fengli_effect",
     "_shiyun_effect",
     "_jingzhuicaiji_effect",
     "_xingyunfangkuai_effect",
     "_yanhuozhixing_effect",
+    "_jinxiguapian_effect",
+    "_leibao_effect",
+    "_yinyu_effect",
+    "_anye_effect",
+    "_poxi_effect",
+    "_huozhai_effect",
+    "_yiji_jiguan_effect",
+    "_linjiepoint_effect",
+    "_yaoshuijian_effect",
+    "_rongyan_effect",
+    "_chongnengtiegui_effect",
+    "_tiaoshibang_effect",
+    "_menchuanchuansuo_effect",
+    "_bingshuangxingzhe_effect",
+    "_naijiu_effect",
+    "_wasan_tianyi_effect",
     "_yanhuaqiaochi_effect",
 ]
 
@@ -2944,6 +4040,12 @@ def _zuanshi_mineral(player, game):
     """钻石：打出获得4T。"""
     player.t_point_change(4)
     print(f"  {player.name} 打出钻石，获得4T")
+    return True
+
+
+def _qingjinshi_mineral(player, game):
+    """青金石：打出无事发生。"""
+    print(f"  {player.name} 打出青金石，无事发生")
     return True
 
 
@@ -2980,20 +4082,677 @@ def _xingyunfangkuai_effect(player, target, game, extras=None):
     return True
 
 
-def _yanhuozhixing_effect(player, target, game, extras=None):
-    """焰火之星：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。
+@strategy
+def _bingshuangxingzhe_effect(player, target, game, extras=None):
+    """冰霜行者：冰冻1个异象及其相邻异象。抽1张牌。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 冰霜行者：未选择有效的目标异象")
+        return False
 
-    TODO: 溢出伤害随机分配尚未实现。
-    """
-    deal_damage_to_minion(target, 6, game=game)
+    # 给目标冰冻1
+    gain_keyword(target, "冰冻", 1)
+    print(f"  冰霜行者：{target.name} 获得冰冻1")
+
+    # 给相邻异象冰冻1
+    for pos in get_adjacent_positions(target.position, game.board):
+        m = game.board.get_minion_at(pos)
+        if m and m.is_alive():
+            gain_keyword(m, "冰冻", 1)
+            print(f"  冰霜行者：{m.name}（相邻）获得冰冻1")
+
+    # 抽1张牌
+    draw_cards(player, 1, game)
+    print(f"  冰霜行者：{player.name} 抽1张牌")
+    return True
+
+
+@strategy
+def _naijiu_effect(player, target, game, extras=None):
+    """耐久：抽1张牌，你获得+4HP。"""
+    draw_cards(player, 1, game)
+    print(f"  耐久：{player.name} 抽1张牌")
+    heal_player(player, 4)
+    print(f"  耐久：{player.name} 获得+4HP")
+    return True
+
+
+@strategy
+def _wasan_tianyi_effect(player, target, game, extras=None):
+    """挖三填一：移除1个异象。下个抽牌阶段，将其返回战场。其所有者抽1张牌。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 挖三填一：未选择有效的目标异象")
+        return False
+
+    original_pos = target.position
+    owner = target.owner
+
+    # 从战场移除（不触发亡语）
+    remove_minion_no_death(target, game)
+
+    # 其所有者抽1张牌
+    draw_cards(owner, 1, game)
+    print(f"  挖三填一：{owner.name} 抽1张牌")
+
+    # 注册下个抽牌阶段返回战场
+    turn_removed = game.current_turn
+
+    def _on_phase_start(event):
+        if event.data.get("phase") != game.PHASE_DRAW:
+            return
+        if game.current_turn <= turn_removed:
+            return  # 跳过当前回合的抽牌阶段
+
+        # 找到合适的位置
+        pos = original_pos
+        if pos in game.board.minion_place:
+            # 原位置被占，找最近的空位
+            empties = empty_positions(owner, game.board)
+            if empties:
+                pos = min(empties, key=lambda p: abs(p[0]-original_pos[0]) + abs(p[1]-original_pos[1]))
+            else:
+                print(f"  挖三填一：{owner.name} 的区域没有空位，{target.name} 无法返回战场")
+                game.history.unlisten(listener_id)
+                return
+
+        # 将异象放回战场（不触发部署事件）
+        game.board.minion_place[pos] = target
+        target.position = pos
+        print(f"  挖三填一：{target.name} 返回战场 {pos}")
+        game.history.unlisten(listener_id)
+
+    listener_id = on("phase_start", _on_phase_start, game)
+    return True
+
+
+def _yanhuozhixing_effect(player, target, game, extras=None):
+    """焰火之星：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 焰火之星：未选择有效的目标异象")
+        return False
+
+    actual_damage = deal_damage_to_minion(target, 6, source=None, game=game)
+    overflow = 6 - actual_damage
+
+    if overflow > 0:
+        print(f"  焰火之星：溢出 {overflow} 点伤害")
+        opponent = get_opponent(game, player)
+        for _ in range(overflow):
+            candidates = [m for m in all_enemy_minions(game, player) if m.is_alive()] + [opponent]
+            if candidates:
+                t = random.choice(candidates)
+                if isinstance(t, Minion):
+                    deal_damage_to_minion(t, 1, source=None, game=game)
+                else:
+                    deal_damage_to_player(t, 1, source=None, game=game)
+                print(f"  焰火之星溢出伤害：对 {t.name} 造成1点伤害")
+
+    return True
+
+
+@strategy
+def _jinxiguapian_effect(player, target, game, extras=None):
+    """金西瓜片：使1个异象获得：回合开始：获得+1/1。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 金西瓜片：未选择有效的目标异象")
+        return False
+
+    def _on_turn_start(event):
+        if not target.is_alive():
+            return
+        buff_minion(target, atk_delta=1, hp_delta=1, permanent=True)
+        target.current_health += 1
+        print(f"  {target.name} 回合开始：获得+1/+1")
+
+    on_turn_start(target, game, _on_turn_start)
+    print(f"  金西瓜片：{target.name} 获得「回合开始：+1/+1」")
+    return True
+
+
+@strategy
+def _yinyu_effect(player, target, game, extras=None):
+    """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 阴雨：未选择有效的目标异象")
+        return False
+
+    # 造成2点伤害
+    deal_damage_to_minion(target, 2, game=game)
+
+    # 若存活，临时将攻击力设为0
+    if target.is_alive():
+        target.temp_attack_bonus -= target.attack
+        target.recalculate()
+        print(f"  {target.name} 攻击力被设为0（直到回合结束）")
+
+    return True
+
+
+@strategy
+def _anye_effect(player, target, game, extras=None):
+    """暗夜：开发1张离散迅捷异象。然后若你拥有不小于4个T点，对所有敌方目标造成1点伤害。"""
+    from tards import DEFAULT_REGISTRY, Pack, CardType
+
+    # 开发1张离散迅捷异象
+    candidates = [
+        c for c in DEFAULT_REGISTRY.all_cards()
+        if c.pack == Pack.DISCRETE and c.card_type == CardType.MINION and c.keywords.get("迅捷")
+    ]
+    if candidates:
+        game.develop_card(player, candidates)
+    else:
+        print("  暗夜：没有可开发的离散迅捷异象")
+
+    # 若拥有不小于4个T点，对所有敌方目标造成1点伤害
+    if player.t_point >= 4:
+        opponent = game.p2 if player == game.p1 else game.p1
+        for enemy in all_enemy_minions(game, player):
+            if enemy.is_alive():
+                deal_damage_to_minion(enemy, 1, source=None, game=game)
+        deal_damage_to_player(opponent, 1, source=None, game=game)
+        print("  暗夜：对所有敌方目标造成1点伤害")
+
+    return True
+
+
+@strategy
+def _poxi_effect(player, target, game, extras=None):
+    """破袭：使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。"""
+    friendly = target
+    if not friendly or not hasattr(friendly, "is_alive") or not friendly.is_alive():
+        print("  [警告] 破袭：未选择有效的友方异象")
+        return False
+
+    while True:
+        if not friendly.is_alive():
+            break
+
+        enemies = [m for m in all_enemy_minions(game, player) if m.is_alive()]
+        if not enemies:
+            break
+
+        # 找出攻击力最低的敌方异象
+        min_attack = min(m.attack for m in enemies)
+        lowest = [m for m in enemies if m.attack == min_attack]
+
+        if len(lowest) == 1:
+            enemy = lowest[0]
+        else:
+            options = [f"{m.name}({m.position[0]},{m.position[1]})" for m in lowest]
+            choice = game.request_choice(player, options, title="破袭：选择攻击力最低的敌方异象")
+            if choice is None:
+                break
+            enemy = None
+            for m in lowest:
+                if f"{m.name}({m.position[0]},{m.position[1]})" == choice:
+                    enemy = m
+                    break
+            if enemy is None:
+                break
+
+        if not enemy.is_alive():
+            break
+
+        print(f"  破袭：{friendly.name} 与 {enemy.name}({enemy.attack}/{enemy.health}) 对战")
+        initiate_combat(friendly, enemy, game)
+
+        if game.check_game_over():
+            return True
+
+        # 若敌方被消灭且友方存活，获得+1HP，继续循环
+        if not enemy.is_alive() and friendly.is_alive():
+            buff_minion(friendly, atk_delta=0, hp_delta=1, permanent=True)
+            friendly.current_health += 1
+            print(f"  {friendly.name} 消灭 {enemy.name}，获得+1HP")
+        else:
+            break
+
+    return True
+
+
+@strategy
+def _huozhai_effect(player, target, game, extras=None):
+    """火灾：你和对手轮流抽牌至手牌数量为7张，下回合开始时弃掉本次抽到的牌。"""
+    opponent = game.p2 if player == game.p1 else game.p1
+
+    drawn_records = []  # [(owner, card), ...]
+
+    def do_draw(p):
+        before = set(p.card_hand)
+        p.draw_card(1, game=game)
+        after = set(p.card_hand)
+        new_cards = after - before
+        for card in new_cards:
+            drawn_records.append((p, card))
+
+    # 轮流抽牌直到双方都达到7张
+    while len(player.card_hand) < 7 or len(opponent.card_hand) < 7:
+        if len(player.card_hand) < 7:
+            do_draw(player)
+        if len(opponent.card_hand) < 7:
+            do_draw(opponent)
+        if len(player.card_hand) >= 7 and len(opponent.card_hand) >= 7:
+            break
+
+    if drawn_records:
+        print(f"  火灾：本次共抽到 {len(drawn_records)} 张牌")
+
+    # 注册下回合开始时弃牌（跳过当前回合的结算阶段）
+    turn_played = game.current_turn
+
+    def _on_phase_start(event, g):
+        if event.data.get("phase") != game.PHASE_RESOLVE:
+            return
+        if game.current_turn <= turn_played:
+            return  # 跳过当前回合
+        discarded = 0
+        for owner, card in drawn_records:
+            if card in owner.card_hand:
+                owner.discard_card(card, game, reason="火灾效果")
+                discarded += 1
+        if discarded > 0:
+            print(f"  火灾：弃掉 {discarded} 张本次抽到的牌")
+        game.history.unlisten(listener_id)
+
+    listener_id = game.history.listen("phase_start", _on_phase_start, priority=0)
+
+    return True
+
+
+@strategy
+def _yiji_jiguan_effect(player, target, game, extras=None):
+    """遗迹机关：将2张「绊线钩」加入战场。然后若场上有不多于3个「绊线钩」，对所有目标造成1点伤害。"""
+    from tards import DEFAULT_REGISTRY
+
+    card_def = DEFAULT_REGISTRY.get("绊线钩")
+    if not card_def:
+        print("  [警告] 遗迹机关：找不到绊线钩的定义")
+        return False
+
+    # 获取友方区域空位并随机选择最多2个
+    empties = empty_positions(player, game.board)
+    if not empties:
+        print("  遗迹机关：友方区域没有空位")
+        return False
+
+    positions = random.sample(empties, min(2, len(empties)))
+
+    for pos in positions:
+        card = card_def.to_game_card(player)
+        result = card.effect(player, pos, game)
+        if result:
+            print(f"  遗迹机关：将绊线钩加入战场 {pos}")
+        else:
+            print(f"  遗迹机关：无法在 {pos} 部署绊线钩")
+
+    # 统计场上绊线钩数量（包括友方和敌方）
+    banxian_count = sum(
+        1 for m in game.board.minion_place.values()
+        if m.name == "绊线钩" and m.is_alive()
+    )
+    print(f"  遗迹机关：场上有 {banxian_count} 个绊线钩")
+
+    # 若场上不多于3个绊线钩，对所有目标造成1点伤害
+    if banxian_count <= 3:
+        for m in all_friendly_minions(game, player):
+            if m.is_alive():
+                deal_damage_to_minion(m, 1, source=None, game=game)
+        for m in all_enemy_minions(game, player):
+            if m.is_alive():
+                deal_damage_to_minion(m, 1, source=None, game=game)
+        deal_damage_to_player(player, 1, source=None, game=game)
+        opponent = game.p2 if player == game.p1 else game.p1
+        deal_damage_to_player(opponent, 1, source=None, game=game)
+        print("  遗迹机关：场上绊线钩不多于3个，对所有目标造成1点伤害")
+
+    return True
+
+
+@strategy
+def _linjiepoint_effect(player, target, game, extras=None):
+    """临界点：开发1张非生命异象，使其具有绊线钩反击效果。"""
+    from tards import DEFAULT_REGISTRY, Pack, CardType
+
+    candidates = [
+        c for c in DEFAULT_REGISTRY.all_cards()
+        if c.pack == Pack.DISCRETE
+        and c.card_type == CardType.MINION
+        and "非生命" in c.tags
+    ]
+    if not candidates:
+        print("  临界点：没有可用的非生命异象")
+        return False
+
+    def modify_fn(card):
+        original_special = card.special
+
+        def _hook_special(minion, player, game, extras=None):
+            # 先调用原 special（如果有）
+            if original_special:
+                import inspect
+                sig = inspect.signature(original_special)
+                if len(sig.parameters) >= 4:
+                    original_special(minion, player, game, extras or [])
+                else:
+                    original_special(minion, player, game)
+
+            # 注册绊线钩的 before_damage 效果
+            def on_before_damage(event):
+                if not minion.is_alive():
+                    return
+                victim = event.data.get("target")
+                if victim is not minion:
+                    return
+                r, c = minion.position
+                count = 0
+                for m in all_friendly_minions(game, player):
+                    if m.name == "绊线钩" and (m.position[0] == r or m.position[1] == c):
+                        count += 1
+                if count > 0:
+                    print(f"  绊线钩效果（临界点）：{minion.name} 受到伤害，同行/同列有 {count} 个友方绊线钩")
+                for _ in range(count):
+                    enemies = all_enemy_minions(game, player)
+                    opponent = game.p2 if player == game.p1 else game.p1
+                    candidates = enemies + [opponent]
+                    if candidates:
+                        t = random.choice(candidates)
+                        from tards.cards import Minion
+                        if isinstance(t, Minion):
+                            deal_damage_to_minion(t, 1, source=minion, game=game)
+                        else:
+                            deal_damage_to_player(t, 1, source=minion, game=game)
+                        print(f"  绊线钩效果（临界点）：{minion.name} 对 {t.name} 造成1点伤害")
+
+            on("before_damage", on_before_damage, game, minion)
+            print(f"  临界点：{minion.name} 获得了绊线钩反击效果")
+
+        card.special = _hook_special
+
+    result = game.develop_card(player, candidates, count=3, modify_fn=modify_fn, return_card=True)
+    if result:
+        print(f"  临界点：开发了 {result.name} 并赋予绊线钩反击效果")
+    return result is not None
+
+
+@strategy
+def _yaoshuijian_effect(player, target, game, extras=None):
+    """药水箭：使1个异象+1/2，抽1张牌。若指向非生命异象，所有友方非生命异象+2HP。"""
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 药水箭：未选择有效的异象")
+        return False
+
+    # +1/2 永久增益
+    buff_minion(target, atk_delta=1, hp_delta=2, permanent=True)
+    target.current_health += 2
+    print(f"  药水箭：{target.name} 获得 +1/+2")
+
+    # 抽1张牌
+    draw_cards(player, 1, game)
+    print(f"  药水箭：{player.name} 抽1张牌")
+
+    # 若指向非生命异象，所有友方非生命异象+2HP
+    if "非生命" in getattr(target, "tags", []):
+        for m in all_friendly_minions(game, player):
+            if m.is_alive() and "非生命" in getattr(m, "tags", []):
+                buff_minion(m, atk_delta=0, hp_delta=2, permanent=True)
+                m.current_health += 2
+                print(f"  药水箭（非生命加成）：{m.name} 获得+2HP")
+
     return True
 
 
 def _yanhuaqiaochi_effect(player, target, game, extras=None):
-    """烟花鞘翅：使1个友方异象返回手牌，将其花费设为1I直到回合结束。
-    然后若其上回合在场上，使其部署时具有迅捷。
+    """烟花鞘翅：将卡组顶的1张迅捷异象加入战场。"""
+    from tards.cards import MinionCard
 
-    TODO: 改花费和条件迅捷尚未实现。
+    empties = empty_positions(player, game.board)
+    if not empties:
+        print("  烟花鞘翅：友方区域没有空位")
+        return False
+
+    # 使用 search_deck 从卡组顶搜索迅捷异象
+    candidates = search_deck(player, lambda c: isinstance(c, MinionCard) and c.keywords.get("迅捷"))
+    if not candidates:
+        print("  烟花鞘翅：卡组中没有迅捷异象")
+        return False
+
+    card = candidates[0]
+    player.card_deck.remove(card)
+    pos = random.choice(empties)
+    result = card.effect(player, pos, game)
+    if result:
+        print(f"  烟花鞘翅：将 {card.name} 加入战场 {pos}")
+        return True
+    else:
+        if len(player.card_hand) < player.card_hand_max:
+            player.card_hand.append(card)
+            print(f"  烟花鞘翅：部署失败，{card.name} 加入手牌")
+        else:
+            player.card_dis.append(card)
+            print(f"  烟花鞘翅：部署失败且手牌已满，{card.name} 被弃置")
+        return False
+
+
+def _menchuanchuansuo_effect(player, target, game, extras=None):
+    """门船穿梭：使1个友方异象返回手牌，将其花费设为1I直到回合结束。
+    然后若其上回合在场上，使其部署时具有迅捷。
     """
+    if not target or not hasattr(target, "is_alive") or not target.is_alive():
+        print("  [警告] 门船穿梭：未选择有效的友方异象")
+        return False
+
+    was_on_board_last_turn = not was_minion_deployed_this_turn(game, target)
+
+    card = getattr(target, "source_card", None)
+
+    from tards.auto_effects import return_to_hand
     return_to_hand(target, game, player)
+
+    if card:
+        # 保存原花费
+        from tards.cost import Cost
+        original_cost = card.cost
+        card.cost = Cost(minerals={"I": 1})
+        print(f"  门船穿梭：{card.name} 的花费设为1I")
+
+        # 注册回合结束恢复花费
+        turn_set = game.current_turn
+
+        def restore_cost(event):
+            if event.data.get("phase") == game.PHASE_RESOLVE:
+                card.cost = original_cost
+                print(f"  门船穿梭：{card.name} 的花费恢复")
+                game.history.unlisten(listener_id)
+
+        listener_id = on("phase_end", restore_cost, game)
+
+        # 若上回合在场上，部署时赋予迅捷
+        if was_on_board_last_turn:
+            original_special = card.special
+
+            def _swift_special(minion, player, game, extras=None):
+                if original_special:
+                    import inspect
+                    sig = inspect.signature(original_special)
+                    if len(sig.parameters) >= 4:
+                        original_special(minion, player, game, extras or [])
+                    else:
+                        original_special(minion, player, game)
+
+                minion.keywords["迅捷"] = True
+                minion.recalculate()
+                print(f"  门船穿梭：{minion.name} 部署时获得迅捷")
+
+                # 只触发一次，恢复原来的 special
+                card.special = original_special
+
+            card.special = _swift_special
+
+    return True
+
+
+@strategy
+def _rongyan_effect(player, target, game, extras=None):
+    """熔岩：抉择：对所有后排异象造成4点伤害 或 对对手造成6点伤害。"""
+    choice = game.request_choice(
+        player,
+        ["对所有后排异象造成4点伤害", "对对手造成6点伤害"],
+        title="熔岩：选择效果",
+    )
+
+    if choice == "对所有后排异象造成4点伤害":
+        back_rows = [0, 4]
+        for m in get_all_minions(game):
+            if m.is_alive() and m.position[0] in back_rows:
+                deal_damage_to_minion(m, 4, source=None, game=game)
+                print(f"  熔岩：{m.name} 受到4点伤害")
+        return True
+
+    elif choice == "对对手造成6点伤害":
+        opponent = game.p2 if player == game.p1 else game.p1
+        deal_damage_to_player(opponent, 6, source=None, game=game)
+        print(f"  熔岩：对 {opponent.name} 造成6点伤害")
+        return True
+
+    return False
+
+
+@strategy
+def _chongnengtiegui_effect(player, target, game, extras=None):
+    """充能铁轨：移动1个陆地异象。若是友方异象，抽1张牌。"""
+    # 获取所有陆地异象
+    land_minions = []
+    for m in get_all_minions(game):
+        if m.is_alive() and not game.board._is_water_at(m.position):
+            land_minions.append(m)
+
+    if not land_minions:
+        print("  充能铁轨：场上没有陆地异象")
+        return False
+
+    # 选择目标异象
+    options = [f"{m.name}({m.position[0]},{m.position[1]})" for m in land_minions]
+    choice = game.request_choice(player, options, title="充能铁轨：选择要移动的陆地异象")
+    if not choice:
+        return False
+
+    minion = None
+    for m in land_minions:
+        if f"{m.name}({m.position[0]},{m.position[1]})" == choice:
+            minion = m
+            break
+
+    if not minion or not minion.is_alive():
+        return False
+
+    # 选择目标位置（该异象所有者友方行内的空位）
+    friendly_rows = minion.owner.get_friendly_rows()
+    empties = []
+    for r in friendly_rows:
+        for c in range(game.board.SIZE):
+            pos = (r, c)
+            if pos == minion.position:
+                continue
+            if pos not in game.board.minion_place and game.board.target_check(pos):
+                is_water = game.board._is_water_at(pos)
+                aquatic = minion.keywords.get("水生", False) or minion.keywords.get("两栖", False)
+                if is_water and not aquatic:
+                    continue
+                if not is_water and minion.keywords.get("水生", False):
+                    continue
+                empties.append(pos)
+
+    if not empties:
+        print(f"  充能铁轨：{minion.name} 没有可移动的空位")
+        return False
+
+    dest_options = [f"({r},{c})" for r, c in empties]
+    dest_choice = game.request_choice(player, dest_options, title=f"充能铁轨：选择 {minion.name} 的目标位置")
+    if not dest_choice:
+        return False
+
+    dest = None
+    for pos in empties:
+        if f"({pos[0]},{pos[1]})" == dest_choice:
+            dest = pos
+            break
+
+    if not dest:
+        return False
+
+    # 执行移动
+    from card_pools.effect_utils import move
+    success = move(minion, dest, game)
+    if not success:
+        return False
+
+    # 若是友方异象，抽1张牌
+    if minion.owner == player:
+        draw_cards(player, 1, game)
+        print(f"  充能铁轨：移动了友方异象 {minion.name}，抽1张牌")
+
+    return True
+
+
+@strategy
+def _tiaoshibang_effect(player, target, game, extras=None):
+    """调试棒：抽1张策略，展示并-1T，赋予其额外效果（打出时抽1张策略，展示并-1T）。"""
+    from tards.cards import Strategy
+
+    def _do_debug_effect(p, g, source_name="调试棒"):
+        """执行调试效果：抽1张策略，展示并-1T。返回抽到的卡（如有）。"""
+        drawn = draw_cards_of_type(p, 1, Strategy, g)
+        if not drawn:
+            print(f"  {source_name}：没有抽到策略")
+            return None
+        card = drawn[0]
+        print(f"  {source_name}：展示策略 [{card.name}]")
+        if hasattr(card, "cost") and hasattr(card.cost, "t") and card.cost.t > 0:
+            card.cost.t -= 1
+            print(f"  {source_name}：{card.name} 的T花费-1，当前为 {card.cost.t}T")
+        return card
+
+    # 主效果：抽1张策略，展示并-1T
+    card = _do_debug_effect(player, game)
+    if not card:
+        return True  # 即使没抽到策略，牌本身已打出
+
+    # 赋予额外效果：打出该策略卡时，额外触发调试效果
+    original_effect = card.effect_fn
+
+    def _bonus_effect(p, t, g, ex=None):
+        # 执行原效果
+        result = True
+        if original_effect:
+            import inspect
+            sig = inspect.signature(original_effect)
+            if len(sig.parameters) >= 4:
+                result = original_effect(p, t, g, ex or [])
+            else:
+                result = original_effect(p, t, g)
+
+        # 额外效果
+        _do_debug_effect(p, g, source_name="调试棒效果")
+
+        return result if result is not None else True
+
+    card.effect_fn = _bonus_effect
+    print(f"  调试棒：{card.name} 获得了额外效果（打出时抽1张策略，展示并-1T）")
+
+    return True
+
+
+@strategy
+def _leibao_effect(player, target, game, extras=None):
+    """雷暴：随机消灭2个敌方异象。"""
+    enemies = [m for m in all_enemy_minions(game, player) if m.is_alive()]
+    if not enemies:
+        print("  雷暴：场上没有敌方异象")
+        return True
+
+    count = min(2, len(enemies))
+    targets = random.sample(enemies, count)
+    for m in targets:
+        if m.is_alive():
+            destroy_minion(m, game)
+    print(f"  雷暴：随机消灭了 {count} 个敌方异象")
     return True

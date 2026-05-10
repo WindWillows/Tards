@@ -37,7 +37,7 @@ class CardDefinition:
     cost_str: str
     card_type: CardType
     pack: Pack
-    rarity: Rarity
+    rarity: Optional[Rarity] = None
     immersion_level: int = 0  # 沉浸等级 I=1, II=2, III=3
     attack: Optional[int] = None
     health: Optional[int] = None
@@ -239,7 +239,7 @@ def register_card(
     cost_str: str,
     card_type: CardType,
     pack: Pack,
-    rarity: Rarity,
+    rarity: Optional[Rarity] = None,
     immersion_level: int = 0,
     attack: Optional[int] = None,
     health: Optional[int] = None,

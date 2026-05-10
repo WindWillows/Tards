@@ -29,6 +29,9 @@ This game's design philosophy and mechanics differ significantly from convention
 2. Check the rule documents (`Tards规则书1.0.docx`, `rules_text.txt`).
 3. **Ask the user for clarification.** Do not guess, do not assume, do not "fill in the blanks" with general TCG knowledge.
 
+**Additional Rule: Control Your Speculation (控制猜测意图)**
+When you encounter any uncertainty about the user's intent — whether it's about a card effect, a mechanic definition, an implementation detail, or any instruction — **stop speculating and ask the user directly.** Never try to "read between the lines" or infer hidden requirements. If the user's words are ambiguous or incomplete, request clarification before proceeding.
+
 **Never** alter card effects, resource mechanics, or game flow based on what "makes sense" in other games. The user's definition is the only authority.
 
 ### 3. No Hard-Coded Card Effects (禁止硬编码卡牌效果)

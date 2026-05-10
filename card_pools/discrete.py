@@ -2,7 +2,7 @@
 # 由 translate_packs.py 翻译生成
 
 from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY
-from tards.targets import target_none, target
+from tards.targets import target_none, target, target_mix
 from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand
 from .discrete_effects import *
 
@@ -13,7 +13,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=2,
     health=5,
@@ -29,7 +29,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=0,
     health=4,
@@ -45,7 +45,7 @@ register_card(
     cost_str="1T1D1G1I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=0,
     health=8,
@@ -79,7 +79,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=1,
     health=4,
@@ -114,7 +114,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=1,
@@ -131,7 +131,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=4,
     health=2,
@@ -148,10 +148,10 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['地狱', '非生命'],
     hidden_keywords={},
+    is_token=True,
     description="对一个异象及其相邻异象造成1点伤害。",
     targets_fn=target("minion"),
     effect_fn=_lieyanfen_strategy,
@@ -162,7 +162,7 @@ register_card(
     cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=3,
@@ -179,7 +179,6 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['地狱', '敌对', '非生命'],
     hidden_keywords={},
@@ -211,7 +210,6 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['地狱', '敌对', '非生命'],
     hidden_keywords={},
@@ -226,7 +224,7 @@ register_card(
     cost_str="2I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=1,
@@ -243,7 +241,7 @@ register_card(
     cost_str="1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=0,
     health=4,
@@ -276,7 +274,7 @@ register_card(
     cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=6,
@@ -310,7 +308,7 @@ register_card(
     cost_str="2I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=3,
@@ -327,7 +325,7 @@ register_card(
     cost_str="4I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=6,
     health=6,
@@ -361,7 +359,6 @@ register_card(
     cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     attack=0,
     health=1,
@@ -370,7 +367,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=None,  # 纯 token，关键词由 summon_token 注入
 )
 
 register_card(
@@ -378,7 +375,6 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['非生命'],
     hidden_keywords={},
@@ -393,7 +389,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=3,
     health=2,
@@ -426,7 +422,7 @@ register_card(
     cost_str="1T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=5,
@@ -443,7 +439,7 @@ register_card(
     cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -476,7 +472,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=2,
     health=6,
@@ -509,7 +505,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=2,
     health=4,
@@ -526,7 +522,7 @@ register_card(
     cost_str="6T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=4,
     health=4,
@@ -560,7 +556,7 @@ register_card(
     cost_str="3G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=3,
     health=6,
@@ -593,7 +589,7 @@ register_card(
     cost_str="3G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=3,
     health=6,
@@ -610,7 +606,7 @@ register_card(
     cost_str="3G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=3,
     health=6,
@@ -627,7 +623,6 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['非生命'],
     hidden_keywords={},
@@ -642,7 +637,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=5,
     health=3,
@@ -659,7 +654,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=4,
@@ -676,7 +671,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=4,
@@ -692,7 +687,7 @@ register_card(
     cost_str="3T1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=1,
     health=5,
@@ -709,7 +704,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=0,
     health=4,
@@ -726,7 +721,7 @@ register_card(
     cost_str="1D1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=2,
     health=6,
@@ -747,9 +742,10 @@ register_card(
     immersion_level=1,
     attack=4,
     health=4,
+    keywords={"两栖": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
-    description="造成伤害时，你获得等量HP。",
+    description="具有两栖。部署在高地时，变化为“尸壳”；部署在水路时，变化为“溺尸”。否则：造成伤害时，你获得等量HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_jiangshi_special,
 )
@@ -759,13 +755,13 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     attack=1,
     health=3,
     keywords={"高地": True},
     tags=['敌对', '生物', '陆生'],
     hidden_keywords={},
+    is_token=True,
     description="回合开始：对所有敌方异象造成1点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_shike_special,
@@ -776,13 +772,13 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     attack=2,
     health=6,
     keywords={"水生": True},
     tags=['水生', '两栖', '敌对', '生物'],
     hidden_keywords={},
+    is_token=True,
     description="部署：失去1T。 对异象造成伤害时，弃掉对方花费最低的1张手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_nishiz_special,
@@ -811,10 +807,10 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     tags=['敌对', '昆虫', '生物', '陆生'],
     hidden_keywords={},
+    is_token=True,
     description="使1个异象获得-2攻击力。",
     targets_fn=target("minion"),
     effect_fn=_zhizhuyan_strategy,
@@ -825,7 +821,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=3,
@@ -877,7 +873,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=3,
     health=5,
@@ -893,7 +889,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=2,
     health=3,
@@ -927,7 +923,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=2,
     health=5,
@@ -944,7 +940,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=4,
@@ -960,13 +956,13 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=5,
     health=5,
     tags=['生物', '陆生'],
     hidden_keywords={},
-    description="你每在手牌已满时抽1张牌，对一个随机敌方目标造成2点伤害。",
+    description="你每在手牌已满时抽1张牌，对一个随机敌方目标造成3点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_moyingxiang_special
 )
@@ -976,7 +972,7 @@ register_card(
     cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -992,7 +988,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=2,
@@ -1026,7 +1022,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=0,
     health=5,
@@ -1043,7 +1039,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1059,7 +1055,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1076,7 +1072,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1092,7 +1088,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=0,
     health=4,
@@ -1126,7 +1122,7 @@ register_card(
     cost_str="3I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=1,
     health=3,
@@ -1160,7 +1156,7 @@ register_card(
     cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=3,
     health=3,
@@ -1212,7 +1208,6 @@ register_card(
     cost_str="0",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1238,7 +1233,7 @@ register_card(
     tags=['非生命'],
     hidden_keywords={},
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=None,  # 纯关键词异象，横扫效果由引擎处理
 )
 
 register_card(
@@ -1246,7 +1241,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=1,
     health=4,
@@ -1262,7 +1257,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=3,
     health=3,
@@ -1278,7 +1273,7 @@ register_card(
     cost_str="3I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=1,
     health=4,
@@ -1294,7 +1289,7 @@ register_card(
     cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=6,
     health=1,
@@ -1311,7 +1306,7 @@ register_card(
     cost_str="8T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=2,
     health=8,
@@ -1328,7 +1323,7 @@ register_card(
     cost_str="6T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1362,7 +1357,7 @@ register_card(
     cost_str="2D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=4,
     health=6,
@@ -1378,7 +1373,7 @@ register_card(
     cost_str="4I",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=7,
     health=10,
@@ -1429,7 +1424,7 @@ register_card(
     cost_str="1D1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=4,
     health=6,
@@ -1463,7 +1458,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=2,
     health=5,
@@ -1480,7 +1475,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=3,
     health=2,
@@ -1515,7 +1510,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=0,
     health=2,
@@ -1532,7 +1527,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     attack=2,
     health=6,
@@ -1549,7 +1544,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     attack=4,
     health=4,
@@ -1558,7 +1553,7 @@ register_card(
     hidden_keywords={},
     description="友方回响异象具有“部署：获得+2/2。“",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_kuqideheiyaoshi_special
 )
 
 register_card(
@@ -1566,7 +1561,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=6,
     health=2,
@@ -1599,7 +1594,7 @@ register_card(
     cost_str="1D1G",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     attack=4,
     health=5,
@@ -1621,10 +1616,10 @@ register_card(
     attack=5,
     health=5,
     tags=['非生命'],
-    hidden_keywords={},
+    hidden_keywords={"抽取": _gaolu_draw_trigger},
     description="抽取：随机将“铁锭”，“金锭”，“钻石”中的1张加入手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=None,  # 抽取效果通过 hidden_keywords 实现，无需 special_fn
 )
 
 register_card(
@@ -1632,7 +1627,6 @@ register_card(
     cost_str="2CT",
     card_type=CardType.MINERAL,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     hidden_keywords={},
     mineral_type="I",
     stack_limit=1,
@@ -1647,7 +1641,6 @@ register_card(
     cost_str="3CT",
     card_type=CardType.MINERAL,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     hidden_keywords={},
     mineral_type="G",
     stack_limit=1,
@@ -1662,7 +1655,6 @@ register_card(
     cost_str="5CT",
     card_type=CardType.MINERAL,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     hidden_keywords={},
     mineral_type="D",
     stack_limit=1,
@@ -1677,14 +1669,13 @@ register_card(
     cost_str="2CT",
     card_type=CardType.MINERAL,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     hidden_keywords={},
     mineral_type="M",
-    stack_limit=1,
+    stack_limit=2,
     is_token=True,
     description="堆叠上限为2。打出：无事发生。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现打出效果
+    effect_fn=_qingjinshi_mineral
 )
 
 register_card(
@@ -1718,12 +1709,12 @@ register_card(
     cost_str="1T2I",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="获得2个额外的C槽。回合结束：抽一张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_tiegao_effect,
 )
 
 register_card(
@@ -1731,7 +1722,7 @@ register_card(
     cost_str="2G",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="获得1个额外的C槽和T槽。然后若你的HP低于对手，你获得+4HP。",
@@ -1744,7 +1735,7 @@ register_card(
     cost_str="3T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="获得1个额外的C槽和2个额外的T槽。然后若对方异象数更多，随机消灭一个 花费不大于4T的敌方异象。",
@@ -1757,7 +1748,6 @@ register_card(
     cost_str="1M",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -1771,13 +1761,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="对所有敌方目标造成2点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_duochongsheji_effect,
 )
 
 register_card(
@@ -1785,13 +1774,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="冰冻1个异象及其相邻异象。抽1张牌。",
-    targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    targets_fn=target("minion"),
+    effect_fn=_bingshuangxingzhe_effect,
 )
 
 register_card(
@@ -1799,13 +1787,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="使1个陆地异象获得+4攻击力。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=_huoshi_targets,
+    effect_fn=_huoshi_effect,
 )
 
 register_card(
@@ -1813,13 +1800,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="对1行异象造成3点伤害。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=_hengsao_targets,
+    effect_fn=_hengsao_effect,
 )
 
 register_card(
@@ -1827,13 +1813,12 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="将2张“书”加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_erdiao_effect,
 )
 
 register_card(
@@ -1841,7 +1826,6 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -1855,13 +1839,12 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="使1个友方异象获得亡语：将本异象的复制加入手牌。",
     targets_fn=target("minion", friendly=True, enemy=False),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhongcheng_effect,
 )
 
 register_card(
@@ -1869,13 +1852,12 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="将1个异象返回其所有者手牌。",
     targets_fn=target("minion"),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jitui_effect,
 )
 
 register_card(
@@ -1883,7 +1865,6 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -1897,13 +1878,13 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="使1个水路异象获得+2/2 或 对其造成6点伤害。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=_shenhaitansuozhe_targets,
+    extra_targeting_stages=[(_shenhaitansuozhe_extra_targets, 1, False)],
+    effect_fn=_shenhaitansuozhe_effect,
 )
 
 register_card(
@@ -1911,13 +1892,12 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="抽1张牌 你获得+4HP。",
     targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    effect_fn=_naijiu_effect,
 )
 
 register_card(
@@ -1925,13 +1905,12 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="使1个异象获得+0/3 和坚韧1。",
     targets_fn=target("minion"),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_baohu_effect,
 )
 
 register_card(
@@ -1939,7 +1918,6 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -1953,13 +1931,12 @@ register_card(
     cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="获得1个额外的C槽。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xiaolv_effect,
 )
 
 register_card(
@@ -1967,13 +1944,12 @@ register_card(
     cost_str="10T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="将手牌抽至6张 获得1个额外的C槽和T槽 使所有友方异象获得+4HP。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jingyanxiubu_effect,
 )
 
 register_card(
@@ -1981,7 +1957,7 @@ register_card(
     cost_str="2T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="使你获得：每个出牌阶段首次开发时，再开发1张“附魔书”。",
@@ -1994,7 +1970,7 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="开发1张离散金卡异象。",
@@ -2007,12 +1983,12 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="开发1张花费不大于3的非敌对生物异象。将1张“掘进！“加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_kanfa_effect,
 )
 
 register_card(
@@ -2020,12 +1996,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
+    is_token=True,
     description="开发1张花费不小于4的非友好生物异象 使其具有迅捷。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_juejin_effect,
 )
 
 register_card(
@@ -2033,7 +2009,7 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="抉择：将1张“丛林神殿“或”沙漠神殿“加入手牌。",
@@ -2046,7 +2022,6 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -2060,7 +2035,6 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
@@ -2074,7 +2048,7 @@ register_card(
     cost_str="1G",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="抉择：使1个异象获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。",
@@ -2105,7 +2079,7 @@ register_card(
     hidden_keywords={},
     description="选择并弃掉1张附魔书，将2张复制加入手牌。然后若你有铁锭，抽1张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_tiezhen_effect,
 )
 
 register_card(
@@ -2113,12 +2087,12 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="移除所有矿物，将3个花费之和等于移除矿物的打出总和的非生命异象加入战场。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yelian_effect,
 )
 
 register_card(
@@ -2126,12 +2100,12 @@ register_card(
     cost_str="1G",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="消灭1个友方异象，将2张具有迅捷的“恶魂“加入战场，回合结束时，将其移除。",
     targets_fn=target("minion", friendly=True, enemy=False),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_cuiruotongmeng_effect,
 )
 
 register_card(
@@ -2139,12 +2113,12 @@ register_card(
     cost_str="4G",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="抽3张牌，然后若场上有不少于4个友方地狱生物异象，跳过对方的下一个抽牌 阶段。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yiribaqiu_effect,
 )
 
 register_card(
@@ -2157,7 +2131,7 @@ register_card(
     hidden_keywords={},
     description="抉择：使所有离散异象获得+1/1，或所有离散异象获得+1HP和+1坚韧等级。 若你本回合此前未部署异象，两项都触发。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhengzhuangshangzhen_effect
 )
 
 register_card(
@@ -2178,12 +2152,12 @@ register_card(
     cost_str="1I",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="移除1个异象。下个抽牌阶段，将其返回战场。其所有者抽1张牌。",
-    targets_fn=target_none,
-    effect_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    targets_fn=target("minion"),
+    effect_fn=_wasan_tianyi_effect,
 )
 
 register_card(
@@ -2191,12 +2165,12 @@ register_card(
     cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="抉择：抽1张牌，将一张“垂直竖井”加入对方手牌，使其花费和抽牌数+1 或 受到5点伤 害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_chuizhushujing_effect,
 )
 
 register_card(
@@ -2204,7 +2178,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="抽2张牌，将其中1张复制洗入卡组。",
@@ -2217,12 +2191,12 @@ register_card(
     cost_str="2T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="开发1张攻击力不大于4的非友好异象，将其复制加入战场。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yuguwajue_effect,
 )
 
 register_card(
@@ -2230,12 +2204,12 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="移除1个异象，将其2张复制置入其所有者卡组顶。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target("minion"),
+    effect_fn=_mishi_effect,
 )
 
 register_card(
@@ -2248,7 +2222,7 @@ register_card(
     hidden_keywords={},
     description="对方抽1张牌，失去与此牌花费相同的T点。若场上有蠹虫，再弃掉此牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhushi_effect,
 )
 
 register_card(
@@ -2256,7 +2230,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="将1个异象的HP设为1。",
@@ -2269,12 +2243,12 @@ register_card(
     cost_str="2D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="使你获得：你不因抽牌而获得手牌时，将其复制加入手牌，使其花费+1。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_fuxing_effect,
 )
 
 register_card(
@@ -2282,7 +2256,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="对方随机弃1张牌，将1张“铁锭“置入对方卡组顶。",
@@ -2313,7 +2287,7 @@ register_card(
     hidden_keywords={},
     description="使1个异象获得亡语：随机消灭1个距离不大于3的敌方异象。",
     targets_fn=target("minion"),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yulin_effect,
 )
 
 register_card(
@@ -2326,7 +2300,7 @@ register_card(
     hidden_keywords={},
     description="对1行异象造成等同于此行异象数的伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xueyuan_effect,
 )
 
 register_card(
@@ -2334,7 +2308,7 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="抉择：将1张“TNT”或1张“复制技术”加入手牌。",
@@ -2347,11 +2321,11 @@ register_card(
     cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    is_token=True,
     immersion_level=1,
     hidden_keywords={},
     description="对一个目标造成2点伤害。抽1张牌。",
-    targets_fn=target_none,
+    targets_fn=target_mix(target("minion"), target("player")),
     effect_fn=_tnt_strategy,
 )
 
@@ -2366,7 +2340,7 @@ register_card(
     is_token=True,
     description="抉择：将1张“轰击”或1张“制导技术”加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_fuzhijishu_effect,
 )
 
 register_card(
@@ -2374,13 +2348,12 @@ register_card(
     cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="消灭1个受伤异象 将1张“TNT炮“加入手牌。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target("minion", injured=True),
+    effect_fn=_hongji_effect,
 )
 
 register_card(
@@ -2388,13 +2361,12 @@ register_card(
     cost_str="8T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="抉择：将1张“矢量炮“或1张”珍珠塔“加入手牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhidaojishu_effect,
 )
 
 register_card(
@@ -2402,13 +2374,12 @@ register_card(
     cost_str="0",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="开发4张卡组中的牌 将其花费设为4T。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_zhenzhuta_effect,
 )
 
 register_card(
@@ -2416,7 +2387,6 @@ register_card(
     cost_str="12T",
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     attack=12,
     health=12,
@@ -2424,7 +2394,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=None,
 )
 
 register_card(
@@ -2436,8 +2406,8 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="指向1个异象，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target("minion"),
+    effect_fn=_shitiyaji_effect,
 )
 
 register_card(
@@ -2445,12 +2415,12 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="对方手牌具有+2花费，直到下一个出牌阶段结束。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_c418_effect,
 )
 
 register_card(
@@ -2471,7 +2441,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="使1个异象及其相邻异象获得眩晕。",
@@ -2484,7 +2454,7 @@ register_card(
     cost_str="1T1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。",
@@ -2502,7 +2472,7 @@ register_card(
     hidden_keywords={},
     description="使1个异象获得：回合开始：获得+1/1。",
     targets_fn=target("minion"),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_jinxiguapian_effect,
 )
 
 register_card(
@@ -2510,7 +2480,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="将卡组顶的1张迅捷异象加入战场。",
@@ -2536,12 +2506,12 @@ register_card(
     cost_str="7T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="随机消灭2个敌方异象。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_leibao_effect,
 )
 
 register_card(
@@ -2553,8 +2523,8 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。",
-    targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target("minion", custom_filter=lambda m: not m.keywords.get("高地", False)),
+    effect_fn=_yinyu_effect,
 )
 
 register_card(
@@ -2562,12 +2532,12 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
-    description="开发1张离散迅捷异象。然后若你拥有不小于4个T点，对所有敌方目标造成1点 伤害。",
+    description="开发1张离散迅捷异象。然后若你拥有不小于4个T点，对所有敌方目标造成1点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_anye_effect,
 )
 
 register_card(
@@ -2578,9 +2548,9 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    description="使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重 复此流程。",
+    description="使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。",
     targets_fn=target("minion", friendly=True, enemy=False),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_poxi_effect,
 )
 
 register_card(
@@ -2588,12 +2558,12 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
     description="你和对手轮流抽牌至手牌数量为7张，下回合开始时弃掉本次抽到的牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_huozhai_effect,
 )
 
 register_card(
@@ -2601,12 +2571,12 @@ register_card(
     cost_str="6T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
-    description="将2张“绊线钩”加入战场。然后若场上有不多于3个“绊线钩“，对所有目标造成1 点伤害。",
+    description="将2张“绊线钩”加入战场。然后若场上有不多于3个“绊线钩“，对所有目标造成1点伤害。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yiji_jiguan_effect,
 )
 
 register_card(
@@ -2619,7 +2589,7 @@ register_card(
     hidden_keywords={},
     description="开发1张非生命异象，使其具有“受到伤害前，每有1个友方“绊线钩“与之同行或 同列，对1个随机敌方目标造成1次1点伤害。“",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_linjiepoint_effect,
 )
 
 register_card(
@@ -2632,7 +2602,7 @@ register_card(
     hidden_keywords={},
     description="使1个异象获得+1/2，抽1张牌。若指向非生命异象，再使所有友方非生命异象 获得+2HP。",
     targets_fn=target("minion"),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_yaoshuijian_effect,
 )
 
 register_card(
@@ -2640,12 +2610,12 @@ register_card(
     cost_str="6T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="抉择：对所有后排异象造成4点伤害 或 对对手造成6点伤害。",
     targets_fn=target("player", enemy=True),
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_rongyan_effect,
 )
 
 register_card(
@@ -2653,13 +2623,13 @@ register_card(
     cost_str="1G",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
-    keywords={"回响": 2},
+    keywords={"异放": 2},
     hidden_keywords={},
     description="移动1个陆地异象。若是友方异象，抽1张牌。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_chongnengtiegui_effect,
 )
 
 register_card(
@@ -2667,12 +2637,12 @@ register_card(
     cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="使1个友方异象返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。",
     targets_fn=target("minion", friendly=True, enemy=False),
-    effect_fn=lambda p, t, g, extras=None: return_to_hand(t, g, p),
+    effect_fn=_menchuanchuansuo_effect,
 )
 
 register_card(
@@ -2694,7 +2664,7 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="消灭1个花费不大于3T的异象。若其处于协同，从对方卡组顶抽1张牌。",
@@ -2720,12 +2690,12 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="抽1张策略，将其展示并获得-1T花费和“抽1张策略，将其展示并获得-1T花费”",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_tiaoshibang_effect,
 )
 
 register_card(
@@ -2733,7 +2703,7 @@ register_card(
     cost_str="3T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="将6张“蠹虫”洗入卡组。",
@@ -2746,7 +2716,7 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
     description="对1个异象及其相邻异象造成2点伤害。若有异象被消灭，将1张“村庄英雄”洗入 卡组。",
@@ -2759,7 +2729,7 @@ register_card(
     cost_str="2I",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
+    rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
     description="移除对方卡组顶的2张牌，将2张“蠹虫”置入对方卡组顶。",

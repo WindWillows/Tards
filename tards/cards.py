@@ -185,12 +185,15 @@ class MinionCard(Card):
                     print(f"  献祭 {m.name}，获得 {blood}B")
                 game.emit_event(EVENT_SACRIFICE, minion=m, player=player, blood=blood)
 
+        # 回响：面板设为 1/1
+        deploy_attack = 1 if self.keywords.get("回响", False) else self.attack
+        deploy_health = 1 if self.keywords.get("回响", False) else self.health
         minion = Minion(
             name=self.name,
             owner=player,
             position=target,
-            attack=self.attack,
-            health=self.health,
+            attack=deploy_attack,
+            health=deploy_health,
             source_card=self,
             board=game.board,
             keywords=self.keywords.copy(),
