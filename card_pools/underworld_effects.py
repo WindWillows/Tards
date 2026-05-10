@@ -46,6 +46,20 @@ SPECIAL_MAP = {
     "狐": "_hu_special",
 }
 
+STRATEGY_MAP = {
+    "钳子": "_qianzi_effect",
+    "扇子": "_shanzi_strategy",
+    "炸弹夫人的遥控器": "_zhadan_yao_effect",
+    "胶水": "_jiaoshui_effect",
+    "冰块": "_bingkuai_effect",
+    "骤雨": "_zhouyu_effect",
+    "继代": "_jidai_effect",
+    "野火": "_yehuo_effect",
+    "善潜": "_shanqian_effect",
+    "粗粝": "_culi_effect",
+    "新月": "_xinyue_effect",
+}
+
 __all__ = [
     "_arthropod_top_effect",
     "_arthropod_bottom_effect",
@@ -135,6 +149,7 @@ __all__ = [
     "_hesheng_effect",
     "_shanqian_effect",
     "_culi_effect",
+    "_xinyue_effect",
     "_fushu_special",
     "_biyi_special",
     "_jinyangpi_effect",
@@ -848,6 +863,7 @@ def _xueping_effect(player, target, game, extras=None):
         player.draw_card(1, game=game)
     return True
 
+@strategy
 def _qianzi_effect(player, target, game, extras=None):
     """钳子：对你造成2点伤害，然后对一个异象造成4点伤害。抽一张牌。"""
     from tards.cards import Minion
@@ -1200,6 +1216,7 @@ def _lanyue_effect(player, target, game, extras=None):
     on(EVENT_PHASE_END, on_resolve_end, game)
     return True
 
+@strategy
 def _zhadan_yao_effect(player, target, game, extras=None):
     """炸弹夫人的遥控器：使友方异象获得传染亡语。"""
     from tards.cards import Minion
@@ -1301,7 +1318,9 @@ def _xueyue_effect(player, target, game, extras=None):
         print(f"  血月：{affected} 个友方异象+1攻击力，获得坚韧1")
     return True
 
+@strategy
 def _jiaoshui_effect(player, target, game, extras=None):
+    """胶水：使一个异象获得：在受到致命伤害前，+0/1。若因此存活，+1/1。"""
     from tards.cards import Minion
     from card_pools.effect_utils import on
     from tards.constants import EVENT_BEFORE_DAMAGE, EVENT_AFTER_DAMAGE
@@ -1435,7 +1454,9 @@ def _yinghuo_effect(player, target, game, extras=None):
     print(f"  营火：{target.name} 获得+2/3和亡语（对方抽牌）")
     return True
 
+@strategy
 def _bingkuai_effect(player, target, game, extras=None):
+    """冰块：使一个友方异象获得 +0/4 并冰冻2回合，期间其拥有坚韧I。"""
     from tards.cards import Minion
     from card_pools.effect_utils import on
     from tards.constants import EVENT_PHASE_END
@@ -1658,6 +1679,7 @@ def _gaozhi_effect(player, target, game, extras=None):
     print(f"  稿纸：{player.name} 获得1T槽，{opponent.name} 失去1T槽")
     return True
 
+@strategy
 def _zhouyu_effect(player, target, game, extras=None):
     """骤雨：将1个异象返回其所有者手牌。对手下回合无法抽牌。"""
     from card_pools.effect_utils import return_minion_to_hand
@@ -1836,6 +1858,7 @@ def _haichen_effect(player, target, game, extras=None):
 
     return True
 
+@strategy
 def _jidai_effect(player, target, game, extras=None):
     """继代：使一个异象获得亡语，将其-1/1的复制加入你的手牌。"""
     from tards.cards import Minion
@@ -1875,6 +1898,7 @@ def _jidai_effect(player, target, game, extras=None):
     print(f"  继代：{target.name} 获得亡语")
     return True
 
+@strategy
 def _yehuo_effect(player, target, game, extras=None):
     """野火：弃1张牌，将1个异象返回其所有者牌库顶，眩晕周围异象。"""
     from card_pools.effect_utils import get_adjacent_positions, give_temp_keyword_until_turn_end
@@ -2118,6 +2142,7 @@ def _hesheng_effect(player, target, game, extras=None):
 
     return True
 
+@strategy
 def _shanqian_effect(player, target, game, extras=None):
     """善潜：使一个异象立刻成长，然后+1/+1。"""
     from tards.cards import Minion
@@ -2139,6 +2164,7 @@ def _shanqian_effect(player, target, game, extras=None):
 
     return True
 
+@strategy
 def _culi_effect(player, target, game, extras=None):
     """粗粝：使1个异象获得：成长时，+2/2。"""
     from tards.cards import Minion
@@ -2149,6 +2175,86 @@ def _culi_effect(player, target, game, extras=None):
 
     target._on_evolve_buff = (2, 2)
     print(f"  粗粝：{target.name} 获得成长时+2/+2")
+    return True
+
+
+@strategy
+def _xinyue_effect(player, target, game, extras=None, card=None):
+    """新月：你获得：阴谋的花费-1T。你的阴谋每被触发2次，不论何处，将此卡加入你的手牌（被移除除外）。"""
+    from tards.cards import Conspiracy
+    from tards.constants import EVENT_CONSPIRACY_TRIGGERED
+
+    # --- 1. 阴谋花费-1T（持续费用修正）---
+    def _conspiracy_cost_modifier(c, cost):
+        if isinstance(c, Conspiracy):
+            cost.t = max(0, cost.t - 1)
+
+    player._cost_modifiers.append(_conspiracy_cost_modifier)
+    print(f"  新月：{player.name} 的阴谋花费-1T")
+
+    # --- 2. 阴谋触发计数与回收 ---
+    if card is None:
+        print("  新月：警告，未获取到策略卡实例，回收效果未注册")
+        return True
+
+    player._xinyue_conspiracy_count = getattr(player, "_xinyue_conspiracy_count", 0)
+
+    def _on_conspiracy_triggered(event_data):
+        triggered_player = event_data.get("player")
+        if triggered_player is not player:
+            return
+
+        player._xinyue_conspiracy_count += 1
+        print(f"  新月：{player.name} 的阴谋被触发（{player._xinyue_conspiracy_count}/2）")
+
+        if player._xinyue_conspiracy_count < 2:
+            return
+
+        # 达到2次，重置计数
+        player._xinyue_conspiracy_count = 0
+
+        # 检查新月当前位置
+        loc = getattr(card, "_location", None)
+
+        if loc == "exile":
+            print(f"  新月：此卡已被移除，无法加入手牌")
+            return
+
+        if loc == "hand":
+            print(f"  新月：此卡已在手牌中")
+            return
+
+        # 从牌库或弃牌堆中取出
+        if loc == "deck" and card in player.card_deck:
+            player.card_deck.remove(card)
+        elif loc == "discard" and card in player.card_dis:
+            player.card_dis.remove(card)
+        elif loc == "resolving":
+            # 正在结算中（极罕见），不处理
+            print(f"  新月：此卡正在结算中，暂不移入")
+            return
+        else:
+            # 位置未知或已不在标准区域，尝试在牌库/弃牌堆中查找
+            if card in player.card_deck:
+                player.card_deck.remove(card)
+            elif card in player.card_dis:
+                player.card_dis.remove(card)
+            else:
+                print(f"  新月：未找到此卡，无法加入手牌")
+                return
+
+        # 加入手牌（手牌满则弃置）
+        if len(player.card_hand) < player.card_hand_max:
+            player.card_hand.append(card)
+            card.move_to("hand", game)
+            print(f"  新月：将此卡加入 {player.name} 手牌")
+        else:
+            player.card_dis.append(card)
+            card.move_to("discard", game)
+            print(f"  新月：{player.name} 手牌已满，此卡被弃置")
+
+    card.on(EVENT_CONSPIRACY_TRIGGERED, _on_conspiracy_triggered)
+    print(f"  新月：已注册阴谋触发监听器")
     return True
 # =============================================================================
 # 迁移的 lambda 效果 (underworld)

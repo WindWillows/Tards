@@ -60,6 +60,7 @@ EVENT_BEFORE_STACK_RESOLVE = "before_stack_resolve"
 
 # 开发事件
 EVENT_DEVELOPED = "developed"
+EVENT_CONSPIRACY_TRIGGERED = "conspiracy_triggered"
 
 # 关键词变化事件
 EVENT_KEYWORD_GAINED = "keyword_gained"

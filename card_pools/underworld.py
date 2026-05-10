@@ -2432,13 +2432,14 @@ register_card(
 
 register_card(
     name="新月",
-    cost_str="7T",
+    cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.UNDERWORLD,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=1,
+    description="你获得：阴谋的花费-1T。你的阴谋每被触发2次，不论何处，将此卡加入你的手牌（被移除除外）。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_xinyue_effect,
 )
 
 register_card(

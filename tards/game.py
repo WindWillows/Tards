@@ -168,6 +168,7 @@ class Game:
                         if c in p.card_hand:
                             p.card_hand.remove(c)
                         p.card_dis.append(c)
+                        self.emit_event(EVENT_CONSPIRACY_TRIGGERED, conspiracy=c, player=p)
                     return trigger
                 # 动态选择 push_stack / queue：
                 # - 若当前在堆栈解析中（出牌/部署/战斗等），使用 push_stack
