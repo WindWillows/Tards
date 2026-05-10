@@ -602,6 +602,7 @@ class Game:
             print(f"\n  >>> {active.name} 的回合 (T点:{active.t_point}, HP:{active.health})")
             self.show_hand(active)
             active.bell = False
+            active.t_changed_this_round = False
 
             if self.action_provider:
                 action = self.action_provider(self, active, opponent)
