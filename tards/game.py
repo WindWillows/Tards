@@ -5,6 +5,7 @@ from .card_db import DEFAULT_REGISTRY, CardType, Pack
 from .constants import (
     EVENT_BELL,
     EVENT_CARD_PLAYED,
+    EVENT_CONSPIRACY_TRIGGERED,
     EVENT_DEATH,
     EVENT_DEPLOY,
     EVENT_DRAW,

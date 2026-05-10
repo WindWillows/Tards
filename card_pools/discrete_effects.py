@@ -4166,6 +4166,8 @@ def _wasan_tianyi_effect(player, target, game, extras=None):
 
 def _yanhuozhixing_effect(player, target, game, extras=None):
     """焰火之星：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。"""
+    from card_pools.effect_utils import get_opponent
+
     if not target or not hasattr(target, "is_alive") or not target.is_alive():
         print("  [警告] 焰火之星：未选择有效的目标异象")
         return False
