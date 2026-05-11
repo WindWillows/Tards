@@ -77,6 +77,8 @@ SPECIAL_MAP = {
     "隼": "_sun_special",
     "鸠": "_jiu_special",
     "幼狼": "_youlang_special",
+    "成狼": "_chenglang_special",
+    "狼王": "_langwang_special",
 }
 
 STRATEGY_MAP = {
@@ -218,6 +220,8 @@ __all__ = [
     "_sun_special",
     "_jiu_special",
     "_youlang_special",
+    "_chenglang_special",
+    "_langwang_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1599,6 +1603,56 @@ def _youlang_special(minion, player, game, extras=None):
     if not hasattr(minion, '_on_grow_callbacks'):
         minion._on_grow_callbacks = []
     minion._on_grow_callbacks.append(on_grow)
+    return True
+
+
+@special
+def _chenglang_special(minion, player, game, extras=None):
+    """成狼：成长前，若未消灭过异象，失去成长2。"""
+    # 追踪是否消灭过异象（通过攻击致死）
+    def on_death(event):
+        dead = event.data.get("minion")
+        if dead and getattr(dead, '_last_attacker', None) is minion:
+            minion._has_killed_minion = True
+
+    on("death", on_death, game, minion=minion)
+
+    # 成长前检查
+    def on_grow(m, p, g):
+        if not getattr(m, '_has_killed_minion', False):
+            m.keywords.pop("成长", None)
+            print(f"  {m.name} 未消灭过异象，失去成长")
+            return True  # 取消本次成长
+        return False
+
+    if not hasattr(minion, '_on_grow_callbacks'):
+        minion._on_grow_callbacks = []
+    minion._on_grow_callbacks.append(on_grow)
+    return True
+
+
+@special
+def _langwang_special(minion, player, game, extras=None):
+    """狼王：所有友方异象具有坚韧1。"""
+    def tough_aura(target_m):
+        if not minion.is_alive():
+            return {}
+        if target_m.owner != player:
+            return {}
+        return {"坚韧": 1}
+
+    # 给当前所有友方存活异象添加光环
+    for m in game.board.minion_place.values():
+        if m.is_alive() and m.owner == player:
+            minion.provide_aura_keywords(m, tough_aura)
+
+    # 新部署的友方异象
+    def on_entered(event):
+        new_m = event.data.get("minion")
+        if new_m and new_m.is_alive() and new_m.owner == player:
+            minion.provide_aura_keywords(new_m, tough_aura)
+
+    on("entered_battlefield", on_entered, game, minion=minion)
     return True
 
 

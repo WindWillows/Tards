@@ -1099,7 +1099,7 @@ register_card(
     evolve_to="狼王",
     description="成长前，若未消灭过异象，失去成长2。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_chenglang_special,
 )
 
 register_card(
@@ -1116,7 +1116,7 @@ register_card(
     is_token=True,
     description="所有友方异象具有坚韧1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_langwang_special,
 )
 
 register_card(
