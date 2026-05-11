@@ -71,6 +71,7 @@ SPECIAL_MAP = {
     "河坝": "_heba_special",
     "蛇": "_she_special",
     "箭毒蛙": "_jianduwa_special",
+    "松毛虫": "_songmaochong_special",
 }
 
 STRATEGY_MAP = {
@@ -206,6 +207,7 @@ __all__ = [
     "_heba_special",
     "_she_special",
     "_jianduwa_special",
+    "_songmaochong_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1336,7 +1338,72 @@ def _jianduwa_special(minion, player, game, extras=None):
         opponent = g.p2 if p == g.p1 else g.p1
         for card in opponent.card_hand:
             card.cost.t += 1
+            card._jianduwa_extra_t = getattr(card, '_jianduwa_extra_t', 0) + 1
         print(f"  {m.name} 亡语：{opponent.name} 所有手牌花费 +1T")
+
+        def on_card_leave(event):
+            card = event.data.get("card")
+            if card and hasattr(card, '_jianduwa_extra_t'):
+                card.cost.t -= card._jianduwa_extra_t
+                del card._jianduwa_extra_t
+
+        if not getattr(opponent, '_jianduwa_listener_registered', False):
+            opponent._jianduwa_listener_registered = True
+            from tards.constants import EVENT_CARD_PLAYED, EVENT_DISCARDED
+            g.history.listen(EVENT_CARD_PLAYED, on_card_leave)
+            g.history.listen(EVENT_DISCARDED, on_card_leave)
+
+    add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _songmaochong_special(minion, player, game, extras=None):
+    """松毛虫：对对手造成的伤害翻倍。亡语：对方所有手牌获得：打出时，受到1点伤害。"""
+    def on_before_health_change(event):
+        if not minion.is_alive():
+            return
+        source = event.data.get("source")
+        if source is not minion:
+            return
+        target = event.data.get("target")
+        if target is None:
+            return
+        opponent = game.p2 if player == game.p1 else game.p1
+        if target is not opponent:
+            return
+        delta = event.data.get("delta", 0)
+        if delta < 0:
+            event.data["delta"] = delta * 2
+            print(f"  {minion.name}：对对手造成的伤害翻倍，从 {-delta} 变为 {-delta * 2}")
+
+    on("before_health_change", on_before_health_change, game, minion=minion)
+
+    def deathrattle(m, p, g):
+        opponent = g.p2 if p == g.p1 else g.p1
+        for card in opponent.card_hand:
+            card._songmaochong_poison = getattr(card, '_songmaochong_poison', 0) + 1
+        print(f"  {m.name} 亡语：{opponent.name} 所有手牌获得打出时受到1点伤害")
+
+        def on_card_played(event):
+            played_card = event.data.get("card")
+            played_player = event.data.get("player")
+            if played_card and hasattr(played_card, '_songmaochong_poison') and played_player is opponent:
+                count = played_card._songmaochong_poison
+                opponent.health_change(-count, source=m)
+                print(f"  松毛虫亡语：{opponent.name} 打出 [{played_card.name}] 受到 {count} 点伤害")
+                del played_card._songmaochong_poison
+
+        def on_card_discarded(event):
+            discarded_card = event.data.get("card")
+            if discarded_card and hasattr(discarded_card, '_songmaochong_poison'):
+                del discarded_card._songmaochong_poison
+
+        if not getattr(opponent, '_songmaochong_listener_registered', False):
+            opponent._songmaochong_listener_registered = True
+            from tards.constants import EVENT_CARD_PLAYED, EVENT_DISCARDED
+            g.history.listen(EVENT_CARD_PLAYED, on_card_played)
+            g.history.listen(EVENT_DISCARDED, on_card_discarded)
 
     add_deathrattle(minion, deathrattle)
     return True

@@ -755,7 +755,7 @@ register_card(
     tags=['昆虫'],
     description="对对手造成的伤害翻倍。亡语：对方所有手牌获得：打出时，受到1点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_songmaochong_special
 )
 
 register_card(
