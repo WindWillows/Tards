@@ -480,7 +480,7 @@ class Game:
         while not self.game_over:
             self.run_turn()
             self.current_turn += 1
-            if self.current_turn > 30:
+            if self.current_turn > 1000:
                 print("\n回合数达到上限，强制结束游戏。")
                 break
         self.print_result()
@@ -610,7 +610,7 @@ class Game:
             print(f"\n  >>> {active.name} 的回合 (T点:{active.t_point}, HP:{active.health})")
             self.show_hand(active)
             active.bell = False
-            # active.t_changed_this_round = False
+            active.t_changed_this_round = False
 
             if self.action_provider:
                 action = self.action_provider(self, active, opponent)
@@ -681,6 +681,7 @@ class Game:
             elif act_type == "play":
                 serial = action.get("serial")
                 target = action.get("target")
+                bluff = action.get("bluff", False)
                 sacrifices = action.get("sacrifices", [])
                 # 过滤掉因不同步而丢失的牺牲目标（只剩 tuple 位置），以及献祭次数已耗尽的异象
                 valid_sacs = [m for m in sacrifices if hasattr(m, "keywords") and getattr(m, "is_alive", lambda: True)() and getattr(m, '_sacrifice_remaining', 0) > 0]
@@ -710,7 +711,7 @@ class Game:
                             if blocked:
                                 continue
                         print(f"  {active.name} 尝试打出 {card.name} (目标: {self._fmt_target(target)})")
-                        ok = active.play_card(serial, target, self)
+                        ok = active.play_card(serial, target, self, bluff=bluff)
                         if not ok:
                             print(f"  出牌失败")
                     else:
@@ -796,6 +797,8 @@ class Game:
 
         # 对战顺序：水路(4) -> 河岸(3) -> 中路(2) -> 山脊(1) -> 高地(0)
         for col in range(4, -1, -1):
+            if self.game_over:
+                break
             col_name = self.board.COL_NAMES[col]
 
             # 找出以本列为 base_col 的攻击者（横扫异象只在 base_col 发起攻击）
@@ -837,6 +840,8 @@ class Game:
             print(f"  {col_name}列发生战斗")
 
             while True:
+                if self.game_over:
+                    break
                 # 动态刷新：找出仍存活且还有攻击次数的 base_col == col 的异象
                 active = [m for m in self.board.minion_place.values()
                           if m.position[1] == col and m.is_alive()
@@ -971,6 +976,10 @@ class Game:
                                 m.attack_target(enemy)
 
                         attacker_swings[m] -= 1
+                        if m.keywords.get("兴奋", False) and getattr(m, "_excitement_triggered", False):
+                            attacker_swings[m] += 1
+                            m._excitement_triggered = False
+                            print(f"  {m.name} 兴奋：消灭异象后再攻击一次")
                         if self.resolve_step_callback:
                             self.resolve_step_callback()
                         if m.keywords.get("高频", 0) > 0:

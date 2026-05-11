@@ -546,17 +546,21 @@ class Player:
             return True
 
         elif isinstance(card, Conspiracy):
-            def activate_fn():
-                # 阴谋激活时同样先离开手牌
-                if card in self.card_hand:
-                    self.card_hand.remove(card)
-                card.move_to("active_conspiracy", game)
-                print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
-                self.active_conspiracies.append(card)
-                # 注册到事件总线（通配符监听器）
-                game.register_conspiracy(card, self)
-            game.effect_queue.resolve(f"激活阴谋 [{card.name}]", activate_fn)
-            return True
+            if bluff:
+                print(f"  {self.name} 假装激活了 [{card.name}]（虚张声势）")
+                return True
+            else:
+                def activate_fn():
+                    # 阴谋激活时同样先离开手牌
+                    if card in self.card_hand:
+                        self.card_hand.remove(card)
+                    card.move_to("active_conspiracy", game)
+                    print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
+                    self.active_conspiracies.append(card)
+                    # 注册到事件总线（通配符监听器）
+                    game.register_conspiracy(card, self)
+                game.effect_queue.resolve(f"激活阴谋 [{card.name}]", activate_fn)
+                return True
 
         return True
 
