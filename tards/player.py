@@ -266,6 +266,12 @@ class Player:
             self.t_point = 0
         if delta != 0:
             self.t_changed_this_round = True
+    
+    def s_point_change(self, delta: int):
+        self.s_point += delta
+    
+    def b_point_change(self, delta: int):
+        self.b_point += delta
 
     def t_point_max_change(self, delta: int):
         """改变T槽上限。减少时记录到 game._state_log 用于全局统计。"""
@@ -445,8 +451,8 @@ class Player:
                 if hasattr(card, "_is_stack_copy"):
                     original_card.stack_count += 1
                 self.t_point_change(cost.t)
-                self.b_point += cost.b
-                self.s_point += cost.s
+                self.b_point_change(cost.b)
+                self.s_point_change(cost.s)
                 self.c_point_change(cost.c)
                 self._cards_played_this_phase -= 1
                 return False
@@ -488,8 +494,8 @@ class Player:
                         card.move_to("hand", game)
                         self.card_hand.append(card)
                     self.t_point_change(cost.t)
-                    self.b_point += cost.b
-                    self.s_point += cost.s
+                    self.b_point_change(cost.b)
+                    self.s_point_change(cost.s)
                     self.c_point_change(cost.c)
             game.effect_queue.resolve(f"部署 [{card.name}]", deploy_fn, source=card)
             return True
@@ -540,21 +546,17 @@ class Player:
             return True
 
         elif isinstance(card, Conspiracy):
-            if bluff:
-                print(f"  {self.name} 假装激活了 [{card.name}]（虚张声势）")
-                return True
-            else:
-                def activate_fn():
-                    # 阴谋激活时同样先离开手牌
-                    if card in self.card_hand:
-                        self.card_hand.remove(card)
-                    card.move_to("active_conspiracy", game)
-                    print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
-                    self.active_conspiracies.append(card)
-                    # 注册到事件总线（通配符监听器）
-                    game.register_conspiracy(card, self)
-                game.effect_queue.resolve(f"激活阴谋 [{card.name}]", activate_fn)
-                return True
+            def activate_fn():
+                # 阴谋激活时同样先离开手牌
+                if card in self.card_hand:
+                    self.card_hand.remove(card)
+                card.move_to("active_conspiracy", game)
+                print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
+                self.active_conspiracies.append(card)
+                # 注册到事件总线（通配符监听器）
+                game.register_conspiracy(card, self)
+            game.effect_queue.resolve(f"激活阴谋 [{card.name}]", activate_fn)
+            return True
 
         return True
 
