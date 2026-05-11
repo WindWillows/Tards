@@ -851,7 +851,7 @@ register_card(
     keywords={"先攻": 3, "迅捷": True},
     description="攻击后，返回手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_sun_special,
 )
 
 register_card(

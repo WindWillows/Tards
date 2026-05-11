@@ -74,6 +74,7 @@ SPECIAL_MAP = {
     "松毛虫": "_songmaochong_special",
     "螳螂": "_tanglang_special",
     "象群": "_xiangqun_special",
+    "隼": "_sun_special",
 }
 
 STRATEGY_MAP = {
@@ -212,6 +213,7 @@ __all__ = [
     "_songmaochong_special",
     "_tanglang_special",
     "_xiangqun_special",
+    "_sun_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1507,6 +1509,23 @@ def _xiangqun_special(minion, player, game, extras=None):
         on("phase_start", on_phase_start, game)
         on("phase_end", on_phase_end, game)
 
+    return True
+
+
+@special
+def _sun_special(minion, player, game, extras=None):
+    """隼：攻击后，返回手牌。"""
+    def on_after_attack(event):
+        attacker = event.data.get("attacker")
+        if attacker is not minion:
+            return
+        if not minion.is_alive():
+            return
+        from card_pools.effect_utils import return_minion_to_hand
+        return_minion_to_hand(minion, game)
+        print(f"  {minion.name} 攻击后返回手牌")
+
+    on("attacked", on_after_attack, game, minion=minion)
     return True
 
 
