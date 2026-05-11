@@ -998,6 +998,7 @@ def _init_event_name_map():
         # 移除
         "before_remove": C.EVENT_BEFORE_REMOVE,
         "removed": C.EVENT_REMOVED,
+        "entered_battlefield": C.EVENT_ENTERED_BATTLEFIELD, "进入战场": C.EVENT_ENTERED_BATTLEFIELD,
         # 回合/阶段
         "turn_start": C.EVENT_TURN_START, "回合开始": C.EVENT_TURN_START,
         "turn_end": C.EVENT_TURN_END, "回合结束": C.EVENT_TURN_END,

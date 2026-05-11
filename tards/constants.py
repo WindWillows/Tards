@@ -42,6 +42,7 @@ EVENT_DAMAGED = "damaged"
 EVENT_DESTROYED = "destroyed"
 EVENT_MOVED = "moved"
 EVENT_REMOVED = "removed"
+EVENT_ENTERED_BATTLEFIELD = "entered_battlefield"
 EVENT_POINTED = "pointed"
 
 # 微观操作事件 — After（只读）

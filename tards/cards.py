@@ -211,19 +211,7 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
                 return False
             m._sacrifice_remaining -= 1
             blood = m.keywords.get("丰饶", 1)
-            # 献祭变身（13号孩子）
-            transform_target = getattr(m, "_transform_on_sacrifice", None)
-            if transform_target and game:
-                from .card_db import DEFAULT_REGISTRY, CardType
-                target_def = DEFAULT_REGISTRY.get(transform_target)
-                if target_def and target_def.card_type == CardType.MINION:
-                    new_minion = game.transform_minion(m, target_def, preserve_summon_turn=False)
-                    if new_minion:
-                        print(f"  {m.name} 献祭后变身为 {new_minion.name}！")
-                        m = new_minion
-                        blood = m.keywords.get("丰饶", 1)
-                        continue
-            # 非变身：消灭异象并触发亡语（免疫献祭的异象除外）
+            # 消灭异象并触发亡语（免疫献祭的异象除外）
             if getattr(m, '_immune_to_sacrifice', False):
                 print(f"  献祭 {m.name}（免疫献祭，异象保留），获得 {blood}B")
             else:
@@ -967,7 +955,10 @@ class Minion:
                 if enemies:
                     print(f"  {self.name} 串击同列所有敌方异象")
                     for enemy in enemies:
+                        was_alive = enemy.is_alive()
                         enemy.take_damage(self.current_attack, source_minion=self, source_type="combat", is_combat_damage=True)
+                        if was_alive and not enemy.is_alive() and self.keywords.get("兴奋", False):
+                            self._excitement_triggered = True
                         if enemy.is_alive():
                             spike = enemy.keywords.get("尖刺", 0)
                             if spike > 0:
@@ -979,8 +970,11 @@ class Minion:
                     player_target.health_change(-self.current_attack, source=self)
             else:
                 print(f"  {self.name} 攻击 {target.name}，造成 {self.current_attack} 点伤害")
+                was_alive = target.is_alive()
                 target.take_damage(self.current_attack, source_minion=self, source_type="combat", is_combat_damage=True)
                 target._last_attacker = self
+                if was_alive and not target.is_alive() and self.keywords.get("兴奋", False):
+                    self._excitement_triggered = True
                 if target.is_alive():
                     spike = target.keywords.get("尖刺", 0)
                     if spike > 0:

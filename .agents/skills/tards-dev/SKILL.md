@@ -186,6 +186,39 @@ def _my_special(minion, player, game, extras=None):
     return True
 ```
 
+**部署后额外指向（内置指向）模板**：
+当异象部署后需要额外指向目标时（如信天翁、牛蛙等），使用此模式：
+
+```python
+@special
+def _my_special(minion, player, game, extras=None):
+    # 1. 先执行非指向部分（如统计、条件判断）
+    # ...
+    
+    # 2. 构建指向请求
+    from tards.targeting import TargetingRequest
+    
+    def scope(p, board):
+        # 根据条件动态确定合法目标
+        return [m for m in board.minion_place.values() if m.is_alive() and 条件]
+    
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "卡牌名：选择目标"
+    req.deciding_player = player
+    
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False  # 取消 → 自动回滚
+    
+    # 3. 执行指向后的效果
+    # ...
+    return True
+```
+
+> **规则**：所有部署后的额外指向都必须写成内置指向（`special_fn` 内部调用 `request_target`），不再使用 `extra_targeting_stages` 旧模式。
+
 **关键规则**：
 - `effect_fn`/`special_fn` 返回 `False` → 自动回滚（费用退还/异象移除）
 - 返回 `None` 或其他值 → **不回滚**，效果被视为成功执行

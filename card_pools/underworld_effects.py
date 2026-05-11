@@ -25,7 +25,7 @@ from card_pools.effect_utils import (
 )
 from tards import DEFAULT_REGISTRY, Pack, Rarity, CardType
 from tards.cards import Minion, MinionCard
-from tards.constants import EVENT_TURN_START
+from tards.constants import EVENT_TURN_START, EVENT_SACRIFICE
 
 SPECIAL_MAP = {
     "松鼠球": "_songshuqiu_special",
@@ -44,6 +44,32 @@ SPECIAL_MAP = {
     "臭虫": "_chouchong_special",
     "林鼠": "_linshu_special",
     "狐": "_hu_special",
+    "13号孩子": "_13_haizi_special",
+    "13号": "_13_hao_special",
+    "猹": "_cha_special",
+    "信天翁": "_xintianweng_special",
+    "兀鹫": "_wujiu_special",
+    "兵蚁": "_bingyi_special",
+    "嘲鸫": "_chaodong_special",
+    "地鼠": "_dishu_special",
+    "夜枭": "_yexiao_special",
+    "狼": "_lang_special",
+    "灰熊": "_huixiong_special",
+    "棕熊": "_zongxiong_special",
+    "陆龟": "_lugui_special",
+    "翠鸟": "_cuiniao_special",
+    "鹰": "_ying_special",
+    "雀": "_que_special",
+    "鹞": "_yao_special",
+    "鸥": "_ou_special",
+    "雄鹿": "_xionglu_special",
+    "雌鹿": "_cilu_special",
+    "豪猪": "_haozhu_special",
+    "牛蛙": "_niuwa_special",
+    "林蛙": "_linwa_special",
+    "河狸": "_heli_special",
+    "河坝": "_heba_special",
+    "蛇": "_she_special",
 }
 
 STRATEGY_MAP = {
@@ -152,6 +178,32 @@ __all__ = [
     "_xinyue_effect",
     "_fushu_special",
     "_biyi_special",
+    "_13_haizi_special",
+    "_13_hao_special",
+    "_cha_special",
+    "_xintianweng_special",
+    "_wujiu_special",
+    "_bingyi_special",
+    "_chaodong_special",
+    "_dishu_special",
+    "_yexiao_special",
+    "_lang_special",
+    "_huixiong_special",
+    "_zongxiong_special",
+    "_lugui_special",
+    "_cuiniao_special",
+    "_ying_special",
+    "_que_special",
+    "_yao_special",
+    "_ou_special",
+    "_xionglu_special",
+    "_cilu_special",
+    "_haozhu_special",
+    "_niuwa_special",
+    "_linwa_special",
+    "_heli_special",
+    "_heba_special",
+    "_she_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -607,6 +659,797 @@ def _hu_special(minion, player, game, extras=None):
         print(f"  狐：{minion.name} 攻击后获得+1攻击力")
 
     on("after_attack", on_after_attack, game, minion=minion)
+
+
+@special
+def _cha_special(minion, player, game, extras=None):
+    """"猹"：回合结束：场上异象更少的一方抽一张牌。亡语：将一张"西瓜"加入原位。"""
+
+    def _on_turn_end_fn(event):
+        if not minion.is_alive():
+            return
+        friendly_count = len([m for m in game.board.minion_place.values() if m.owner == player and m.is_alive()])
+        opponent = game.p1 if player == game.p2 else game.p2
+        enemy_count = len([m for m in game.board.minion_place.values() if m.owner == opponent and m.is_alive()])
+
+        if friendly_count < enemy_count:
+            draw_cards(player, 1, game)
+            print(f'  "猹"回合结束：友方异象更少，{player.name} 抽1张牌')
+        elif enemy_count < friendly_count:
+            draw_cards(opponent, 1, game)
+            print(f'  "猹"回合结束：敌方异象更少，{opponent.name} 抽1张牌')
+        # 相等时不触发
+
+    from card_pools.effect_utils import on_turn_end
+    on_turn_end(minion, game, _on_turn_end_fn)
+
+    def deathrattle(m, p, board):
+        death_pos = m.position
+        if death_pos and death_pos not in game.board.minion_place:
+            result = summon_minion_by_name(game, "西瓜", p, death_pos)
+            if result:
+                print(f'  "猹"亡语：将西瓜加入原位 {death_pos}')
+                return
+
+        # 原位不可用，随机选合法空位
+        valid_positions = empty_positions(p, board)
+        if valid_positions:
+            import random
+            pos = random.choice(valid_positions)
+            result = summon_minion_by_name(game, "西瓜", p, pos)
+            if result:
+                print(f'  "猹"亡语：原位被占，将西瓜加入 {pos}')
+        else:
+            print(f'  "猹"亡语：没有合法空位，无法召唤西瓜')
+
+    add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _bingyi_special(minion, player, game, extras=None):
+    """兵蚁：场上每有一个友方昆虫异象，+1攻击力。"""
+    def insect_count(m):
+        if not m.is_alive():
+            return 0
+        return sum(1 for x in m.board.minion_place.values()
+                   if x.owner == m.owner and x.is_alive() and "昆虫" in getattr(x, "tags", []))
+
+    minion.add_aura_attack(insect_count)
+    return True
+
+
+@special
+def _dishu_special(minion, player, game, extras=None):
+    """地鼠：如可能，移动以承担指向友方目标的伤害。回合结束：将HP改为6。"""
+    friendly_rows = player.get_friendly_rows()
+    front_row = friendly_rows[0]  # 靠近敌方的那一行
+
+    def on_before_attack(event):
+        if not minion.is_alive():
+            return
+        attacker = event.data.get("attacker")
+        target = event.data.get("target")
+        if attacker is None or target is None:
+            return
+        # 只拦截敌方异象的攻击
+        if not hasattr(attacker, "owner") or attacker.owner == player:
+            return
+
+        move_to = None
+
+        if hasattr(target, "is_alive") and hasattr(target, "owner"):
+            # 目标是异象
+            if target.owner != player:
+                return
+            target_row = target.position[0]
+            if target_row == front_row:
+                return  # 目标在前排，无法挡刀
+            col = target.position[1]
+            move_to = (front_row, col)
+        else:
+            # 目标是玩家
+            from tards.player import Player
+            if not isinstance(target, Player):
+                return
+            col = attacker.position[1]
+            move_to = (front_row, col)
+
+        # 地鼠已在该位置，直接替挡
+        if minion.position == move_to:
+            event.data["target"] = minion
+            event.data["defender"] = minion
+            print(f"  地鼠在 {move_to} 替 {getattr(target, 'name', target)} 挡刀")
+            return
+
+        # 位置被占，无法移动
+        if move_to in game.board.minion_place:
+            return
+
+        # 尝试移动
+        if game.board.move_minion(minion, move_to):
+            event.data["target"] = minion
+            event.data["defender"] = minion
+            print(f"  地鼠移动到 {move_to} 替 {getattr(target, 'name', target)} 挡刀")
+
+    on("before_attack", on_before_attack, game, minion=minion)
+
+    # 回合结束：HP重置为6
+    def on_turn_end_fn(event):
+        if not minion.is_alive():
+            return
+        minion.perm_max_health_bonus = 0
+        minion.temp_max_health_bonus = 0
+        minion._aura_max_health_fns.clear()
+        minion.current_max_health = minion.base_max_health
+        minion.current_health = minion.base_max_health
+        minion.recalculate()
+        print(f"  地鼠回合结束：HP重置为 {minion.current_health}/{minion.current_max_health}")
+
+    from card_pools.effect_utils import on_turn_end
+    on_turn_end(minion, game, on_turn_end_fn)
+    return True
+
+
+@special
+def _yexiao_special(minion, player, game, extras=None):
+    """夜枭：敌方场上异象数量变化时，对对手造成1点伤害。"""
+    opponent = game.p1 if player == game.p2 else game.p2
+
+    def on_entered(event):
+        if not minion.is_alive():
+            return
+        entered = event.data.get("minion")
+        if entered and hasattr(entered, "owner") and entered.owner == opponent:
+            opponent.health_change(-1)
+            print(f"  夜枭：{entered.name} 进入战场，对 {opponent.name} 造成 1 点伤害")
+
+    def on_left(event):
+        if not minion.is_alive():
+            return
+        left = event.data.get("minion")
+        if left and hasattr(left, "owner") and left.owner == opponent:
+            opponent.health_change(-1)
+            print(f"  夜枭：{left.name} 离开战场，对 {opponent.name} 造成 1 点伤害")
+
+    on("entered_battlefield", on_entered, game, minion=minion)
+    on("removed", on_left, game, minion=minion)
+    return True
+
+
+@special
+def _lang_special(minion, player, game, extras=None):
+    """狼：无法选中HP不大于2的异象。回合开始：对本列除自身外的一个异象造成2点伤害。（内置指向）"""
+    # 攻击目标过滤：跳过HP <= 2的异象
+    def _filter(target):
+        return target.current_health > 2
+    minion._attack_target_filter = _filter
+    print("  狼：攻击时跳过HP不大于2的异象")
+
+    # 回合开始：对本列除自身外的一个异象造成2点伤害
+    def on_turn_start_fn(event):
+        if not minion.is_alive():
+            return
+        col = minion.position[1]
+        from tards.targeting import TargetingRequest
+        def scope(p, board):
+            return [m for m in board.minion_place.values()
+                    if m.is_alive() and m.position[1] == col and m is not minion]
+        req = TargetingRequest()
+        req.source = minion
+        req.scope_fn = scope
+        req.prompt = f"狼：选择本列除自身外的一个异象，对其造成2点伤害"
+        req.deciding_player = player
+        target = game.targeting_system.request_target(req)
+        if target is None:
+            return
+        from tards.cards import Minion
+        if isinstance(target, Minion) and target.is_alive():
+            target.take_damage(2, source_minion=minion, source_type="effect")
+            print(f"  狼回合开始：对 {target.name} 造成 2 点伤害")
+
+    from card_pools.effect_utils import on_turn_start
+    on_turn_start(minion, game, on_turn_start_fn)
+    return True
+
+
+@special
+def _huixiong_special(minion, player, game, extras=None):
+    """灰熊：对方从手牌部署异象时，对方失去1T。"""
+    opponent = game.p1 if player == game.p2 else game.p2
+
+    def on_deployed(event):
+        if not minion.is_alive():
+            return
+        deployed_player = event.data.get("player")
+        deployed_minion = event.data.get("minion")
+        if deployed_player is None or deployed_minion is None:
+            return
+        if deployed_player == opponent:
+            opponent.t_point_change(-1)
+            print(f"  灰熊：{deployed_minion.name} 部署，{opponent.name} 失去 1T")
+
+    on("deployed", on_deployed, game, minion=minion)
+    return True
+
+
+@special
+def _zongxiong_special(minion, player, game, extras=None):
+    """棕熊：对攻击力≤3的异象伤害+2。"""
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        source = event.data.get("source_minion")
+        if source is not minion:
+            return
+        target = event.data.get("target")
+        if target is None or not hasattr(target, "current_attack"):
+            return
+        if target.current_attack <= 3:
+            old_damage = event.data.get("damage", 0)
+            event.data["damage"] = old_damage + 2
+            print(f"  棕熊：对 {target.name}（攻击力{target.current_attack}）伤害+2，从 {old_damage} 提升至 {old_damage + 2}")
+
+    on("before_damage", on_before_damage, game, minion=minion)
+    return True
+
+
+@special
+def _lugui_special(minion, player, game, extras=None):
+    """陆龟：处于协同时，受到的战斗伤害翻倍。（先翻倍再坚韧）"""
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        target = event.data.get("target")
+        if target is not minion:
+            return
+        if not event.data.get("is_combat_damage", False):
+            return
+        col = minion.position[1] if minion.position else -1
+        if col < 0:
+            return
+        # 检查同列是否有其它友方存活异象
+        has_synergy = any(
+            m.is_alive() and m is not minion and m.position[1] == col
+            for m in game.board.get_minions_in_column(col, friendly_to=player)
+        )
+        if has_synergy:
+            old_damage = event.data.get("damage", 0)
+            event.data["damage"] = old_damage * 2
+            print(f"  陆龟处于协同：战斗伤害从 {old_damage} 翻倍至 {old_damage * 2}")
+
+    on("before_damage", on_before_damage, game, minion=minion)
+    return True
+
+
+@special
+def _cuiniao_special(minion, player, game, extras=None):
+    """翠鸟：部署：若在水路，获得潜水和空袭。"""
+    if minion.position and minion.position[1] == 4:
+        minion.keywords["潜水"] = True
+        minion.keywords["空袭"] = True
+        minion.recalculate()
+        print(f"  翠鸟部署于水路，获得潜水和空袭")
+    return True
+
+
+@special
+def _ying_special(minion, player, game, extras=None):
+    """鹰：受到其伤害的目标此前每被本异象攻击过一次，受到的伤害+1。（跨回合累计）"""
+    if not hasattr(minion, "_ying_attack_count"):
+        minion._ying_attack_count = {}
+
+    def on_after_attack(event):
+        attacker = event.data.get("attacker")
+        target = event.data.get("target")
+        if attacker is not minion:
+            return
+        if target is not None:
+            minion._ying_attack_count[target] = minion._ying_attack_count.get(target, 0) + 1
+
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        source = event.data.get("source_minion")
+        if source is not minion:
+            return
+        target = event.data.get("target")
+        if target is None:
+            return
+        if not event.data.get("is_combat_damage", False):
+            return
+        count = minion._ying_attack_count.get(target, 0)
+        if count > 0:
+            old_damage = event.data.get("damage", 0)
+            event.data["damage"] = old_damage + count
+            print(f"  鹰：对 {getattr(target, 'name', target)} 此前攻击过 {count} 次，伤害从 {old_damage} 提升至 {old_damage + count}")
+
+    on("after_attack", on_after_attack, game, minion=minion)
+    on("before_damage", on_before_damage, game, minion=minion)
+    return True
+
+
+@special
+def _que_special(minion, player, game, extras=None):
+    """雀：部署时：将其复制加入战场。回合结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）"""
+    from card_pools.effect_utils import empty_positions, summon_minion_by_name
+    from tards.targeting import TargetingRequest
+
+    def _summon_copy():
+        valid = empty_positions(player, game.board)
+        if not valid:
+            print("  雀：没有友方空位，无法召唤复制")
+            return
+        def scope(p, board):
+            return valid
+        req = TargetingRequest()
+        req.source = minion
+        req.scope_fn = scope
+        req.prompt = "雀：选择一个友方空位，将其复制加入战场"
+        req.deciding_player = player
+        target_pos = game.targeting_system.request_target(req)
+        if target_pos is None:
+            return
+        summon_minion_by_name(game, "雀", player, target_pos)
+
+    # 部署时复制
+    _summon_copy()
+
+    # 回合结束复制（需本结算阶段开始时存在，且为拥有者回合）
+    def on_turn_start(g, event_data, m):
+        m._existed_at_resolve_start = True
+
+    def on_turn_end(g, event_data, m):
+        if not getattr(m, "_existed_at_resolve_start", False):
+            return
+        m._existed_at_resolve_start = False
+        if not m.is_alive():
+            return
+        # 仅拥有者回合结束触发
+        if event_data.get("first") is not player:
+            return
+        _summon_copy()
+
+    minion.on_turn_start = on_turn_start
+    minion.on_turn_end = on_turn_end
+    return True
+
+
+@special
+def _yao_special(minion, player, game, extras=None):
+    """鹞：受到伤害时，改为失去1点HP。无法获得HP（含最大生命值加成）。"""
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        target = event.data.get("target")
+        if target is not minion:
+            return
+        if getattr(event, "cancelled", False):
+            return
+        event.cancelled = True
+        minion.current_health -= 1
+        print(f"  鹞：受到伤害改为失去1HP，当前HP {minion.current_health}/{minion.current_max_health}")
+        if minion.current_health <= 0:
+            minion.minion_death()
+
+    on("before_damage", on_before_damage, game, minion=minion)
+
+    # 阻止治疗
+    def blocked_heal(heal):
+        print(f"  鹞无法获得HP，治疗被阻止")
+        return
+    minion.minion_heal = blocked_heal
+
+    # 阻止最大生命值加成
+    def blocked_gain(delta, permanent=True):
+        print(f"  鹞无法获得HP，生命值加成被阻止")
+        return
+    minion.gain_health_bonus = blocked_gain
+
+    return True
+
+
+@special
+def _ou_special(minion, player, game, extras=None):
+    """鸥：免疫非战斗伤害。亡语：抽1张异象，使其具有两栖。"""
+    # 免疫非战斗伤害
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        target = event.data.get("target")
+        if target is not minion:
+            return
+        if not event.data.get("is_combat_damage", False):
+            event.cancelled = True
+            print(f"  鸥免疫非战斗伤害")
+
+    on("before_damage", on_before_damage, game, minion=minion)
+
+    # 亡语：抽1张异象，使其具有两栖
+    def deathrattle(m, p, board):
+        from tards.cards import MinionCard
+        drawn_idx = None
+        drawn = None
+        for i, card in enumerate(p.card_deck):
+            if isinstance(card, MinionCard):
+                drawn_idx = i
+                drawn = card
+                break
+        if drawn is None:
+            print("  鸥亡语：牌库中没有异象")
+            return
+        p.card_deck.pop(drawn_idx)
+        if len(p.card_hand) < p.card_hand_max:
+            p.card_hand.append(drawn)
+            drawn.move_to("hand", game)
+            drawn.keywords["两栖"] = True
+            print(f"  鸥亡语：抽到 {drawn.name}，使其具有两栖")
+        else:
+            p.card_dis.append(drawn)
+            drawn.move_to("discard", game)
+            print(f"  鸥亡语：抽到 {drawn.name}，但手牌已满被弃置")
+
+    add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _xionglu_special(minion, player, game, extras=None):
+    """雄鹿：无法攻击对手。回合结束：若本回合未受到伤害，获得+1/1并对对手造成等同于其攻击力的伤害。"""
+    # 无法攻击对手
+    def on_before_attack(event):
+        if not minion.is_alive():
+            return
+        if event.data.get("attacker") is not minion:
+            return
+        target = event.data.get("target")
+        from tards.player import Player
+        if isinstance(target, Player):
+            event.cancelled = True
+            print("  雄鹿无法攻击对手")
+
+    on("before_attack", on_before_attack, game, minion=minion)
+
+    # 追踪本回合是否受到伤害
+    def on_damaged(event):
+        if event.data.get("target") is not minion:
+            return
+        minion._took_damage_this_turn = True
+
+    on("damaged", on_damaged, game, minion=minion)
+
+    # 回合结束效果
+    def on_turn_end(g, event_data, m):
+        if not m.is_alive():
+            return
+        # 仅拥有者回合结束触发
+        if event_data.get("first") is not m.owner:
+            return
+        took_damage = getattr(m, "_took_damage_this_turn", False)
+        m._took_damage_this_turn = False
+        if not took_damage:
+            m.perm_attack_bonus += 1
+            m.perm_max_health_bonus += 1
+            m.current_health += 1
+            m.recalculate()
+            opponent = g.p1 if m.owner == g.p2 else g.p2
+            opponent.health_change(-m.current_attack, source=m)
+            print(f"  雄鹿回合结束：+1/1，对 {opponent.name} 造成 {m.current_attack} 点伤害")
+
+    minion.on_turn_end = on_turn_end
+    return True
+
+
+@special
+def _cilu_special(minion, player, game, extras=None):
+    """雌鹿：攻击力最高的敌方异象无法攻击。"""
+    def on_before_attack(event):
+        if not minion.is_alive():
+            return
+        attacker = event.data.get("attacker")
+        if attacker is None or not hasattr(attacker, "owner") or attacker.owner == player:
+            return
+        enemies = [x for x in game.board.minion_place.values() if x.owner != player and x.is_alive()]
+        if not enemies:
+            return
+        max_attack = max(x.current_attack for x in enemies)
+        if attacker.current_attack == max_attack:
+            event.cancelled = True
+            print(f"  雌鹿：{attacker.name} 攻击力最高，无法攻击")
+
+    on("before_attack", on_before_attack, game, minion=minion)
+    return True
+
+
+@special
+def _haozhu_special(minion, player, game, extras=None):
+    """豪猪：受到伤害后，对伤害来源造成等量伤害（原始伤害）。"""
+    def on_damaged(event):
+        if not minion.is_alive():
+            return
+        target = event.data.get("target")
+        if target is not minion:
+            return
+        # 防止反弹循环
+        if event.data.get("source_type") == "rebound":
+            return
+        source = event.data.get("source_minion")
+        original = event.data.get("original", 0)
+        if original <= 0:
+            return
+        if source and hasattr(source, "is_alive") and source.is_alive():
+            source.take_damage(original, source_minion=minion, source_type="rebound", is_combat_damage=False)
+            print(f"  豪猪反弹：对 {source.name} 造成 {original} 点伤害")
+
+    on("damaged", on_damaged, game, minion=minion)
+    return True
+
+
+@special
+def _niuwa_special(minion, player, game, extras=None):
+    """牛蛙：部署：将其复制加入同一列，使其具有迅捷。"""
+    from card_pools.effect_utils import summon_minion_by_name
+    col = minion.position[1] if minion.position else -1
+    if col < 0:
+        return True
+    friendly_rows = player.get_friendly_rows()
+    target_pos = None
+    for r in friendly_rows:
+        pos = (r, col)
+        if pos != minion.position and pos not in game.board.minion_place:
+            target_pos = pos
+            break
+    if target_pos is None:
+        print("  牛蛙：同列没有友方空位，无法召唤复制")
+        return True
+    new_minion = summon_minion_by_name(game, "牛蛙", player, target_pos)
+    if new_minion:
+        new_minion.keywords["迅捷"] = True
+        new_minion.recalculate()
+        print(f"  牛蛙：在同一列 {target_pos} 召唤复制，使其具有迅捷")
+    return True
+
+
+@special
+def _linwa_special(minion, player, game, extras=None):
+    """林蛙：部署：消灭场上攻击力最低的异象（不含自身），获得其攻击力与防御力（叠加）。"""
+    candidates = [m for m in game.board.minion_place.values() if m.is_alive() and m is not minion]
+    if not candidates:
+        print("  林蛙：场上没有其他异象")
+        return True
+    min_attack = min(m.current_attack for m in candidates)
+    target = next(m for m in candidates if m.current_attack == min_attack)
+
+    target_atk = target.current_attack
+    target_hp = target.current_health
+
+    from card_pools.effect_utils import destroy_minion
+    destroy_minion(target, game)
+    print(f"  林蛙：消灭 {target.name}（{target_atk}/{target_hp}）")
+
+    minion.perm_attack_bonus += target_atk
+    minion.perm_max_health_bonus += target_hp
+    minion.current_health += target_hp
+    minion.recalculate()
+    print(f"  林蛙：获得 +{target_atk}攻击 +{target_hp}生命，当前 {minion.current_attack}/{minion.current_health}")
+    return True
+
+
+@special
+def _heli_special(minion, player, game, extras=None):
+    """河狸：回合开始：将一张"河坝"加入对方手牌。"""
+    opponent = game.p1 if player == game.p2 else game.p2
+
+    def on_turn_start(g, event_data, m):
+        if not m.is_alive():
+            return
+        from tards.card_db import DEFAULT_REGISTRY
+        heba_def = DEFAULT_REGISTRY.get("河坝")
+        if not heba_def:
+            print("  河狸：找不到河坝定义")
+            return
+        heba_card = heba_def.to_game_card(opponent)
+        if len(opponent.card_hand) < opponent.card_hand_max:
+            opponent.card_hand.append(heba_card)
+            print(f"  河狸：将河坝加入 {opponent.name} 手牌")
+        else:
+            opponent.card_dis.append(heba_card)
+            print(f"  河狸：{opponent.name} 手牌已满，河坝被弃置")
+
+    minion.on_turn_start = on_turn_start
+    return True
+
+
+@special
+def _heba_special(minion, player, game, extras=None):
+    """河坝：回合开始：将其消灭。"""
+    def on_turn_start(g, event_data, m):
+        if not m.is_alive():
+            return
+        from card_pools.effect_utils import destroy_minion
+        destroy_minion(m, game)
+        print(f"  河坝回合开始：自我消灭")
+
+    minion.on_turn_start = on_turn_start
+    return True
+
+
+@special
+def _she_special(minion, player, game, extras=None):
+    """蛇：对HP不小于本异象的目标，伤害+1。亡语：对全体敌方目标造成1点伤害。"""
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        source = event.data.get("source_minion")
+        if source is not minion:
+            return
+        target = event.data.get("target")
+        if target is None:
+            return
+        target_hp = getattr(target, "current_health", getattr(target, "health", 0))
+        if target_hp >= minion.current_health:
+            old_damage = event.data.get("damage", 0)
+            event.data["damage"] = old_damage + 1
+            print(f"  蛇：目标HP({target_hp})不小于自身HP({minion.current_health})，伤害+1")
+
+    on("before_damage", on_before_damage, game, minion=minion)
+
+    def deathrattle(m, p, board):
+        opponent = game.p1 if p == game.p2 else game.p1
+        from card_pools.effect_utils import deal_damage_to_minion, all_enemy_minions
+        for enemy in all_enemy_minions(game, p):
+            if enemy.is_alive():
+                deal_damage_to_minion(enemy, 1, source=m, game=game)
+        opponent.health_change(-1, source=m)
+        print(f"  蛇亡语：对全体敌方目标造成1点伤害")
+
+    add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _chaodong_special(minion, player, game, extras=None):
+    """嘲鸫：友方异象在受到致命伤害前，先获得+1HP。"""
+    def on_before_damage(event):
+        if not minion.is_alive():
+            return
+        victim = event.data.get("target")
+        if victim is None or not hasattr(victim, "is_alive"):
+            return
+        if not victim.is_alive() or victim.owner != player:
+            return
+        damage = event.data.get("damage", 0)
+        if damage >= victim.current_health:
+            victim.gain_health_bonus(1, permanent=True)
+            victim.current_health += 1
+            print(f"  嘲鸫：{victim.name} 受到致命伤害前获得+1HP（剩余 {victim.current_health}/{victim.max_health}）")
+
+    on("before_damage", on_before_damage, game, minion=minion)
+    return True
+
+
+@special
+def _wujiu_special(minion, player, game, extras=None):
+    """兀鹫：友方异象攻击后，若攻击目标 HP不小于2，令攻击目标失去1点HP。"""
+    def on_after_attack_fn(event):
+        attacker = event.data.get("attacker")
+        defender = event.data.get("defender")
+        if attacker is None or defender is None:
+            return
+        if not hasattr(attacker, "owner") or attacker.owner != player:
+            return
+        if not hasattr(defender, "current_health") or not hasattr(defender, "is_alive"):
+            return
+        if not defender.is_alive():
+            return
+        if defender.current_health >= 2:
+            defender.current_health -= 1
+            print(f"  兀鹫：{attacker.name} 攻击后，{defender.name} 失去1点HP（剩余 {defender.current_health}）")
+            if defender.current_health <= 0:
+                defender.minion_death()
+
+    on("after_attack", on_after_attack_fn, game, minion=minion)
+    return True
+
+
+@special
+def _xintianweng_special(minion, player, game, extras=None):
+    """信天翁：部署：使异象更多一方的一个异象返回其所有者手中。"""
+    # 统计部署前数量（排除自身）
+    friendly_count = len([m for m in game.board.minion_place.values()
+                          if m.owner == player and m.is_alive() and m != minion])
+    opponent = game.p1 if player == game.p2 else game.p2
+    enemy_count = len([m for m in game.board.minion_place.values()
+                       if m.owner == opponent and m.is_alive()])
+
+    target_side = None
+    if friendly_count > enemy_count:
+        target_side = player
+    elif enemy_count > friendly_count:
+        target_side = opponent
+    else:
+        print("  信天翁：双方异象数量相等，效果不触发")
+        return True
+
+    # 内部指向：选择"更多一方"的一个异象
+    from tards.targeting import TargetingRequest
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values()
+                if m.is_alive() and m.owner == target_side and m != minion]
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = f"信天翁：选择{target_side.name}场上的一个异象弹回手牌"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False  # 取消 → 自动回滚
+
+    return_minion_to_hand(target, game)
+    print(f"  信天翁：将 {target.name} 弹回 {target.owner.name} 手牌")
+    return True
+
+
+@special
+def _13_haizi_special(minion, player, game, extras=None):
+    """13号孩子：被献祭后转换为13号（继承剩余献祭等级）。"""
+    minion._immune_to_sacrifice = True
+
+    def on_sacrifice(event, g):
+        sac_minion = event.data.get("minion")
+        if sac_minion is not minion:
+            return
+        # 清理旧监听器，避免重复注册和内存泄漏
+        g.history.unlisten_by_owner(minion)
+        target_def = DEFAULT_REGISTRY.get("13号")
+        if target_def and target_def.card_type == CardType.MINION:
+            new_minion = g.transform_minion(minion, target_def, preserve_summon_turn=False)
+            if new_minion:
+                # 继承剩余献祭次数
+                new_minion._sacrifice_remaining = minion._sacrifice_remaining
+                # 触发新形态的部署效果（设置immune、监听器、亡语）
+                next_card = target_def.to_game_card(player)
+                if next_card and next_card.special:
+                    next_card.special(new_minion, player, g)
+                print(f"  {minion.name} 献祭后变身为 {new_minion.name}！")
+
+    game.history.listen(EVENT_SACRIFICE, on_sacrifice, owner=minion)
+    return True
+
+
+@special
+def _13_hao_special(minion, player, game, extras=None):
+    """13号：被献祭后转换为13号孩子（继承剩余献祭等级）。亡语：消灭伤害来源。"""
+    minion._immune_to_sacrifice = True
+
+    def on_sacrifice(event, g):
+        sac_minion = event.data.get("minion")
+        if sac_minion is not minion:
+            return
+        g.history.unlisten_by_owner(minion)
+        target_def = DEFAULT_REGISTRY.get("13号孩子")
+        if target_def and target_def.card_type == CardType.MINION:
+            new_minion = g.transform_minion(minion, target_def, preserve_summon_turn=False)
+            if new_minion:
+                new_minion._sacrifice_remaining = minion._sacrifice_remaining
+                next_card = target_def.to_game_card(player)
+                if next_card and next_card.special:
+                    next_card.special(new_minion, player, g)
+                print(f"  {minion.name} 献祭后变身为 {new_minion.name}！")
+
+    game.history.listen(EVENT_SACRIFICE, on_sacrifice, owner=minion)
+
+    def deathrattle(m, p, board):
+        source = m._last_damage_source
+        if source and isinstance(source, Minion) and source.is_alive():
+            destroy_minion(source, game)
+            print(f"  13号亡语：消灭伤害来源 {source.name}")
+
+    add_deathrattle(minion, deathrattle)
+    return True
 
 
 # ----- 策略卡效果 -----

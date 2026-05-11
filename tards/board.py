@@ -142,10 +142,30 @@ class Board:
         if target not in self.minion_place:
             return False
         old = self.minion_place.pop(target)
+        if self.game_ref:
+            from tards.constants import EVENT_REMOVED
+            self.game_ref.emit_event(
+                EVENT_REMOVED,
+                source=None,
+                target=old,
+                minion=old,
+                player=old.owner,
+                position=target,
+            )
         self.minion_place[target] = new_minion
         new_minion.position = target
         if self.game_ref and not self.game_ref.effect_queue.is_resolving():
             self.game_ref.refresh_all_auras()
+        if self.game_ref:
+            from tards.constants import EVENT_ENTERED_BATTLEFIELD
+            self.game_ref.emit_event(
+                EVENT_ENTERED_BATTLEFIELD,
+                source=None,
+                target=new_minion,
+                minion=new_minion,
+                player=new_minion.owner,
+                position=target,
+            )
         return True
 
     def place_minion(self, minion: "Minion", target: Tuple[int, int]) -> bool:
@@ -163,6 +183,16 @@ class Board:
             minion.vine_host = existing
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
+            if self.game_ref:
+                from tards.constants import EVENT_ENTERED_BATTLEFIELD
+                self.game_ref.emit_event(
+                    EVENT_ENTERED_BATTLEFIELD,
+                    source=None,
+                    target=minion,
+                    minion=minion,
+                    player=minion.owner,
+                    position=target,
+                )
             return True
 
         # 漂浮物：允许在其上部署新异象
@@ -175,6 +205,16 @@ class Board:
             minion.float_host = existing
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
+            if self.game_ref:
+                from tards.constants import EVENT_ENTERED_BATTLEFIELD
+                self.game_ref.emit_event(
+                    EVENT_ENTERED_BATTLEFIELD,
+                    source=None,
+                    target=minion,
+                    minion=minion,
+                    player=minion.owner,
+                    position=target,
+                )
             return True
 
         if target in self.minion_place:
@@ -183,6 +223,16 @@ class Board:
         minion.position = target
         if self.game_ref and not self.game_ref.effect_queue.is_resolving():
             self.game_ref.refresh_all_auras()
+        if self.game_ref:
+            from tards.constants import EVENT_ENTERED_BATTLEFIELD
+            self.game_ref.emit_event(
+                EVENT_ENTERED_BATTLEFIELD,
+                source=None,
+                target=minion,
+                minion=minion,
+                player=minion.owner,
+                position=target,
+            )
         return True
 
     def move_minion(self, minion: "Minion", new_pos: Tuple[int, int], allow_cross_side: bool = False) -> bool:

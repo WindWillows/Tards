@@ -480,7 +480,7 @@ class Game:
         while not self.game_over:
             self.run_turn()
             self.current_turn += 1
-            if self.current_turn > 30:
+            if self.current_turn > 1000:
                 print("\n回合数达到上限，强制结束游戏。")
                 break
         self.print_result()
@@ -976,6 +976,10 @@ class Game:
                                 m.attack_target(enemy)
 
                         attacker_swings[m] -= 1
+                        if m.keywords.get("兴奋", False) and getattr(m, "_excitement_triggered", False):
+                            attacker_swings[m] += 1
+                            m._excitement_triggered = False
+                            print(f"  {m.name} 兴奋：消灭异象后再攻击一次")
                         if self.resolve_step_callback:
                             self.resolve_step_callback()
                         if m.keywords.get("高频", 0) > 0:
