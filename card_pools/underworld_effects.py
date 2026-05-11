@@ -72,6 +72,7 @@ SPECIAL_MAP = {
     "蛇": "_she_special",
     "箭毒蛙": "_jianduwa_special",
     "松毛虫": "_songmaochong_special",
+    "螳螂": "_tanglang_special",
 }
 
 STRATEGY_MAP = {
@@ -208,6 +209,7 @@ __all__ = [
     "_she_special",
     "_jianduwa_special",
     "_songmaochong_special",
+    "_tanglang_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1406,6 +1408,49 @@ def _songmaochong_special(minion, player, game, extras=None):
             g.history.listen(EVENT_DISCARDED, on_card_discarded)
 
     add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _tanglang_special(minion, player, game, extras=None):
+    """螳螂：受伤时，友方陆地异象具有+1攻击力。"""
+    def mantis_aura(target_m):
+        if not minion.is_alive():
+            return 0
+        if minion.current_health >= minion.current_max_health:
+            return 0
+        if target_m.owner != player:
+            return 0
+        if target_m.position[1] == 4:  # 水路
+            return 0
+        return 1
+
+    def add_aura_to(m):
+        if mantis_aura not in m._aura_attack_fns:
+            m.add_aura_attack(mantis_aura)
+
+    # 给当前所有存活异象添加 aura（友方/敌方都会加，但 aura 内部会筛选友方）
+    for m in game.board.minion_place.values():
+        if m.is_alive():
+            add_aura_to(m)
+
+    # 新部署的异象
+    def on_entered(event):
+        new_m = event.data.get("minion")
+        if new_m and new_m.is_alive():
+            add_aura_to(new_m)
+
+    on("entered_battlefield", on_entered, game, minion=minion)
+
+    # 螳螂死亡/移除时清理 aura
+    def on_removed(event):
+        dead = event.data.get("minion")
+        if dead is minion:
+            for m in list(game.board.minion_place.values()):
+                if m.is_alive() and mantis_aura in m._aura_attack_fns:
+                    m.remove_aura_attack(mantis_aura)
+
+    on("removed", on_removed, game, minion=minion)
     return True
 
 

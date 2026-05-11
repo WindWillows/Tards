@@ -805,7 +805,7 @@ register_card(
     tags=['昆虫'],
     description="受伤时，友方陆地异象具有+1攻击力。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_tanglang_special,
 )
 
 register_card(
