@@ -867,7 +867,7 @@ register_card(
     tags=['两栖'],
     description="友方异象被消灭后，加入其位置并攻击。友方异象部署时，本异象返回手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_jiu_special,
 )
 
 register_card(

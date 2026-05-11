@@ -75,6 +75,7 @@ SPECIAL_MAP = {
     "螳螂": "_tanglang_special",
     "象群": "_xiangqun_special",
     "隼": "_sun_special",
+    "鸠": "_jiu_special",
 }
 
 STRATEGY_MAP = {
@@ -214,6 +215,7 @@ __all__ = [
     "_tanglang_special",
     "_xiangqun_special",
     "_sun_special",
+    "_jiu_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1526,6 +1528,50 @@ def _sun_special(minion, player, game, extras=None):
         print(f"  {minion.name} 攻击后返回手牌")
 
     on("attacked", on_after_attack, game, minion=minion)
+    return True
+
+
+@special
+def _jiu_special(minion, player, game, extras=None):
+    """鸠：友方异象被消灭后，加入其位置并攻击。友方异象部署时，本异象返回手牌。"""
+    from card_pools.effect_utils import return_minion_to_hand
+
+    # 1. 友方异象被消灭后，加入其位置并攻击
+    def on_death(event):
+        if not minion.is_alive():
+            return
+        dead = event.data.get("minion")
+        if dead is None or dead.owner != player or dead is minion:
+            return
+        dead_pos = getattr(dead, 'position', None)
+        if dead_pos is None:
+            return
+        # 移动到死亡异象的位置
+        moved = game.board.move_minion(minion, dead_pos)
+        if moved:
+            print(f"  {minion.name} 移动到 {dead.name} 的位置 ({dead_pos})")
+            # 标准攻击逻辑
+            target = game.board.get_front_minion(minion.position[1], minion.owner, attacker=minion)
+            if target and target.is_alive():
+                minion.attack_target(target)
+            else:
+                enemy = game.p2 if player == game.p1 else game.p1
+                minion.attack_target(enemy)
+        else:
+            print(f"  {minion.name} 移动失败，目标位置可能已被占据")
+
+    on("death", on_death, game, minion=minion)
+
+    # 2. 友方异象部署时，本异象返回手牌
+    def on_deployed(event):
+        if not minion.is_alive():
+            return
+        deployed = event.data.get("minion")
+        if deployed and deployed.owner == player and deployed is not minion:
+            return_minion_to_hand(minion, game)
+            print(f"  鸠：友方异象 {deployed.name} 部署，鸠返回手牌")
+
+    on("entered_battlefield", on_deployed, game, minion=minion)
     return True
 
 
