@@ -186,9 +186,17 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
     if not board.is_valid_deploy(target, player, card):
         print("  无法在此位置部署异象。")
         return False
-    if board.get_minion_at(target) is not None:
-        print("  该格子已被占用")
-        return False
+    existing = board.get_minion_at(target)
+    if existing is not None:
+        # 漂浮物：允许在其上部署新异象
+        if "漂浮物" in existing.keywords and existing.owner == player:
+            pass
+        # 藤蔓：允许覆盖友方异象
+        elif "藤蔓" in card.keywords and existing.owner == player:
+            pass
+        else:
+            print("  该格子已被占用")
+            return False
 
     # 鲜血费用：执行献祭（消灭友方异象、触发事件，不管理 b_point）
     if card.cost.b > 0:

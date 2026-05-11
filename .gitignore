@@ -44,6 +44,12 @@ Thumbs.db
 # Game generated files (keep sources, ignore outputs if needed)
 # effect_utils_browser.html  # 可选：如果希望队友自己生成，可以忽略
 
+# Temporary analysis/progress files
+_tmp_*
+_progress.txt
+_progress_utf8.txt
+_plan_targeting_refactor.md
+
 mobile_server/.env
 ttyd.exe
 rustdesk.exe

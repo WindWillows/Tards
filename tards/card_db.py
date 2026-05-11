@@ -109,7 +109,7 @@ class CardDefinition:
             card = MinionCard(
                 name=self.name,
                 owner=owner,
-                cost=self.cost,
+                cost=self.cost.copy(),
                 targets=targets,
                 attack=self.attack or 0,
                 health=self.health or 1,
@@ -139,11 +139,16 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
+            if isinstance(echo_val, int):
+                card.echo_level = echo_val
+            elif echo_val is True:
+                card.echo_level = 1
             return card
         elif self.card_type == CardType.STRATEGY:
             card = Strategy(
                 name=self.name,
-                cost=self.cost,
+                cost=self.cost.copy(),
                 effect_fn=self.effect_fn,
                 targets=targets,
                 on_turn_start=self.on_turn_start,
@@ -162,11 +167,16 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
+            if isinstance(echo_val, int):
+                card.echo_level = echo_val
+            elif echo_val is True:
+                card.echo_level = 1
             return card
         elif self.card_type == CardType.CONSPIRACY:
             card = Conspiracy(
                 name=self.name,
-                cost=self.cost,
+                cost=self.cost.copy(),
                 condition_fn=self.condition_fn or (lambda g, e, p: False),
                 effect_fn=self.effect_fn or (lambda g, e, p: None),
                 targets=targets,
@@ -184,12 +194,17 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
+            if isinstance(echo_val, int):
+                card.echo_level = echo_val
+            elif echo_val is True:
+                card.echo_level = 1
             return card
         elif self.card_type == CardType.MINERAL:
             card = MineralCard(
                 name=self.name,
                 mineral_type=self.mineral_type or "",
-                exchange_cost=self.cost,
+                exchange_cost=self.cost.copy(),
                 play_effect=self.effect_fn,
                 stack_limit=self.stack_limit,
                 on_turn_start=self.on_turn_start,
@@ -203,6 +218,11 @@ class CardDefinition:
             card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
+            echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
+            if isinstance(echo_val, int):
+                card.echo_level = echo_val
+            elif echo_val is True:
+                card.echo_level = 1
             return card
         else:
             raise ValueError(f"未知的卡牌类型: {self.card_type}")

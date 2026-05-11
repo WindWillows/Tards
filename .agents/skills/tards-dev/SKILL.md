@@ -123,11 +123,74 @@ description: |
 
 ## 指向系统速查
 
-- 所有指向操作统一走 `TargetingRequest` + `process_targeting_request()`。
+### 旧模式（已废弃，仅维护遗留代码时参考）
 - 策略卡主目标由 `targets_fn` 返回合法列表。
 - 多阶段指向通过 `extra_targeting_stages=[(stage_fn, count, allow_repeat)]` 实现。
 - 手牌目标：使用 `target_hand_minions`，GUI 会自动弹出手牌选择。
-- **指向玩家**：自定义 `targets_fn` 返回异象列表 + `[game.p1, game.p2]`（如金牙齿策略）。
+- **指向玩家**：自定义 `targets_fn` 返回异象列表 + `[game.p1, game.p2]`。
+
+### 新模式：内部指向（Internal Targeting，2026-05-10 重构后推荐）
+
+**原理**：`targets_fn=target_none` + `effect_fn`/`special_fn` 内部通过 `game.targeting_system.request_target()` 发起同步阻塞指向请求。
+
+**策略卡模板**：
+```python
+@strategy
+def _my_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner == p]
+    
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "卡牌名：选择目标"
+    req.deciding_player = player
+    
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False  # 取消 → 自动回滚（费用退还，卡牌回手）
+    
+    # ... 执行效果 ...
+    return True
+
+register_card(
+    name="卡牌名",
+    targets_fn=target_none,  # 无预注册目标
+    effect_fn=_my_effect,
+    ...
+)
+```
+
+**异象卡模板**：
+```python
+@special
+def _my_special(minion, player, game, extras=None):
+    from tards.targeting import TargetingRequest
+    
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m != minion]
+    
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "卡牌名：选择目标"
+    req.deciding_player = player
+    
+    t = game.targeting_system.request_target(req)
+    if t is None:
+        return False  # 取消 → _default_minion_effect 自动移除已部署异象
+    
+    # ... 执行效果 ...
+    return True
+```
+
+**关键规则**：
+- `effect_fn`/`special_fn` 返回 `False` → 自动回滚（费用退还/异象移除）
+- 返回 `None` 或其他值 → **不回滚**，效果被视为成功执行
+- 内部指向仍走 `game.targeting_provider`，网络对战中无需额外修改
+- `targets_fn=target_none` → GUI 自动提交，不进入预指向模式
 
 ## 献祭流程速查（2026-04-19 重构后）
 

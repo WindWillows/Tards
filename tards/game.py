@@ -797,6 +797,8 @@ class Game:
 
         # 对战顺序：水路(4) -> 河岸(3) -> 中路(2) -> 山脊(1) -> 高地(0)
         for col in range(4, -1, -1):
+            if self.game_over:
+                break
             col_name = self.board.COL_NAMES[col]
 
             # 找出以本列为 base_col 的攻击者（横扫异象只在 base_col 发起攻击）
@@ -838,6 +840,8 @@ class Game:
             print(f"  {col_name}列发生战斗")
 
             while True:
+                if self.game_over:
+                    break
                 # 动态刷新：找出仍存活且还有攻击次数的 base_col == col 的异象
                 active = [m for m in self.board.minion_place.values()
                           if m.position[1] == col and m.is_alive()
