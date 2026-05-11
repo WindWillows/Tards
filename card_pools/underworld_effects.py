@@ -70,6 +70,7 @@ SPECIAL_MAP = {
     "河狸": "_heli_special",
     "河坝": "_heba_special",
     "蛇": "_she_special",
+    "箭毒蛙": "_jianduwa_special",
 }
 
 STRATEGY_MAP = {
@@ -204,6 +205,7 @@ __all__ = [
     "_heli_special",
     "_heba_special",
     "_she_special",
+    "_jianduwa_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1302,6 +1304,39 @@ def _she_special(minion, player, game, extras=None):
                 deal_damage_to_minion(enemy, 1, source=m, game=game)
         opponent.health_change(-1, source=m)
         print(f"  蛇亡语：对全体敌方目标造成1点伤害")
+
+    add_deathrattle(minion, deathrattle)
+    return True
+
+
+@special
+def _jianduwa_special(minion, player, game, extras=None):
+    """箭毒蛙：对对手造成的伤害翻倍。亡语：对方所有手牌花费+1T。"""
+    def on_before_health_change(event):
+        if not minion.is_alive():
+            return
+        source = event.data.get("source")
+        if source is not minion:
+            return
+        target = event.data.get("target")
+        if target is None:
+            return
+        # 确认目标是对手玩家（不是异象）
+        opponent = game.p2 if player == game.p1 else game.p1
+        if target is not opponent:
+            return
+        delta = event.data.get("delta", 0)
+        if delta < 0:
+            event.data["delta"] = delta * 2
+            print(f"  {minion.name}：对对手造成的伤害翻倍，从 {-delta} 变为 {-delta * 2}")
+
+    on("before_health_change", on_before_health_change, game, minion=minion)
+
+    def deathrattle(m, p, g):
+        opponent = g.p2 if p == g.p1 else g.p1
+        for card in opponent.card_hand:
+            card.cost.t += 1
+        print(f"  {m.name} 亡语：{opponent.name} 所有手牌花费 +1T")
 
     add_deathrattle(minion, deathrattle)
     return True

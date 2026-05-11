@@ -739,7 +739,7 @@ register_card(
     tags=['两栖'],
     description="对对手造成的伤害翻倍。亡语：对方所有手牌花费+1T。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_jianduwa_special
 )
 
 register_card(
