@@ -1029,6 +1029,13 @@ class Game:
                 continue
             grow = m.keywords.get("成长")
             if isinstance(grow, int) and grow > 0:
+                # 通用成长前回调：返回 True 表示取消本次成长（重置计时等）
+                cancel = False
+                for cb in list(getattr(m, '_on_grow_callbacks', [])):
+                    if cb(m, m.owner, self):
+                        cancel = True
+                if cancel:
+                    continue
                 grow -= 1
                 if grow <= 0:
                     m.keywords.pop("成长", None)

@@ -1077,11 +1077,11 @@ register_card(
     immersion_level=1,
     attack=1,
     health=2,
-    keywords={"成长": 1},
+    keywords={"成长": 1, "协同": True},
     evolve_to="成狼",
-    description="组队 成长时，若不是组队状态，重置计时。",
+    description="成长时，若不是组队状态，重置计时。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youlang_special,
 )
 
 register_card(

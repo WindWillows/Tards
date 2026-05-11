@@ -76,6 +76,7 @@ SPECIAL_MAP = {
     "象群": "_xiangqun_special",
     "隼": "_sun_special",
     "鸠": "_jiu_special",
+    "幼狼": "_youlang_special",
 }
 
 STRATEGY_MAP = {
@@ -216,6 +217,7 @@ __all__ = [
     "_xiangqun_special",
     "_sun_special",
     "_jiu_special",
+    "_youlang_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1572,6 +1574,31 @@ def _jiu_special(minion, player, game, extras=None):
             print(f"  鸠：友方异象 {deployed.name} 部署，鸠返回手牌")
 
     on("entered_battlefield", on_deployed, game, minion=minion)
+    return True
+
+
+@special
+def _youlang_special(minion, player, game, extras=None):
+    """幼狼：成长时，若不是组队状态，重置计时。"""
+    def on_grow(m, p, g):
+        # 检查同列是否有其他友方存活异象（组队状态）
+        col = m.position[1]
+        has_ally = False
+        for x in g.board.minion_place.values():
+            if x is not m and x.owner == p and x.is_alive() and x.position[1] == col:
+                has_ally = True
+                break
+        if not has_ally:
+            # 重置成长计时为初始值
+            original_grow = getattr(m.source_card, 'keywords', {}).get("成长", 1)
+            m.keywords["成长"] = original_grow
+            print(f"  {m.name} 不处于组队状态，成长计时重置为 {original_grow}")
+            return True  # 取消本次成长
+        return False
+
+    if not hasattr(minion, '_on_grow_callbacks'):
+        minion._on_grow_callbacks = []
+    minion._on_grow_callbacks.append(on_grow)
     return True
 
 
