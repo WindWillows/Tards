@@ -73,6 +73,7 @@ SPECIAL_MAP = {
     "箭毒蛙": "_jianduwa_special",
     "松毛虫": "_songmaochong_special",
     "螳螂": "_tanglang_special",
+    "象群": "_xiangqun_special",
 }
 
 STRATEGY_MAP = {
@@ -210,6 +211,7 @@ __all__ = [
     "_jianduwa_special",
     "_songmaochong_special",
     "_tanglang_special",
+    "_xiangqun_special",
     "_jinyangpi_effect",
     "_shudong_targets",
     "_pimaoshang_choice",
@@ -1451,6 +1453,60 @@ def _tanglang_special(minion, player, game, extras=None):
                     m.remove_aura_attack(mantis_aura)
 
     on("removed", on_removed, game, minion=minion)
+    return True
+
+
+@special
+def _xiangqun_special(minion, player, game, extras=None):
+    """象群：部署：对所有异象造成1点伤害。回合开始时，随机眩晕一个敌方异象。"""
+    import random
+    from card_pools.effect_utils import deal_damage_to_minion
+
+    # 1. 部署：对所有异象造成1点伤害
+    for m in list(game.board.minion_place.values()):
+        if m.is_alive():
+            deal_damage_to_minion(m, 1, source=minion, game=game)
+    print(f"  {minion.name} 部署：对所有异象造成1点伤害")
+
+    # 2. 回合开始时，随机眩晕一个敌方异象
+    def on_turn_start(m, p, g):
+        enemies = [x for x in g.board.minion_place.values() if x.owner != p and x.is_alive()]
+        if enemies:
+            target = random.choice(enemies)
+            target._stun_layers = getattr(target, '_stun_layers', 0) + 1
+            print(f"  {m.name} 回合开始：{target.name} 获得1层眩晕（当前 {target._stun_layers} 层）")
+
+    minion.on_turn_start = on_turn_start
+
+    # 3. 注册全局眩晕系统（只注册一次）
+    if not getattr(game, '_stun_system_registered', False):
+        game._stun_system_registered = True
+
+        def on_phase_start(event):
+            if event.data.get("phase") != game.PHASE_RESOLVE:
+                return
+            for m in game.board.minion_place.values():
+                if m.is_alive() and getattr(m, '_stun_layers', 0) > 0:
+                    m._skip_resolve_attack = True
+
+        def on_phase_end(event):
+            if event.data.get("phase") != game.PHASE_RESOLVE:
+                return
+            for m in list(game.board.minion_place.values()):
+                layers = getattr(m, '_stun_layers', 0)
+                if layers > 0:
+                    m._stun_layers = layers - 1
+                    if m._stun_layers <= 0:
+                        m._skip_resolve_attack = False
+                        if hasattr(m, '_stun_layers'):
+                            del m._stun_layers
+                        print(f"  {m.name} 眩晕解除")
+                    else:
+                        print(f"  {m.name} 眩晕层数剩余 {m._stun_layers}")
+
+        on("phase_start", on_phase_start, game)
+        on("phase_end", on_phase_end, game)
+
     return True
 
 

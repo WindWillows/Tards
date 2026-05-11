@@ -820,7 +820,7 @@ register_card(
     keywords={"坚韧": 1, "先攻": -1},
     description="部署：对所有异象造成1点伤害。回合开始时，随机眩晕一个敌方异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_xiangqun_special,
 )
 
 register_card(
