@@ -362,7 +362,7 @@ class Board:
             enemies = [m for m in enemies if not getattr(m, '_fear_active', False)]
 
         # 无法被选中：无法被任何指向性效果选为目标
-        enemies = [m for m in enemies if not m.temp_keywords.get("无法被选中", False)]
+        enemies = [m for m in enemies if not (m.keywords.get("无法被选中", False) or m.temp_keywords.get("无法被选中", False))]
 
         # 通用攻击目标过滤（如活塞城槌跳过低攻异象）
         if attacker and hasattr(attacker, '_attack_target_filter'):

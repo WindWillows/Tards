@@ -94,6 +94,7 @@ def _gou_special(minion, player, game, extras=None):
     minion.add_aura_attack(aura_fn)
 
     def _dr(m, p, b):
+        from card_pools.effect_utils import perform_attack_action
         col = m.position[1] if m.position else -1
         if col < 0:
             return
@@ -103,12 +104,7 @@ def _gou_special(minion, player, game, extras=None):
         if not g:
             return
         for friend in friends:
-            front = b.get_front_minion(col, p, attacker=friend)
-            if front and front.is_alive():
-                friend.attack_target(front)
-            else:
-                enemy = g.p2 if p == g.p1 else g.p1
-                friend.attack_target(enemy)
+            perform_attack_action(friend, g)
 
     add_deathrattle(minion, _dr)
 

@@ -190,7 +190,7 @@ class TargetingSystem:
         # 通用过滤：无法被选中
         filtered = []
         for item in candidates:
-            if hasattr(item, "temp_keywords") and item.temp_keywords.get("无法被选中", False):
+            if hasattr(item, "keywords") and item.keywords.get("无法被选中", False) or hasattr(item, "temp_keywords") and item.temp_keywords.get("无法被选中", False):
                 continue
             filtered.append(item)
         return filtered
@@ -240,7 +240,7 @@ def get_attack_target_candidates(minion: "Minion", game: "Game") -> List[Any]:
         enemies = [m for m in board.minion_place.values()
                    if m.owner != minion.owner and m.is_alive()
                    and abs(m.position[1] - base_col) <= vision_range
-                   and not m.temp_keywords.get("无法被选中", False)]
+                   and not (m.keywords.get("无法被选中", False) or m.temp_keywords.get("无法被选中", False))]
         candidates = enemies + [opponent]
     else:
         front = board.get_front_minion(base_col, minion.owner, attacker=minion)

@@ -269,8 +269,8 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
             buff(minion)
         print(f"  {player.name} 在 {target} 部署了 {minion.name}")
         minion.summon_turn = game.current_turn
-        # 休眠：非迅捷异象部署时具有休眠1
-        if "迅捷" not in minion.keywords and "休眠" not in minion.base_keywords:
+        # 休眠：所有异象部署时具有休眠1（迅捷异象在 can_attack 中特殊处理）
+        if "休眠" not in minion.base_keywords:
             minion.base_keywords["休眠"] = 1
             minion.recalculate()
         # 触发全局部署光环钩子
@@ -478,6 +478,17 @@ class Minion:
         self.keywords: Dict[str, Any] = dict(self.base_keywords)
 
         self.recalculate()
+
+    @property
+    def display_keywords(self) -> Dict[str, Any]:
+        """返回用于 UI 展示的关键词字典。
+
+        规则：迅捷异象的休眠层数=1时，隐藏"休眠"只显示"迅捷"。
+        """
+        kw = dict(self.keywords)
+        if "迅捷" in kw and kw.get("休眠") == 1:
+            kw.pop("休眠", None)
+        return kw
 
     @property
     def attack(self) -> int:
@@ -915,10 +926,12 @@ class Minion:
         # 眩晕阻止攻击
         if self.keywords.get("眩晕", 0) > 0:
             return False
-        # 迅捷覆盖休眠（光环赋予的迅捷应能抵消部署时的休眠）
-        if "迅捷" in self.keywords:
-            return True
-        if self.keywords.get("休眠", 0) > 0:
+        # 休眠检查
+        dormant = self.keywords.get("休眠", 0)
+        if dormant > 0:
+            # 迅捷异象在休眠层数为1时仍可攻击
+            if "迅捷" in self.keywords and dormant == 1:
+                return True
             return False
         return self.summon_turn < turn_number
 

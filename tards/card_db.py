@@ -113,6 +113,7 @@ class CardDefinition:
                 targets=targets,
                 attack=self.attack or 0,
                 health=self.health or 1,
+                effect_fn=self.effect_fn,
                 special=self.special_fn,
                 keywords=self.keywords.copy(),
                 on_turn_start=self.on_turn_start,

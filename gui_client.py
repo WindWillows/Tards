@@ -1453,7 +1453,7 @@ class BattleFrame(tk.Frame):
         }
 
         active_keywords = []
-        for k, v in minion.keywords.items():
+        for k, v in minion.display_keywords.items():
             if v is False or v is None:
                 continue
             if isinstance(v, int) and v == 0:
@@ -2495,8 +2495,9 @@ class BattleFrame(tk.Frame):
         if minion.current_health != minion.base_health or minion.current_max_health != minion.base_max_health:
             hp_text += f" (基础{minion.base_health}/{minion.base_max_health})"
         lines.append(f"攻击/生命: {atk_text}/{hp_text}")
-        if minion.keywords:
-            lines.append(f"关键词: {self._fmt_keywords(minion.keywords)}")
+        display_kw = minion.display_keywords
+        if display_kw:
+            lines.append(f"关键词: {self._fmt_keywords(display_kw)}")
         # 指向关系
         pending = getattr(minion, "_pending_attack_targets", None)
         if pending and isinstance(pending, list) and len(pending) > 0:

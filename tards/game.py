@@ -315,6 +315,7 @@ class Game:
         )
         if preserve_summon_turn:
             new_minion.summon_turn = old_minion.summon_turn
+        new_minion._transformed_from = old_minion
         if self.board.replace_minion(old_minion.position, new_minion):
             on_evolve = getattr(next_card, 'on_evolve_fn', None)
             if on_evolve:
@@ -961,8 +962,8 @@ class Game:
                             enemies = [e for e in enemies if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)]
                             if enemies:
                                 print(f"  {m.name} 串击 {self.board.COL_NAMES[base_col]}列所有敌方异象")
-                                for enemy in enemies:
-                                    m.attack_target(enemy)
+                                # 只调用一次 attack_target，由其内部统一处理同列所有敌方异象
+                                m.attack_target(enemies[0])
                             else:
                                 enemy = self.p2 if m.owner == self.p1 else self.p1
                                 m.attack_target(enemy)
@@ -1054,6 +1055,11 @@ class Game:
             if target.keywords.get("绝缘", False) and target.owner != source_player:
                 print(f"  {target.name} 绝缘，免疫策略效果")
                 return True
+            # 虎的全局绝缘：对方无法使用策略指向友方异象
+            if target.owner and target.owner != source_player:
+                if getattr(target.owner, "_global_insulation_count", 0) > 0:
+                    print(f"  {target.name} 受虎保护，免疫策略效果")
+                    return True
         return False
 
     # ------------------------------------------------------------------

@@ -534,8 +534,9 @@ def mill_cards(player: "Player", amount: int, game: Optional["Game"] = None) -> 
 
 
 def remove_top_of_deck(player: "Player", amount: int) -> List["Card"]:
-    """从牌库顶移除 amount 张牌（直接消失，不进弃牌堆，不触发任何效果）。
+    """从牌库顶移除 amount 张牌（直接消失，不进弃牌堆）。
 
+    触发 card_removed_from_deck 事件，供如食蚁兽等效果拦截。
     返回被移除的卡牌列表。
     """
     if amount <= 0:
@@ -545,6 +546,9 @@ def remove_top_of_deck(player: "Player", amount: int) -> List["Card"]:
         if len(player.card_deck) == 0:
             break
         card = player.card_deck.pop()
+        game = getattr(getattr(player, "board_ref", None), "game_ref", None)
+        if game:
+            game.emit_event("card_removed_from_deck", card=card, player=player)
         removed.append(card)
         print(f"  {player.name} 牌库顶的 {card.name} 被移除")
     return removed
@@ -613,6 +617,7 @@ def create_echo_card(source_card: "MinionCard", echo_level: int) -> "MinionCard"
         keywords=source_card.keywords.copy() if source_card.keywords else None,
     )
     echo.echo_level = echo_level - 1
+    echo._is_echo = True
     return echo
 
 
@@ -2977,4 +2982,144 @@ def health_lost_this_phase(game: "Game", player: "Player") -> int:
             if delta < 0:
                 total += -delta
     return total
+
+
+def perform_attack_action(minion: "Minion", game: "Game") -> None:
+    """让异象执行一次完整的独立攻击行动（包括高频、视野、串击、横扫、预设目标等）。
+
+    逻辑复用自 game.py 的 do_round，用于射水鱼延迟攻击、狗亡语额外攻击等场景。
+    """
+    if not minion.is_alive():
+        return
+
+    from tards.cards import Minion
+    from tards.player import Player
+
+    base_col = minion.position[1]
+    opponent = game.p2 if minion.owner == game.p1 else game.p1
+
+    # 防空检查
+    has_enemy_anti_air = any(
+        enemy.keywords.get("防空", False)
+        for enemy in game.board.get_enemy_minions_in_column(base_col, minion.owner)
+    )
+    can_pierce = not has_enemy_anti_air and (
+        minion.keywords.get("串击", False)
+        or minion.keywords.get("穿刺", False)
+        or minion.keywords.get("穿透", False)
+    )
+
+    sweep = minion.keywords.get("横扫", 0)
+    if not isinstance(sweep, int):
+        sweep = 0
+
+    # 计算攻击次数（高频）
+    total_swings = minion.keywords.get("高频", 1)
+    if total_swings is True:
+        total_swings = 1
+    elif not isinstance(total_swings, int) or total_swings <= 0:
+        total_swings = 1
+
+    # 保存原始先攻
+    original_first_strike = minion.keywords.get("先攻", 0)
+
+    for swing in range(total_swings):
+        if not minion.is_alive():
+            break
+
+        if sweep > 0:
+            affected_cols = {base_col}
+            for offset in range(1, sweep + 1):
+                if base_col - offset >= 0:
+                    affected_cols.add(base_col - offset)
+                if base_col + offset < 5:
+                    affected_cols.add(base_col + offset)
+
+            hero_hit = False
+            for scol in sorted(affected_cols, reverse=True):
+                target = game.board.get_front_minion(scol, minion.owner, attacker=minion)
+                if target and target.is_alive():
+                    pass
+                else:
+                    target = opponent
+
+                is_sweep_col = (scol != base_col)
+                if is_sweep_col and isinstance(target, Player) and hero_hit:
+                    continue
+
+                if is_sweep_col:
+                    print(f"  {minion.name} 横扫 {game.board.COL_NAMES[scol]}列")
+                    if isinstance(target, Minion):
+                        target.take_damage(minion.attack)
+                        if target.is_alive():
+                            spike = target.keywords.get("尖刺", 0)
+                            if spike > 0:
+                                print(f"  {target.name} 的尖刺反弹 {spike} 点伤害")
+                                minion.take_damage(spike)
+                    else:
+                        print(f"  {minion.name} 横扫直接攻击 {target.name}，造成 {minion.attack} 点伤害")
+                        target.health_change(-minion.attack, source=minion)
+                        hero_hit = True
+                else:
+                    if target and target.is_alive():
+                        if is_untargetable_by_minions(target):
+                            print(f"  {minion.name} 攻击 {target.name}，但目标无法被异象选中，攻击落空")
+                            minion.attack_target(opponent)
+                        else:
+                            minion.attack_target(target)
+                    else:
+                        minion.attack_target(opponent)
+        else:
+            # 预设目标
+            pending = getattr(minion, "_pending_attack_targets", None)
+            if pending and isinstance(pending, list) and len(pending) > 0:
+                target_idx = swing
+                if 0 <= target_idx < len(pending):
+                    target = pending[target_idx]
+                    if hasattr(target, "keywords") and (
+                        target.keywords.get("潜水", False) or target.keywords.get("潜行", False)
+                    ):
+                        print(f"  {minion.name} 攻击 {target.name}，但目标处于潜水/潜行状态，攻击落空")
+                    elif target and hasattr(target, "is_alive") and target.is_alive():
+                        minion.attack_target(target)
+                    elif hasattr(target, "health_change"):
+                        print(f"  {minion.name} 直接攻击 {target.name}")
+                        target.health_change(-minion.current_attack, source=minion)
+                    else:
+                        print(f"  {minion.name} 的攻击目标已消失，攻击落空")
+                else:
+                    minion.attack_target(opponent)
+            elif can_pierce:
+                enemies = [
+                    e
+                    for e in game.board.get_enemy_minions_in_column(base_col, minion.owner)
+                    if e.is_alive()
+                ]
+                enemies = [
+                    e
+                    for e in enemies
+                    if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)
+                ]
+                if enemies:
+                    print(f"  {minion.name} 串击 {game.board.COL_NAMES[base_col]}列所有敌方异象")
+                    minion.attack_target(enemies[0])
+                else:
+                    minion.attack_target(opponent)
+            else:
+                target = game.board.get_front_minion(base_col, minion.owner, attacker=minion)
+                if target and target.is_alive():
+                    minion.attack_target(target)
+                else:
+                    minion.attack_target(opponent)
+
+        # 高频降低先攻
+        if minion.keywords.get("高频", 0) > 0:
+            current = minion.keywords.get("先攻", 0)
+            if isinstance(current, int) and current > 0:
+                minion.keywords["先攻"] = current - 1
+                print(f"  {minion.name} 高频攻击：先攻降至 {current - 1}")
+
+    # 恢复先攻
+    if minion.is_alive() and original_first_strike != minion.keywords.get("先攻", 0):
+        minion.keywords["先攻"] = original_first_strike
 

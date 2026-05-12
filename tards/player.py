@@ -392,9 +392,13 @@ class Player:
         if isinstance(card, Strategy) and isinstance(target, Minion):
             if target.keywords.get("绝缘", False) and target.owner != self:
                 return False, f"{target.name} 具有绝缘，无法被策略选中"
+            # 虎的全局绝缘：对方无法使用策略指向友方异象
+            if target.owner and target.owner != self:
+                if getattr(target.owner, "_global_insulation_count", 0) > 0:
+                    return False, f"{target.name} 受虎保护，无法被策略选中"
         # 无法被选中：无法被任何指向性效果选为目标
         if isinstance(target, Minion):
-            if target.temp_keywords.get("无法被选中", False):
+            if target.keywords.get("无法被选中", False) or target.temp_keywords.get("无法被选中", False):
                 return False, f"{target.name} 无法被选中"
         valid_targets = self.get_valid_targets(card)
         if target not in valid_targets:
@@ -483,6 +487,7 @@ class Player:
                             keywords=card.keywords.copy() if card.keywords else None,
                         )
                         echo_card.echo_level = card.echo_level - 1
+                        echo_card._is_echo = True
                         self.card_hand.append(echo_card)
                         print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                     game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
