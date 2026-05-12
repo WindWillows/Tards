@@ -244,7 +244,7 @@ register_card(
     tags=['生物', '陆生'],
     is_token=True,
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -259,7 +259,7 @@ register_card(
     keywords={"协同": True, "丰饶": 2},
     description="回合结束：消灭友方场上的“松鼠”。每消灭一只，献祭等级+1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -288,7 +288,7 @@ register_card(
     keywords={"协同": True, "绝缘": True, "丰饶": 3, "亡语": True},
     description="亡语：若献祭点数溢出，抽1张牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -887,7 +887,7 @@ register_card(
     on_statue_activate=_arthropod_top_effect,
     description="（雕像激活后将在回合结束时移除 保留增益） 激活时：所有友方昆虫异象具有亡语；对对手造成1点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -906,7 +906,7 @@ register_card(
     on_statue_fuse=_arthropod_bottom_effect,
     description="（只有“上下匹配”的雕像可以在一回合内拼装 否则需要两回合） 融合：激活座首，所有友方昆虫异象进入战场时+1/1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -926,7 +926,7 @@ register_card(
     on_statue_activate=_aquatic_top_effect,
     description="激活时：所有友方两栖/水生异象部署花费-1T。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_guan_special,
 )
 
 register_card(
@@ -946,7 +946,7 @@ register_card(
     on_statue_fuse=_aquatic_bottom_effect,
     description="融合：激活座首，所有友方两栖/水生异象具有先攻1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_guan_special,
 )
 
 register_card(
@@ -1130,7 +1130,7 @@ register_card(
     evolve_to="成鸟",
     description="部署：指向一个友方飞禽异象，使其获得+3防御力和“友方幼鸟无法选中”。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_youniao_special,
 )
 
 register_card(
@@ -1145,7 +1145,7 @@ register_card(
     is_token=True,
     description="若指向异象存活，将本异象转换为指向异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    on_evolve_fn=_chengniao_evolve,
 )
 
 register_card(
@@ -1161,7 +1161,7 @@ register_card(
     evolve_to="巨蛾",
     description="出牌阶段结束：弃掉此牌，将一张“巨蛾”洗入卡组。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    hidden_keywords={"抽取": _qiguai_de_yong_draw_trigger},
 )
 
 register_card(
@@ -1178,7 +1178,7 @@ register_card(
     is_token=True,
     description="友方迅捷异象具有+1攻击力。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_ju_e_special,
 )
 
 register_card(
@@ -1190,9 +1190,10 @@ register_card(
     immersion_level=1,
     attack=1,
     health=1,
-    description="组队 每有一个其它异象被献祭，+1/1，丰饶等级+1。",
+    keywords={"协同": True},
+    description="每有一个其它异象被献祭，+1/1，丰饶等级+1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_qunyuan_special,
 )
 
 register_card(
@@ -1207,7 +1208,7 @@ register_card(
     keywords={"迅捷": True, "三重打击": True},
     description="攻击后，获得+1攻击力。免疫偶数伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=_hu_special,
+    special_fn=_hu_tiger_special,
 )
 
 register_card(
@@ -1219,11 +1220,11 @@ register_card(
     immersion_level=1,
     attack=0,
     health=6,
-    keywords={"两栖": True},
+    keywords={"两栖": True,"协同": True},
     tags=['两栖'],
-    description="组队 回合开始：重置一个异象的攻击力与防御力，你获得+1HP。",
+    description="回合开始：重置一个异象的攻击力与防御力，你获得+1HP。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_he_special,
 )
 
 register_card(
@@ -1248,12 +1249,12 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     attack=3,
-    health=4,
-    keywords={"重甲": 1, "水生": True},
+    health=5,
+    keywords={"坚韧": 1, "水生": True},
     tags=['水生'],
-    description="回合结束：指向一个异象。回合开始：消灭指向异象。",
+    description="结算阶段结束：指向一个异象。结算阶段开始：消灭指向异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_ankang_special,
 )
 
 register_card(
@@ -1279,12 +1280,12 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=3,
     attack=2,
-    health=6,
+    health=8,
     keywords={"水生": True, "坚韧": 1, "横扫": 1},
     tags=['水生'],
     description="平地均算作是水路。 部署：使全体友方非两栖异象获得“水生”。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_kun_special,
 )
 
 register_card(
@@ -1299,7 +1300,8 @@ register_card(
     keywords={"迅捷": True},
     description="被弃掉或被从卡组中移除时：改为加入战场。部署：双方随机弃一张牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shiyi_shou_special,
+    hidden_keywords={"抽取": _shiyi_shou_draw_trigger},
 )
 
 register_card(
@@ -1315,7 +1317,7 @@ register_card(
     evolve_to="老鹿",
     description="你的手牌花费-1T。成长时，若场上有B=0异象，改为重置计时。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_tou_lu_special,
 )
 
 register_card(
@@ -1327,12 +1329,13 @@ register_card(
     immersion_level=1,
     attack=0,
     health=1,
-    keywords={"协同": True},
+    keywords={"协同": True, "无法选中": True},
     tags=['生物', '陆生'],
     is_token=True,
     description="你的手牌花费+1T。无法选中。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_lao_lu_special,
+    on_evolve_fn=_lao_lu_evolve,
 )
 
 register_card(
@@ -1362,7 +1365,7 @@ register_card(
     keywords={"迅捷": True},
     description="必须是本轮部署的第一个异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    effect_fn=_wujing_effect,
 )
 
 register_card(
@@ -1377,7 +1380,7 @@ register_card(
     keywords={"亡语": True},
     description="部署：失去1个T槽。亡语：所有手牌花费-1T。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_chai_special,
 )
 
 register_card(
@@ -1407,7 +1410,7 @@ register_card(
     keywords={"亡语": True},
     description="部署：指向一个不处于本列的异象。亡语：将其消灭。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_zhuiliezhe_special,
 )
 
 register_card(
@@ -1431,13 +1434,13 @@ register_card(
     cost_str="5T",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
-    rarity=Rarity.IRON,
+    rarity=Rarity.GOLD,
     immersion_level=2,
     attack=3,
     health=3,
     description="你的手牌花费-1B。 回合结束：若本回合对手受到的伤害累计不小于3，你获得1B。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_muque_special,
 )
 
 register_card(
@@ -1448,12 +1451,12 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     attack=2,
-    health=3,
+    health=4,
     keywords={"协同": True},
     tags=['昆虫'],
     description="敌方目标被指向后，也算作是被本异象指向。 回合开始：使所有被本异象指向的目标失去1点HP。 部署：指向一个目标。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_niufeng_special,
 )
 
 register_card(
@@ -1466,9 +1469,9 @@ register_card(
     attack=5,
     health=6,
     keywords={"坚韧": 1},
-    description="攻击目标的HP不大于3时，具有穿透。",
+    description="攻击目标的HP不大于3时，本异象具有串击。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yeniue_special,
 )
 
 register_card(
@@ -1480,11 +1483,11 @@ register_card(
     immersion_level=1,
     attack=3,
     health=3,
-    keywords={"防空": True},
+    keywords={"防空": True, "迅捷": True},
     tags=['昆虫'],
-    description="若这是你本回合部署的最后一个异象，获得迅捷。 你部署献祭点数大于0的异象时，对对手造成1点伤害。",
+    description="直到本异象被部署的出牌阶段结束，友方异象部署时，本异象失去迅捷。你部署献祭点数大于0的异象时，对对手造成1点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_tiaozhu_special,
 )
 
 register_card(
@@ -1500,7 +1503,7 @@ register_card(
     tags=['两栖'],
     description="将其消灭的异象的回响加入手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_guan_special,
 )
 
 register_card(
@@ -1513,10 +1516,9 @@ register_card(
     attack=3,
     health=3,
     keywords={"迅捷": True, "穿刺": True, "两栖": True},
-    tags=['两栖'],
     description="部署：失去一个T槽。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yan_special,
 )
 
 register_card(
@@ -1547,7 +1549,7 @@ register_card(
     tags=['水生'],
     description="对空袭与昆虫异象伤害翻倍。受到本异象伤害的异象本回合改为在回合结束时 攻击。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_sheshei_special,
 )
 
 register_card(
@@ -1577,7 +1579,7 @@ register_card(
     keywords={"迅捷": True, "先攻": 1, "协同": True},
     description="将其消灭的异象的回响加入手牌。你打出或弃掉回响时，本异象返回手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_liegou_special,
 )
 
 register_card(
@@ -1608,7 +1610,7 @@ register_card(
     keywords={"协同": True, "坚韧": 1},
     description="相邻异象受到伤害时，改为由本异象承受。 回合结束：若本异象本回合未受到伤害，对对手造成2点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shelie_special,
 )
 
 register_card(
@@ -1623,7 +1625,8 @@ register_card(
     keywords={"迅捷": True, "亡语": True},
     description="必须是本回合双方部署的第2个异象。 亡语：若消灭过异象，随机消灭一个敌方异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    effect_fn=_mang_effect,
+    special_fn=_mang_special,
 )
 
 register_card(
@@ -1652,7 +1655,7 @@ register_card(
     keywords={"先攻": 1, "高地": True},
     description="部署：将1个花费不大于2T的异象移动至友方区域。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_xuebao_special,
 )
 
 register_card(
@@ -1662,14 +1665,14 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=3,
-    attack=5,
-    health=3,
+    attack=4,
+    health=4,
     keywords={"水生": True, "成长": True, "亡语": True},
     tags=['水生'],
     evolve_to="水螅群",
     description="亡语：若是由于异象效果被消灭，改为在回合结束时成长。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shuishiyan_special,
 )
 
 register_card(
@@ -1684,9 +1687,9 @@ register_card(
     keywords={"水生": True},
     tags=['水生', '两栖', '生物'],
     is_token=True,
-    description="抽牌阶段：对方失去3T。",
+    description="抽牌阶段：对方失去2T。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shuixiqun_special,
 )
 
 register_card(
@@ -1702,7 +1705,7 @@ register_card(
     tags=['昆虫'],
     description="亡语：T槽更少的一方失去1个T槽。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yachong_special,
 )
 
 register_card(
@@ -1718,7 +1721,7 @@ register_card(
     tags=['昆虫'],
     description="对方所有异象花费+2T。对方异象部署前，本异象返回手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_wen_special,
 )
 
 register_card(
@@ -1733,7 +1736,7 @@ register_card(
     keywords={"协同": True},
     description="友方异象更少时，使所有敌方异象具有-1攻击力。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_luci_special,
 )
 
 register_card(
@@ -1748,7 +1751,7 @@ register_card(
     keywords={"坚韧": 2, "绝缘": True},
     description="对方无法使用策略指向友方异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_hu_special,
 )
 
 register_card(
@@ -1762,9 +1765,9 @@ register_card(
     health=2,
     keywords={"亡语": True},
     tags=['昆虫'],
-    description="部署：指向一个异象。亡语：使伤害来源与一个随机敌方异象对战。",
+    description="部署：指向一个异象。亡语：使指向目标与随机一个敌方异象对战。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_huanxingchong_special,
 )
 
 register_card(
@@ -1780,7 +1783,7 @@ register_card(
     evolve_to="断尾",
     description="亡语：将一张“断尾”加入原位。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shiqianzi_special,
 )
 
 register_card(
@@ -1797,7 +1800,7 @@ register_card(
     is_token=True,
     description="回合结束：转换为“石钱子”。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_duanwei_special,
 )
 
 register_card(
@@ -1812,7 +1815,7 @@ register_card(
     keywords={"坚韧": 1},
     description="场上有昆虫类异象时，HP无法降至1以下。 回合开始：将1张“兵蚁”加入战场。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yixue_special,
 )
 
 register_card(
