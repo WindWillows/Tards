@@ -84,3 +84,17 @@ The tool library (`effect_utils.py`, `targeting.py`, etc.) is the correct place 
 - `Deck.is_test_deck` flag bypasses all construction restrictions (40-card count, immersion points, pack limits, rarity limits).
 - Test decks are only allowed in local play; the lobby blocks loading them.
 - GUI deck builder has a checkbox; the flag is persisted in JSON save/load.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical roles. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout. See `docs/agents/domain.md`.
