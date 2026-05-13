@@ -1449,24 +1449,43 @@ class BattleFrame(tk.Frame):
         self.history_list.see(tk.END)
 
     def _preview_deploy_positions(self, serial: int):
-        """悬停手牌时预览合法部署位置（绿色虚线方框）。"""
+        """悬停手牌时预览合法目标位置（绿色虚线方框）。
+
+        支持：随从卡的合法部署位置、策略卡的单指向合法目标。
+        """
         if not self.duel.game:
             return
         active = self.duel.game.current_player
         if not active or serial < 1 or serial > len(active.card_hand):
             return
         card = active.card_hand[serial - 1]
-        if not isinstance(card, MinionCard):
-            return
-        valid = [t for t in active.get_valid_targets(card)
-                 if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card)
-                 and self.duel.game.board.get_minion_at(t) is None]
-        for (r, c) in valid:
-            cx = c * self.CELL_SIZE + self.CELL_SIZE // 2
-            cy = r * self.CELL_SIZE + self.CELL_SIZE // 2
-            self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
-                                         outline="#4caf50", width=2, dash=(4, 4),
-                                         tags="preview_hint")
+
+        valid = []
+        if isinstance(card, MinionCard):
+            # 随从卡：合法部署位置（空位）
+            valid = [t for t in active.get_valid_targets(card)
+                     if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card)
+                     and self.duel.game.board.get_minion_at(t) is None]
+        elif isinstance(card, Strategy):
+            # 策略卡：单指向的合法目标（位置或异象）
+            valid = [t for t in active.get_valid_targets(card)
+                     if t is not None]
+
+        for target in valid:
+            if isinstance(target, tuple) and len(target) == 2:
+                r, c = target
+                cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
+                cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+                self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
+                                             outline="#4caf50", width=2, dash=(4, 4),
+                                             tags="preview_hint")
+            elif hasattr(target, "position") and target.position:
+                r, c = target.position
+                cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
+                cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+                self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
+                                             outline="#4caf50", width=2, dash=(4, 4),
+                                             tags="preview_hint")
 
     def _clear_preview(self):
         """清除部署位置预览。"""
