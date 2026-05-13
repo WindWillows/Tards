@@ -32,6 +32,13 @@ from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY, Pack, CardType
 from tards.deck import Deck
 from tards.deck_io import list_saved_decks, load_deck, save_deck
+from tards.feedback import (
+    create_feedback,
+    send_feedback,
+    save_feedback_local,
+    load_feedback_config,
+    save_feedback_config,
+)
 from tards.game_logger import BattleLogWriter
 from tards.net_game import NetworkDuel
 from tards.targeting import (
@@ -957,6 +964,96 @@ class ChoiceDialog(tk.Toplevel):
         self.destroy()
 
 
+class FeedbackDialog(tk.Toplevel):
+    """反馈提交弹窗。
+
+    允许玩家输入问题描述和反馈服务器地址，
+    自动附带当前对战的最新日志。
+    """
+
+    def __init__(self, parent, player_name: str, on_submit: Callable[[str, str], None]):
+        super().__init__(parent)
+        self.title("提交反馈")
+        self.geometry("450x380")
+        self.resizable(False, False)
+        self.on_submit = on_submit
+        self._build_ui(player_name)
+        self.grab_set()
+        self.focus_force()
+
+    def _build_ui(self, player_name: str):
+        pad = {"padx": 10, "pady": 5}
+
+        # 玩家名
+        tk.Label(self, text=f"玩家: {player_name}", anchor="w").pack(fill=tk.X, **pad)
+
+        # 服务器地址
+        addr_frame = tk.Frame(self)
+        addr_frame.pack(fill=tk.X, **pad)
+        tk.Label(addr_frame, text="反馈服务器:").pack(side=tk.LEFT)
+        self.addr_entry = tk.Entry(addr_frame, width=25)
+        self.addr_entry.pack(side=tk.LEFT, padx=5)
+        # 加载上次使用的地址
+        config = load_feedback_config()
+        last_addr = config.get("server_address", "")
+        if last_addr:
+            self.addr_entry.insert(0, last_addr)
+        else:
+            self.addr_entry.insert(0, "127.0.0.1:9999")
+
+        # 问题描述
+        tk.Label(self, text="问题描述:", anchor="w").pack(fill=tk.X, **pad)
+        self.desc_text = scrolledtext.ScrolledText(self, height=8, wrap=tk.WORD)
+        self.desc_text.pack(fill=tk.BOTH, expand=True, **pad)
+
+        # 日志提示
+        tk.Label(
+            self,
+            text="✓ 将自动附带当前对战的最新日志（尾部500行）",
+            fg="green",
+            anchor="w",
+        ).pack(fill=tk.X, **pad)
+
+        # 按钮
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(fill=tk.X, pady=10)
+        tk.Button(btn_frame, text="提交", command=self._on_submit, width=10).pack(side=tk.RIGHT, padx=10)
+        tk.Button(btn_frame, text="取消", command=self.destroy, width=10).pack(side=tk.RIGHT)
+
+        # 绑定回车提交
+        self.bind("<Return>", lambda e: self._on_submit())
+        self.bind("<Escape>", lambda e: self.destroy())
+
+    def _on_submit(self):
+        desc = self.desc_text.get("1.0", tk.END).strip()
+        if not desc:
+            messagebox.showwarning("提示", "请输入问题描述")
+            return
+
+        addr = self.addr_entry.get().strip()
+        if not addr:
+            messagebox.showwarning("提示", "请输入反馈服务器地址")
+            return
+
+        # 简单校验 ip:port 格式
+        parts = addr.rsplit(":", 1)
+        if len(parts) != 2:
+            messagebox.showwarning("提示", "地址格式应为 IP:端口，如 192.168.1.100:9999")
+            return
+        host, port_str = parts
+        try:
+            port = int(port_str)
+        except ValueError:
+            messagebox.showwarning("提示", "端口号必须是数字")
+            return
+
+        # 保存配置
+        save_feedback_config({"server_address": addr})
+
+        self.on_submit(desc, f"{host}:{port}")
+        self.destroy()
+
+
 class NumericChoiceDialog(tk.Toplevel):
     """数字选择弹窗，用于自然数目标的指向请求（如"第n行"）。"""
 
@@ -1276,6 +1373,8 @@ class BattleFrame(tk.Frame):
         self.cancel_btn.pack(side=tk.LEFT, padx=5)
         self.terminate_btn = tk.Button(btn_frame, text="终止游戏", command=self._on_terminate_game, fg="red")
         self.terminate_btn.pack(side=tk.LEFT, padx=5)
+        self.feedback_btn = tk.Button(btn_frame, text="反馈", command=self._on_feedback)
+        self.feedback_btn.pack(side=tk.LEFT, padx=5)
 
         self.hint_label = tk.Label(right, text="等待游戏开始...", fg="blue", wraplength=500)
         self.hint_label.pack(fill=tk.X, pady=5)
@@ -2562,6 +2661,36 @@ class BattleFrame(tk.Frame):
             if hasattr(self.duel, "close"):
                 self.duel.close()
             self.app.show_menu()
+
+    def _on_feedback(self):
+        """打开反馈对话框，提交问题描述和日志到反馈服务器。"""
+        player_name = self.local_player.name
+
+        def do_submit(description: str, server_addr: str):
+            host, port_str = server_addr.rsplit(":", 1)
+            port = int(port_str)
+
+            # 组装反馈数据
+            entry = create_feedback(player_name, description)
+
+            # 尝试发送到服务器
+            success = send_feedback(entry, host, port, timeout=5.0)
+            if success:
+                messagebox.showinfo("反馈已发送", f"反馈已成功发送到 {server_addr}")
+                self.hint_label.config(text=f"[反馈] 已发送到 {server_addr}", fg="green")
+            else:
+                # 发送失败，询问是否本地备份
+                if messagebox.askyesno(
+                    "发送失败",
+                    f"无法连接到反馈服务器 {server_addr}\n是否保存到本地备份？",
+                ):
+                    path = save_feedback_local(entry)
+                    messagebox.showinfo("本地备份", f"反馈已保存到:\n{path}")
+                    self.hint_label.config(text=f"[反馈] 已本地备份: {path}", fg="orange")
+                else:
+                    self.hint_label.config(text="[反馈] 发送失败，未保存", fg="red")
+
+        FeedbackDialog(self, player_name, do_submit)
 
     def _show_toast(self, text: str, bg_color: str = "#fff9c4", duration_ms: int = 1500):
         """在屏幕中央显示一个临时浮层提示，duration_ms 后自动消失。"""
