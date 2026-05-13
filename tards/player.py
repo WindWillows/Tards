@@ -570,10 +570,22 @@ class Player:
         return True
 
     def _resolve_extra_targets(self, card: Card, game: "Game") -> Optional[List[Any]]:
-        """串行解析 extra_targeting_stages，返回目标列表；取消返回 None。"""
+        """串行解析 extra_targeting_stages，返回目标列表；取消返回 None。
+
+        .. deprecated::
+            extra_targeting_stages 已废弃。所有部署后的额外指向应在 special_fn / effect_fn
+            内部通过 TargetingRequest 完成。保留本函数仅作为向后兼容。
+        """
+        import warnings
         stages = list(getattr(card, "extra_targeting_stages", []))
         if not stages:
             return []
+
+        warnings.warn(
+            "extra_targeting_stages is deprecated. Use internal TargetingRequest instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         from .targeting import TargetingRequest
 

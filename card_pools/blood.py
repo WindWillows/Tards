@@ -36,7 +36,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：至多消耗6S，每消耗2S，随机将1张精灵异象加入战场。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_liuming_special,
 )
 
 register_card(
@@ -51,7 +51,7 @@ register_card(
     tags=['生物', '陆生'],
     description="双方打出手牌时，对所有目标造成1点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_liting_special,
 )
 
 register_card(
@@ -66,7 +66,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：抽取对方卡组顶的1张牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_dujiaodadao_special,
 )
 
 register_card(
@@ -81,7 +81,7 @@ register_card(
     tags=['生物', '陆生'],
     description="回合开始：将1个“溴化银”加入本异象前方。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_xianyingshi_special,
 )
 
 register_card(
@@ -141,7 +141,7 @@ register_card(
     tags=['生物', '陆生'],
     description="敌方异象被消灭时，将1个“亡灵“加入其原位。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_silingfashi_special,
 )
 
 register_card(
@@ -205,7 +205,7 @@ register_card(
     tags=['生物', '陆生'],
     description="攻击时，改为对攻击力最高的敌方异象造成等量伤害。 部署：攻击1次。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yunjun_special,
 )
 
 register_card(
@@ -221,7 +221,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：消灭1个受伤异象。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_wuqiongxiaoliang_special,
 )
 
 register_card(
@@ -237,7 +237,7 @@ register_card(
     tags=['生物', '陆生'],
     description="HP不小于4时，具有“你受到伤害时，改为由本异象承受。” 部署：每有1个敌方异象，获得1次+1HP。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_leijinade_special,
 )
 
 register_card(
@@ -253,7 +253,9 @@ register_card(
     tags=['生物', '陆生'],
     description="你每受到1次伤害，获得-1T花费。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=None,
+    cost_modifier=_yilong_cost_modifier,
+    on_game_start=_yilong_game_start,
 )
 
 register_card(
@@ -268,8 +270,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：将1个异象返回其所有者手牌，其所有者抽1张牌。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
-    special_fn=lambda p, t, g, extras=None: (p.draw_card(1, game=g) or True),
+    special_fn=_zhijianfangcun_special,
 )
 
 register_card(
@@ -301,7 +302,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：将1张“环丁二烯”和1张“配体”加入手牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_tiexin_special,
 )
 
 register_card(
@@ -330,7 +331,7 @@ register_card(
     tags=['生物', '陆生'],
     description="你的随机效果改为指向，如可能。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_aboluozhiwei_special,
 )
 
 register_card(
@@ -345,7 +346,7 @@ register_card(
     tags=['生物', '陆生'],
     description="被弃掉时：对方随机弃1张牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    hidden_keywords={"抽取": _zhadanren_draw_trigger},
 )
 
 register_card(
@@ -360,7 +361,7 @@ register_card(
     tags=['生物', '陆生'],
     description="攻击力不大于4时，具有迅捷。 部署：选择并弃1张牌，获得等同于其花费的攻击力。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_shimengmo_special,
 )
 
 register_card(
@@ -376,7 +377,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：所有友方异象攻击1次本异象。 亡语：所有对其造成过伤害的异象获得+1/1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_budongdian_special,
 )
 
 register_card(
@@ -391,8 +392,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：对1个异象和你造成3点伤害。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_jupian_special,
 )
 
 register_card(
@@ -424,7 +424,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：展示卡组顶的3张牌，将其中1张置入手牌。若其折算花费不大于5，你获 得等量血契。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_xuanchen_special,
 )
 
 register_card(
@@ -439,7 +439,6 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：使1个异象获得恐惧。若其已具有恐惧，将其HP设为1点。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
     special_fn=_liuqinghuajia_special,
 )
 
@@ -455,7 +454,7 @@ register_card(
     tags=['生物', '陆生'],
     description="场上有异象具有恐惧时，无法被异象指向。 回合开始：随机使1个敌方异象具有恐惧。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_sanfuhualu_special,
 )
 
 register_card(
@@ -470,8 +469,7 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：对1个异象造成1点伤害，将其冰冻。",
     targets_fn=target("position", friendly=True),
-    extra_targeting_stages=[(target("minion"), 1, False)],
-    special_fn=lambda p, t, g, extras=None: (t.health_change(-1) if hasattr(t, "health_change") else (t.take_damage(1) if hasattr(t, "take_damage") else False) or True),
+    special_fn=_erliuhuatan_special,
 )
 
 register_card(
@@ -486,11 +484,11 @@ register_card(
     tags=['生物', '陆生'],
     description="部署：还原一个异象的HP。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_yixi_special,
 )
 
 register_card(
-    name="占位符5",
+    name="水漫缮写室",
     cost_str="8T",
     card_type=CardType.MINION,
     pack=Pack.BLOOD,
@@ -502,7 +500,9 @@ register_card(
     tags=['两栖', '生物'],
     description="手牌不因被使用而被移出手牌区时，本异象获得-2T花费。 抽取：选择1张手牌，将其洗入卡组。你获得等同于此牌花费的HP。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    cost_modifier=_shuixieshi_cost_modifier,
+    on_game_start=_shuixieshi_game_start,
+    hidden_keywords={"抽取": _shuixieshi_draw_trigger},
 )
 
 register_card(
@@ -513,7 +513,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="抽1张牌，获得1S，对1个异象和你造成1点伤害。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_shuangsheng_bishou_effect,
 )
 
@@ -537,7 +537,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="对1个异象造成1点伤害。若其在本回合离开战场，将其回响加入手牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_ziyou_effect
 )
 
@@ -633,7 +633,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使1个异象获得恐惧。抽1张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_kongju_zhi_effect,
 )
 
@@ -675,7 +675,7 @@ register_card(
 
 register_card(
     name="无间地狱",
-    cost_str="4T2S",
+    cost_str="2T3S",
     card_type=CardType.STRATEGY,
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
@@ -753,7 +753,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="将1个异象返回其所有者手牌。冰冻相邻两列的敌方异象。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_xiajian_effect
 )
 
@@ -778,7 +778,7 @@ register_card(
     immersion_level=1,
     description="开发1张纯净异象。若场上有友方纯净异象，再开发1张“时刻”。",
     targets_fn=target_none,
-    effect_fn=None,  # TODO: 实现效果
+    effect_fn=_guankui_effect,
 )
 
 register_card(
@@ -825,8 +825,8 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。",
-    targets_fn=target("minion", friendly=False, enemy=True),
-    effect_fn=None,  # TODO: 实现效果
+    targets_fn=target_none,
+    effect_fn=_tianxiawushuang_effect,
 )
 
 register_card(
@@ -849,7 +849,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="消灭场上攻击力唯一最高的敌方异象。 抽取：若可能，消耗1S，对对手造成2点伤害。",
-    targets_fn=target("player", enemy=True),
+    targets_fn=target_none,
     effect_fn=_zhanweifu1_effect
 )
 
@@ -861,7 +861,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使1个异象及其相邻异象获得恐惧。 抽取：对所有具有恐惧的异象造成2点伤害。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_zhanweifu2_effect
 )
 
@@ -898,7 +898,7 @@ register_card(
     immersion_level=1,
     is_moment=True,
     description="对1个异象造成3点伤害。抽1张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_qinchen_effect,
 )
 

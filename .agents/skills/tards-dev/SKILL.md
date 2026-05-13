@@ -92,7 +92,9 @@ description: |
 | **回合开始** | `EVENT_PHASE_START` + `phase == PHASE_RESOLVE` | 结算阶段开始时触发。禁止用 `EVENT_TURN_START` 或 `on_turn_start` 实现"回合开始"效果。 |
 | **回合结束** | `EVENT_PHASE_END` + `phase == PHASE_RESOLVE` | 结算阶段结束时触发。禁止用 `EVENT_TURN_END` 或 `on_turn_end` 实现"回合结束"效果。 |
 | **对局开始时** | `Card.on_game_start` 回调 | `Game.start_game()` 在抽初始手牌前扫描并执行。 |
-| **弃置** | `Player.discard_card()` 或手牌满磨牌 | 触发 `EVENT_DISCARDED`。正常打出策略卡进入弃牌堆**不触发**。 |
+| **弃掉** | `Player.discard_card()`，reason="effect" | 仅指**不通过打出的方式**把手牌中的牌移到弃牌堆。触发 `EVENT_DISCARDED` + `reason="effect"`。 |
+| **磨牌** | `draw_card()` / `exchange_mineral()` 手牌满 | 从牌库直接移到弃牌堆，**不是弃牌**。触发 `EVENT_DISCARDED` + `reason="mill"` + `EVENT_MILLED`。 |
+| **正常打出** | `Player.play_card()` → 效果成功 → 移入 discard | **不是弃牌**，不触发 `EVENT_DISCARDED`。触发 `EVENT_CARD_PLAYED`。|
 | **打出 / 进入弃牌堆** | `Player.play_card()` → 效果成功 → 移入 discard | **不触发**弃置事件。 |
 | **抽取（机制 A）** | `hidden_keywords={"抽取": callback}` | `draw_card()` 直接调用 `callback(player, game, card)`。blood.py 占位符系列使用此方式。 |
 | **抽取（机制 B）** | `set_draw_trigger(card, callback)` | 通过 EventBus 调度，`callback(game, event_data, card)`。两种机制并存，签名不同。 |

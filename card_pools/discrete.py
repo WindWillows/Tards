@@ -166,7 +166,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="对一个异象及其相邻异象造成1点伤害。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_lieyanfen_strategy,
 )
 
@@ -393,7 +393,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="对一个异象造成1点伤害。然后若其HP不大于2 将其冰冻。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_xueqiu_strategy,
 )
 
@@ -641,7 +641,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个异象获得-1坚韧等级。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_guanglingjian_strategy,
 )
 
@@ -824,7 +824,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个异象获得-2攻击力。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_zhizhuyan_strategy,
 )
 
@@ -1789,7 +1789,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="冰冻1个异象及其相邻异象。抽1张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_bingshuangxingzhe_effect,
 )
 
@@ -1841,7 +1841,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="对一个异象造成6点伤害。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_fengli_effect,
 )
 
@@ -1867,7 +1867,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="将1个异象返回其所有者手牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jitui_effect,
 )
 
@@ -1919,7 +1919,7 @@ register_card(
     hidden_keywords={},
     is_token=True,
     description="使1个异象获得+0/3 和坚韧1。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_baohu_effect,
 )
 
@@ -2062,7 +2062,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="抉择：使1个异象获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jinpingguo_strategy,
 )
 
@@ -2166,7 +2166,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="移除1个异象。下个抽牌阶段，将其返回战场。其所有者抽1张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_wasan_tianyi_effect,
 )
 
@@ -2218,7 +2218,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="移除1个异象，将其2张复制置入其所有者卡组顶。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_mishi_effect,
 )
 
@@ -2244,7 +2244,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="将1个异象的HP设为1。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yiqi_strategy,
 )
 
@@ -2296,7 +2296,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个异象获得亡语：随机消灭1个距离不大于3的敌方异象。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yulin_effect,
 )
 
@@ -2335,7 +2335,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="对一个目标造成2点伤害。抽1张牌。",
-    targets_fn=target_mix(target("minion"), target("player")),
+    targets_fn=target_none,
     effect_fn=_tnt_strategy,
 )
 
@@ -2403,7 +2403,7 @@ register_card(
     keywords={"绝缘": True, "串击": True, "穿刺": True, "坚韧": 2},
     hidden_keywords={},
     is_token=True,
-    targets_fn=target("position", friendly=True),
+    targets_fn=target_none,
     special_fn=None,
 )
 
@@ -2416,7 +2416,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="指向1个异象，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_shitiyaji_effect,
 )
 
@@ -2455,7 +2455,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个异象及其相邻异象获得眩晕。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jinrenshu_strategy,
 )
 
@@ -2468,7 +2468,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yanhuozhixing_effect,
 )
 
@@ -2481,7 +2481,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个异象获得：回合开始：获得+1/1。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jinxiguapian_effect,
 )
 
@@ -2611,7 +2611,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="使1个异象获得+1/2，抽1张牌。若指向非生命异象，再使所有友方非生命异象 获得+2HP。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yaoshuijian_effect,
 )
 
@@ -2729,7 +2729,7 @@ register_card(
     immersion_level=1,
     hidden_keywords={},
     description="对1个异象及其相邻异象造成2点伤害。若有异象被消灭，将1张“村庄英雄”洗入 卡组。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_cunzhuangyingxiong_strategy,
 )
 

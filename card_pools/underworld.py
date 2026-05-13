@@ -1867,7 +1867,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="选择并弃一张异象，获得3B。若非松鼠，抽一张牌。",
-    targets_fn=target("hand", card_type="minion"),
+    targets_fn=target_none,
     effect_fn=_xueping_effect,
 )
 
@@ -1879,7 +1879,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。",
-    targets_fn=target_any_minion_or_enemy_player,
+    targets_fn=target_none,
     effect_fn=_jin_yachi_strategy
 )
 
@@ -1891,7 +1891,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="对你造成2点伤害，然后对一个异象造成4点伤害。抽一张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_qianzi_effect,
 )
 
@@ -1915,7 +1915,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=3,
     description="选择并弃一张异象，若其献祭等级与丰饶等级之积不小于2，将一张“骨王之 赏”加入手牌；否则将一张“骨王之惠”加入手牌。",
-    targets_fn=target("hand", card_type="minion"),
+    targets_fn=target_none,
     effect_fn=_guwang_effect,
 )
 
@@ -1966,7 +1966,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="选择并弃一张异象，使你手牌中另一张同名异象攻防翻倍且花费+1T。",
-    targets_fn=target("hand", card_type="minion"),
+    targets_fn=target_none,
     effect_fn=_zhiwuxuejia_effect,
 )
 
@@ -1990,7 +1990,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="选择并弃一张牌，将其2张复制进入牌库。",
-    targets_fn=target("hand"),
+    targets_fn=target_none,
     effect_fn=_lieren_effect,
 )
 
@@ -2002,7 +2002,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="将一个花费不大于3T的异象移动至友方同一列。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yugou_effect,
 )
 
@@ -2014,7 +2014,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使一个异象具有空袭直到回合结束。抽1张牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_shanzi_strategy
 )
 
@@ -2026,7 +2026,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="眩晕一个异象。若是迅捷异象，改为消灭。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_bopidao_effect,
 )
 
@@ -2062,7 +2062,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="使一个异象获得亡语：随机对一个友方异象造成2点伤害，使其获得此亡语。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_zhadan_yao_effect,
 )
 
@@ -2074,7 +2074,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="将场上的一个异象移动至你的手牌中。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_xiangji_effect,
 )
 
@@ -2110,7 +2110,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使一个异象获得：在受到致命伤害前，+0/1。若因此存活，+1/1。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jiaoshui_effect,
 )
 
@@ -2146,7 +2146,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使一个友方异象获得 +0/4 并冰冻2回合，期间其拥有坚韧I。",
-    targets_fn=target("minion", friendly=True, enemy=False),
+    targets_fn=target_none,
     effect_fn=_bingkuai_effect,
 )
 
@@ -2290,7 +2290,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=2,
     description="将1个异象返回其所有者手牌。对手下回合无法抽牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_zhouyu_effect
 )
 
@@ -2338,7 +2338,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使一个异象获得亡语：将其-1/1的复制加入你的手牌。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_jidai_effect,
 )
 
@@ -2350,7 +2350,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="选择并弃1张牌，将一个异象返回其所有者牌堆顶。眩晕周围异象。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_yehuo_effect
 )
 
@@ -2422,7 +2422,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使一个异象立刻成长，然后使其获得+1/2。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_shanqian_effect
 )
 
@@ -2434,7 +2434,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="使1个异象获得：成长时，+2/2。",
-    targets_fn=target("minion"),
+    targets_fn=target_none,
     effect_fn=_culi_effect
 )
 
@@ -2562,7 +2562,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     description="对方打出下一张牌时，若是异象，对对手造成等同于其花费的伤害。",
-    targets_fn=target("player", enemy=True),
+    targets_fn=target_none,
     condition_fn=_fange_condition,
     effect_fn=_fange_effect,
 )

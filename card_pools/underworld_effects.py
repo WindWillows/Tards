@@ -2320,6 +2320,29 @@ def target_any_minion_or_enemy_player(player, board):
 @strategy
 def _jin_yachi_strategy(player, target, game, extras=None):
     """金牙齿：对一个目标造成1点伤害。若将其消灭，获得1T，抽一张牌。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        from tards.cards import Minion
+        result = [m for m in board.minion_place.values() if m.is_alive()]
+        opponent = game.p2 if p == game.p1 else game.p1
+        result.append(opponent)
+        return result
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "金牙齿：选择1个目标"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  金牙齿：目标无效")
+        return False
     from tards.cards import Minion
 
     if isinstance(target, Minion):
@@ -2340,6 +2363,25 @@ def _jin_yachi_strategy(player, target, game, extras=None):
 @strategy
 def _shanzi_strategy(player, target, game, extras=None):
     """扇子：使一个异象具有空袭直到回合结束。抽1张牌。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "扇子：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  扇子：目标无效")
+        return False
     from tards.cards import Minion
 
     if not isinstance(target, Minion) or not target.is_alive():
@@ -2543,6 +2585,21 @@ def _shudong_effect(player, target, game, extras=None):
     return True
 
 def _xueping_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, board):
+        from tards.cards import MinionCard
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "血瓶：选择手牌中的1张异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if target not in player.card_hand:
         return False
     from tards.cards import MinionCard
@@ -2562,6 +2619,25 @@ def _xueping_effect(player, target, game, extras=None):
 @strategy
 def _qianzi_effect(player, target, game, extras=None):
     """钳子：对你造成2点伤害，然后对一个异象造成4点伤害。抽一张牌。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "钳子：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  钳子：目标无效")
+        return False
     from tards.cards import Minion
 
     # 对自己造成2点伤害
@@ -2602,6 +2678,21 @@ def _linshu_daobing_effect(player, target, game, extras=None):
     return True
 
 def _guwang_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, board):
+        from tards.cards import MinionCard
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "骨王：选择手牌中的1张异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     from tards.cards import MinionCard
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         return False
@@ -2693,6 +2784,21 @@ def _lazhu_effect(player, target, game, extras=None):
     return True
 
 def _zhiwuxuejia_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, board):
+        from tards.cards import MinionCard
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "植物学家：选择手牌中的1张异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     from tards.cards import MinionCard
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         return False
@@ -2750,6 +2856,20 @@ def _pimaoshang_effect(player, target, game, extras=None):
     return True
 
 def _lieren_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+
+    def scope(p, board):
+        return list(p.card_hand)
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "猎人：选择手牌中的1张牌"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     import copy
     import random
     if target not in player.card_hand:
@@ -2769,6 +2889,25 @@ def _lieren_effect(player, target, game, extras=None):
     return True
 
 def _yugou_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner != p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "鱼钩：选择1个敌方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  鱼钩：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import convert_cost_to_t
 
@@ -2812,6 +2951,25 @@ def _yugou_effect(player, target, game, extras=None):
     return ok
 
 def _bopidao_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "剥皮刀：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  剥皮刀：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import (
         destroy_minion, give_temp_keyword_until_turn_end,
@@ -2915,6 +3073,25 @@ def _lanyue_effect(player, target, game, extras=None):
 @strategy
 def _zhadan_yao_effect(player, target, game, extras=None):
     """炸弹夫人的遥控器：使友方异象获得传染亡语。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner != p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "炸弹夫人的遥控器：选择1个敌方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  炸弹夫人的遥控器：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import add_deathrattle, deal_damage_to_minion
     import random
@@ -2942,6 +3119,25 @@ def _zhadan_yao_effect(player, target, game, extras=None):
     return True
 
 def _xiangji_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "相机：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  相机：目标无效")
+        return False
     if not isinstance(target, Minion) or not target.is_alive():
         return False
 
@@ -3017,6 +3213,25 @@ def _xueyue_effect(player, target, game, extras=None):
 @strategy
 def _jiaoshui_effect(player, target, game, extras=None):
     """胶水：使一个异象获得：在受到致命伤害前，+0/1。若因此存活，+1/1。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "胶水：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  胶水：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import on
     from tards.constants import EVENT_BEFORE_DAMAGE, EVENT_AFTER_DAMAGE
@@ -3153,6 +3368,25 @@ def _yinghuo_effect(player, target, game, extras=None):
 @strategy
 def _bingkuai_effect(player, target, game, extras=None):
     """冰块：使一个友方异象获得 +0/4 并冰冻2回合，期间其拥有坚韧I。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner == p]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "冰块：选择1个友方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  冰块：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import on
     from tards.constants import EVENT_PHASE_END
@@ -3378,6 +3612,25 @@ def _gaozhi_effect(player, target, game, extras=None):
 @strategy
 def _zhouyu_effect(player, target, game, extras=None):
     """骤雨：将1个异象返回其所有者手牌。对手下回合无法抽牌。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "骤雨：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  骤雨：目标无效")
+        return False
     from card_pools.effect_utils import return_minion_to_hand
 
     if not isinstance(target, Minion) or not target.is_alive():
@@ -3557,6 +3810,25 @@ def _haichen_effect(player, target, game, extras=None):
 @strategy
 def _jidai_effect(player, target, game, extras=None):
     """继代：使一个异象获得亡语，将其-1/1的复制加入你的手牌。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "继代：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  继代：目标无效")
+        return False
     from tards.cards import Minion
     from card_pools.effect_utils import add_deathrattle
 
@@ -3597,6 +3869,25 @@ def _jidai_effect(player, target, game, extras=None):
 @strategy
 def _yehuo_effect(player, target, game, extras=None):
     """野火：弃1张牌，将1个异象返回其所有者牌库顶，眩晕周围异象。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "野火：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  野火：目标无效")
+        return False
     from card_pools.effect_utils import get_adjacent_positions, give_temp_keyword_until_turn_end
     from card_pools.effect_utils import place_at_deck_top
     from tards.cards import Minion
@@ -3841,6 +4132,25 @@ def _hesheng_effect(player, target, game, extras=None):
 @strategy
 def _shanqian_effect(player, target, game, extras=None):
     """善潜：使一个异象立刻成长，然后+1/+1。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "善潜：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  善潜：目标无效")
+        return False
     from tards.cards import Minion
 
     if not isinstance(target, Minion) or not target.is_alive():
@@ -3863,6 +4173,25 @@ def _shanqian_effect(player, target, game, extras=None):
 @strategy
 def _culi_effect(player, target, game, extras=None):
     """粗粝：使1个异象获得：成长时，+2/2。"""
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "粗粝：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  粗粝：目标无效")
+        return False
     from tards.cards import Minion
 
     if not isinstance(target, Minion) or not target.is_alive():
