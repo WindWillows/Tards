@@ -413,7 +413,6 @@ def silence_minion(minion: "Minion") -> None:
 
     # 清除所有光环
     minion._aura_attack_fns.clear()
-    minion._aura_health_fns.clear()
     minion._aura_max_health_fns.clear()
     minion._aura_keyword_fns.clear()
 

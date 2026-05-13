@@ -129,6 +129,36 @@ class Game:
             if event_type == EVENT_TURN_END:
                 self._resolve_statue_fusions()
 
+            # === 费用修正自动过期清理 ===
+            if event_type == EVENT_TURN_END:
+                for p in self.players:
+                    if hasattr(p, "_cost_modifier_system"):
+                        removed = p._cost_modifier_system.expire("turn_end")
+                        if removed:
+                            print(f"  [费用系统] {p.name} 清理 {removed} 个回合结束过期的费用修正")
+            elif event_type == EVENT_PHASE_END:
+                for p in self.players:
+                    if hasattr(p, "_cost_modifier_system"):
+                        removed = p._cost_modifier_system.expire("phase_end")
+                        if removed:
+                            print(f"  [费用系统] {p.name} 清理 {removed} 个阶段结束过期的费用修正")
+
+            # === 光环自动过期清理 ===
+            if event_type == EVENT_TURN_END:
+                for m in list(self.board.minion_place.values()):
+                    if m.is_alive():
+                        for prov in (m._aura_attack_provider, m._aura_max_health_provider, m._aura_keyword_provider):
+                            removed = prov.expire("turn_end")
+                            if removed:
+                                print(f"  [光环系统] {m.name} 清理 {removed} 个回合结束过期的光环")
+            elif event_type == EVENT_PHASE_END:
+                for m in list(self.board.minion_place.values()):
+                    if m.is_alive():
+                        for prov in (m._aura_attack_provider, m._aura_max_health_provider, m._aura_keyword_provider):
+                            removed = prov.expire("phase_end")
+                            if removed:
+                                print(f"  [光环系统] {m.name} 清理 {removed} 个阶段结束过期的光环")
+
         # 更新机器日志
         if hasattr(self, "history"):
             self.history.on_event(event_type, **kwargs)

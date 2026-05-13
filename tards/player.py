@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT
 from .cost import Cost
+from .cost_modifier import CostModifier, CostModifierSystem
 from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy, Minion
 
 if TYPE_CHECKING:
@@ -70,7 +71,9 @@ class Player:
 
         # 部署增益与费用修正（雕像等机制使用）
         self._deploy_buffs: List[Callable[["Minion"], None]] = []
-        self._cost_modifiers: List[Callable[["MinionCard", Cost], None]] = []
+        self._cost_modifier_system = CostModifierSystem()
+        # 向后兼容：_cost_modifiers 指向 CostModifierSystem
+        self._cost_modifiers = self._cost_modifier_system
 
         # 通用状态标志（任何卡牌都可以通过 effect_fn / special_fn 设置）
         self._skip_next_draw = False
@@ -369,10 +372,9 @@ class Player:
         else:
             cost = card.cost.copy()
         if isinstance(card, (MinionCard, Strategy)):
-            # 玩家级修正器
-            for fn in self._cost_modifiers:
-                fn(card, cost)
-            # 卡牌级修正器（卡牌自身定义的动态费用）
+            # 统一费用修正系统（同时管理玩家级和卡牌级修正）
+            self._cost_modifier_system.apply(card, cost)
+            # 向后兼容：处理尚未迁移到 CostModifierSystem 的卡牌级裸函数
             for fn in getattr(card, "_card_cost_modifiers", []):
                 fn(card, cost)
         return cost

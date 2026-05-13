@@ -482,10 +482,7 @@ def _cunmin2_special(minion, player, game, extras=None):
         )
         return count
 
-    if not hasattr(minion, "_aura_attack_fns"):
-        minion._aura_attack_fns = []
     minion._aura_attack_fns.append(_cunmin_attack_aura)
-    minion.recalculate()
 
     def _refresh(event):
         if minion.is_alive():

@@ -7,6 +7,7 @@ from .constants import (
     EVENT_BEFORE_DEPLOY, EVENT_DEPLOYED, EVENT_AFTER_DEPLOY,
 )
 from .cost import Cost
+from .aura_system import AttackAuraProvider, MaxHealthAuraProvider, KeywordAuraProvider
 
 if TYPE_CHECKING:
     from .player import Player
@@ -76,9 +77,24 @@ class Card:
 
     # ----- 统一移动接口 -----
     def move_to(self, new_location: str, game: Optional["Game"] = None) -> None:
-        """统一移动接口。更新 location 并可选地触发 card_moved 事件。"""
+        """统一移动接口。更新 location 并可选地触发 card_moved 事件。
+
+        新增：卡牌离开手牌时，自动清理以本卡为 source 的费用修正。
+        """
         old_location = self._location
         self._location = new_location
+
+        # === 费用修正自动清理：手牌 → 非手牌 ===
+        if old_location == "hand" and new_location != "hand":
+            owner = getattr(self, "owner", None)
+            if owner and hasattr(owner, "_cost_modifier_system"):
+                removed = owner._cost_modifier_system.remove_by_source(self)
+                if removed:
+                    print(f"  [{self.name}] 离开手牌，清理 {removed} 个费用修正")
+            # 向后兼容：同时清理 _card_cost_modifiers
+            if hasattr(self, "_card_cost_modifiers"):
+                self._card_cost_modifiers.clear()
+
         if game and hasattr(game, "event_bus"):
             game.emit_event("card_moved", card=self, from_loc=old_location, to_loc=new_location)
 
@@ -440,11 +456,14 @@ class Minion:
         self.temp_max_health_bonus = 0
         self.temp_keywords: Dict[str, Any] = {}
 
-        # 临时光环回调（具有）
-        self._aura_attack_fns: List[Callable[["Minion"], int]] = []
-        self._aura_health_fns: List[Callable[["Minion"], int]] = []
-        self._aura_max_health_fns: List[Callable[["Minion"], int]] = []
-        self._aura_keyword_fns: List[Callable[["Minion"], Dict[str, Any]]] = []
+        # 临时光环回调（具有）— 统一使用 AuraProvider
+        self._aura_attack_provider = AttackAuraProvider(self)
+        self._aura_max_health_provider = MaxHealthAuraProvider(self)
+        self._aura_keyword_provider = KeywordAuraProvider(self)
+        # 向后兼容别名
+        self._aura_attack_fns = self._aura_attack_provider
+        self._aura_max_health_fns = self._aura_max_health_provider
+        self._aura_keyword_fns = self._aura_keyword_provider
 
         # 本 minion 向其它异象提供的光环记录（死亡/离场时自动清理）
         self._provided_auras: List[Tuple["Minion", str, Callable]] = []
@@ -529,11 +548,11 @@ class Minion:
     def recalculate(self):
         """重新计算当前生效的面板和关键词。"""
         # 攻击力
-        aura_atk = sum(fn(self) for fn in self._aura_attack_fns)
+        aura_atk = self._aura_attack_provider.evaluate()
         self.current_attack = self.base_attack + self.perm_attack_bonus + self.temp_attack_bonus + aura_atk
 
         # 最大生命值
-        aura_max = sum(fn(self) for fn in self._aura_max_health_fns)
+        aura_max = self._aura_max_health_provider.evaluate()
         new_max = self.base_max_health + self.perm_max_health_bonus + self.temp_max_health_bonus + aura_max
         self.current_max_health = new_max
         if self.current_health > self.current_max_health:
@@ -545,9 +564,9 @@ class Minion:
             kw[k] = self._merge_kw(kw.get(k), v)
         for k, v in self.temp_keywords.items():
             kw[k] = self._merge_kw(kw.get(k), v)
-        for fn in self._aura_keyword_fns:
-            for k, v in fn(self).items():
-                kw[k] = self._merge_kw(kw.get(k), v)
+        aura_kw = self._aura_keyword_provider.evaluate()
+        for k, v in aura_kw.items():
+            kw[k] = self._merge_kw(kw.get(k), v)
 
         # 恐惧覆盖
         if self._fear_active:
@@ -616,10 +635,9 @@ class Minion:
         self.temp_health_bonus = 0
         self.temp_max_health_bonus = 0
         self.temp_keywords.clear()
-        self._aura_attack_fns.clear()
-        self._aura_health_fns.clear()
-        self._aura_max_health_fns.clear()
-        self._aura_keyword_fns.clear()
+        self._aura_attack_provider.clear()
+        self._aura_max_health_provider.clear()
+        self._aura_keyword_provider.clear()
         self._fear_active = False
         self.current_health = self.base_health
         self.current_max_health = self.base_max_health
@@ -636,47 +654,38 @@ class Minion:
 
     # ----- 光环回调注册 -----
     def add_aura_attack(self, fn: Callable[["Minion"], int]):
-        self._aura_attack_fns.append(fn)
-        self.recalculate()
+        self._aura_attack_provider.add(fn)
 
     def remove_aura_attack(self, fn: Callable[["Minion"], int]):
-        if fn in self._aura_attack_fns:
-            self._aura_attack_fns.remove(fn)
-            self.recalculate()
+        self._aura_attack_provider.remove_by_fn(fn)
 
     def add_aura_max_health(self, fn: Callable[["Minion"], int]):
-        self._aura_max_health_fns.append(fn)
-        self.recalculate()
+        self._aura_max_health_provider.add(fn)
 
     def remove_aura_max_health(self, fn: Callable[["Minion"], int]):
-        if fn in self._aura_max_health_fns:
-            self._aura_max_health_fns.remove(fn)
-            self.recalculate()
+        self._aura_max_health_provider.remove_by_fn(fn)
 
     def add_aura_keywords(self, fn: Callable[["Minion"], Dict[str, Any]]):
-        self._aura_keyword_fns.append(fn)
-        self.recalculate()
+        self._aura_keyword_provider.add(fn)
 
     def remove_aura_keywords(self, fn: Callable[["Minion"], Dict[str, Any]]):
-        if fn in self._aura_keyword_fns:
-            self._aura_keyword_fns.remove(fn)
-            self.recalculate()
+        self._aura_keyword_provider.remove_by_fn(fn)
 
     # ----- 光环提供者 API（自动追踪，便于死亡/离场时清理） -----
 
-    def provide_aura_attack(self, target: "Minion", fn: Callable[["Minion"], int]) -> None:
+    def provide_aura_attack(self, target: "Minion", fn: Callable[["Minion"], int], expires_on: Optional[str] = None) -> None:
         """向目标提供攻击力光环，并记录以便自动清理。"""
-        target.add_aura_attack(fn)
+        target._aura_attack_provider.add(fn, source=self, expires_on=expires_on)
         self._provided_auras.append((target, "attack", fn))
 
-    def provide_aura_max_health(self, target: "Minion", fn: Callable[["Minion"], int]) -> None:
+    def provide_aura_max_health(self, target: "Minion", fn: Callable[["Minion"], int], expires_on: Optional[str] = None) -> None:
         """向目标提供最大生命值光环，并记录以便自动清理。"""
-        target.add_aura_max_health(fn)
+        target._aura_max_health_provider.add(fn, source=self, expires_on=expires_on)
         self._provided_auras.append((target, "max_health", fn))
 
-    def provide_aura_keywords(self, target: "Minion", fn: Callable[["Minion"], Dict[str, Any]]) -> None:
+    def provide_aura_keywords(self, target: "Minion", fn: Callable[["Minion"], Dict[str, Any]], expires_on: Optional[str] = None) -> None:
         """向目标提供关键词光环，并记录以便自动清理。"""
-        target.add_aura_keywords(fn)
+        target._aura_keyword_provider.add(fn, source=self, expires_on=expires_on)
         self._provided_auras.append((target, "keyword", fn))
 
     def clear_all_provided_auras(self) -> None:
