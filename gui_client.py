@@ -535,8 +535,10 @@ class DeckBuilderFrame(tk.Frame):
         self._refresh_deck_list()
 
     def _cost_sort_key(self, c):
+        from card_pools.effect_utils import convert_cost_to_t
         cost = c.cost
-        return cost.t + cost.b + cost.s + cost.c + cost.ct + sum(cost.minerals.values())
+        # 使用折算费用（等效T点数），避免 1D(=4T) 排在 2T 前面
+        return convert_cost_to_t(cost) + cost.ct
 
     def _refresh_available(self):
         for tab in self.pack_tabs.values():
