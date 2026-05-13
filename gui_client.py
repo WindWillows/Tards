@@ -505,21 +505,26 @@ class DeckBuilderFrame(tk.Frame):
         img = None
         if getattr(card, "asset_id", None):
             img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+
+        y = 10
         if img:
-            cvs.create_image(cw // 2, ch // 2, image=img)
+            # 显示卡牌图片（高度约 120，为描述留出空间）
+            cvs.create_image(cw // 2, y + 60, image=img)
             cvs.image = img
+            y = 135
         else:
             # 回退：显示文字信息
             lines = [card.name, str(card.cost), card.card_type.value]
             if isinstance(card, MinionCard):
                 lines.append(f"{card.attack}/{card.health}")
-            y = 40
             for line in lines:
                 cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
                 y += 24
-            desc = getattr(card, "description", "")
-            if desc:
-                cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+
+        # 无论是否有图片，都显示效果描述
+        desc = getattr(card, "description", "")
+        if desc:
+            cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
 
     def _clear_detail_canvas(self):
         if not hasattr(self, "detail_canvas"):
@@ -1735,20 +1740,26 @@ class BattleFrame(tk.Frame):
         img = None
         if getattr(card, "asset_id", None):
             img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+
+        y = 10
         if img:
-            cvs.create_image(cw // 2, ch // 2, image=img)
+            # 显示卡牌图片（高度约 120，为描述留出空间）
+            cvs.create_image(cw // 2, y + 60, image=img)
             cvs.image = img
+            y = 135
         else:
+            # 回退：显示文字信息
             lines = [card.name, str(card.cost), card.card_type.value]
             if isinstance(card, MinionCard):
                 lines.append(f"{card.attack}/{card.health}")
-            y = 40
             for line in lines:
                 cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
                 y += 24
-            desc = getattr(card, "description", "")
-            if desc:
-                cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+
+        # 无论是否有图片，都显示效果描述
+        desc = getattr(card, "description", "")
+        if desc:
+            cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
 
     def _clear_detail_canvas(self):
         if not hasattr(self, "detail_canvas"):
