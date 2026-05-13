@@ -495,43 +495,42 @@ class DeckBuilderFrame(tk.Frame):
         self.detail_text.config(state=tk.DISABLED)
 
     # ===== BattleFrame 卡牌详情大图 =====
-    def _update_detail_canvas(self, card):
-        if not hasattr(self, "detail_canvas"):
+    def _update_detail_text(self, card):
+        """在右侧文本栏中显示卡牌信息（悬停时触发）。"""
+        if not hasattr(self, "detail_text"):
             return
-        cvs = self.detail_canvas
-        cvs.delete("all")
-        am = get_asset_manager()
-        cw, ch = 160, 220
-        img = None
-        if getattr(card, "asset_id", None):
-            img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
 
-        y = 10
-        if img:
-            # 显示卡牌图片（高度约 120，为描述留出空间）
-            cvs.create_image(cw // 2, y + 60, image=img)
-            cvs.image = img
-            y = 135
-        else:
-            # 回退：显示文字信息
-            lines = [card.name, str(card.cost), card.card_type.value]
-            if isinstance(card, MinionCard):
-                lines.append(f"{card.attack}/{card.health}")
-            for line in lines:
-                cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
-                y += 24
-
-        # 无论是否有图片，都显示效果描述
+        # 从 CardDefinition 获取描述（Card 对象本身没有 description）
         desc = getattr(card, "description", "")
-        if desc:
-            cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+        if not desc and DEFAULT_REGISTRY:
+            card_def = DEFAULT_REGISTRY.get(card.name)
+            if card_def:
+                desc = getattr(card_def, "description", "")
 
-    def _clear_detail_canvas(self):
-        if not hasattr(self, "detail_canvas"):
+        lines = [f"【{card.name}】  费用: {card.cost}"]
+        if isinstance(card, MinionCard):
+            lines.append(f"攻击/生命: {card.attack}/{card.health}")
+        if getattr(card, "keywords", None):
+            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in card.keywords.items())
+            lines.append(f"关键词: {kw}")
+        if desc:
+            lines.append(f"\n【效果】\n{desc}")
+        else:
+            lines.append("\n【效果】\n（暂无描述）")
+
+        text = "\n".join(lines)
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, text)
+        self.detail_text.config(state=tk.DISABLED)
+
+    def _clear_detail_text(self):
+        if not hasattr(self, "detail_text"):
             return
-        cvs = self.detail_canvas
-        cvs.delete("all")
-        cvs.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        self.detail_text.config(state=tk.DISABLED)
 
     def _on_imm_change(self, pack: Pack):
         pts = self.imm_sliders[pack].get()
@@ -1398,12 +1397,16 @@ class BattleFrame(tk.Frame):
         self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9))
         self.history_list.pack(fill=tk.X, padx=5, pady=2)
 
-        # 卡牌详情大图（悬停时显示）
+        # 卡牌详情文本栏（悬停时显示）
         detail_frame = tk.LabelFrame(right, text="卡牌详情")
         detail_frame.pack(fill=tk.X, pady=5)
-        self.detail_canvas = tk.Canvas(detail_frame, width=160, height=220, bg="#fafafa", highlightthickness=1, highlightbackground="#e0e0e0")
-        self.detail_canvas.pack(padx=5, pady=5)
-        self.detail_canvas.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
+        self.detail_text = tk.Text(detail_frame, height=10, wrap=tk.WORD,
+                                   font=("Microsoft YaHei", 10), state=tk.DISABLED,
+                                   bg="#fafafa", fg="#333")
+        self.detail_text.pack(fill=tk.X, padx=5, pady=5)
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        self.detail_text.config(state=tk.DISABLED)
 
         # 日志
         log_frame = tk.LabelFrame(right, text="日志")
@@ -1730,43 +1733,42 @@ class BattleFrame(tk.Frame):
                                                  fill="#fff59d", stipple="gray50",
                                                  tags="target_hint")
 
-    def _update_detail_canvas(self, card):
-        if not hasattr(self, "detail_canvas"):
+    def _update_detail_text(self, card):
+        """在右侧文本栏中显示卡牌信息（悬停时触发）。"""
+        if not hasattr(self, "detail_text"):
             return
-        cvs = self.detail_canvas
-        cvs.delete("all")
-        am = get_asset_manager()
-        cw, ch = 160, 220
-        img = None
-        if getattr(card, "asset_id", None):
-            img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
 
-        y = 10
-        if img:
-            # 显示卡牌图片（高度约 120，为描述留出空间）
-            cvs.create_image(cw // 2, y + 60, image=img)
-            cvs.image = img
-            y = 135
-        else:
-            # 回退：显示文字信息
-            lines = [card.name, str(card.cost), card.card_type.value]
-            if isinstance(card, MinionCard):
-                lines.append(f"{card.attack}/{card.health}")
-            for line in lines:
-                cvs.create_text(cw // 2, y, text=line, fill="#212121", font=("Microsoft YaHei", 10, "bold"))
-                y += 24
-
-        # 无论是否有图片，都显示效果描述
+        # 从 CardDefinition 获取描述（Card 对象本身没有 description）
         desc = getattr(card, "description", "")
-        if desc:
-            cvs.create_text(cw // 2, y + 10, text=desc, fill="#616161", font=("Microsoft YaHei", 9), width=cw - 10)
+        if not desc and DEFAULT_REGISTRY:
+            card_def = DEFAULT_REGISTRY.get(card.name)
+            if card_def:
+                desc = getattr(card_def, "description", "")
 
-    def _clear_detail_canvas(self):
-        if not hasattr(self, "detail_canvas"):
+        lines = [f"【{card.name}】  费用: {card.cost}"]
+        if isinstance(card, MinionCard):
+            lines.append(f"攻击/生命: {card.attack}/{card.health}")
+        if getattr(card, "keywords", None):
+            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in card.keywords.items())
+            lines.append(f"关键词: {kw}")
+        if desc:
+            lines.append(f"\n【效果】\n{desc}")
+        else:
+            lines.append("\n【效果】\n（暂无描述）")
+
+        text = "\n".join(lines)
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, text)
+        self.detail_text.config(state=tk.DISABLED)
+
+    def _clear_detail_text(self):
+        if not hasattr(self, "detail_text"):
             return
-        cvs = self.detail_canvas
-        cvs.delete("all")
-        cvs.create_text(80, 110, text="悬停卡牌查看详情", fill="#9e9e9e", font=("Microsoft YaHei", 10))
+        self.detail_text.config(state=tk.NORMAL)
+        self.detail_text.delete("1.0", tk.END)
+        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        self.detail_text.config(state=tk.DISABLED)
 
     def _render_hand(self):
         for w in list(self.hand_inner.winfo_children()):
@@ -1852,8 +1854,8 @@ class BattleFrame(tk.Frame):
             # 绑定事件
             cvs.bind("<Button-1>", lambda e, idx=i: self._on_hand_card_click(idx))
             cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
-            cvs.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s), self._update_detail_canvas(c)))
-            cvs.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview(), self._clear_detail_canvas()))
+            cvs.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s), self._update_detail_text(c)))
+            cvs.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview(), self._clear_detail_text()))
             cvs.bind("<Motion>", lambda e, c=card: self._move_tooltip(e.x_root, e.y_root))
 
     def _card_display_text(self, card) -> str:
