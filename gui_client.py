@@ -99,12 +99,19 @@ class LocalDuel:
         self._choice_event = threading.Event()
         self._choice_title: str = "抉择"
 
+        self.targeting_request_callback: Optional[Callable[[Any, List[Any]], None]] = None
+        self._targeting_request: Optional[Any] = None
+        self._targeting_valid_targets: Optional[List[Any]] = None
+        self._targeting_result: Optional[Any] = None
+        self._targeting_event = threading.Event()
+
     def run_game(self, opponent: Player):
         self.game = Game(
             self.local_player,
             opponent,
             action_provider=self._make_action_provider(),
             discover_provider=self._make_discover_provider(),
+            targeting_provider=self._make_targeting_provider(),
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -158,6 +165,28 @@ class LocalDuel:
             self._choice_event.wait()
             return self._choice_result if self._choice_result in options else options[0]
         return provider
+
+    def _make_targeting_provider(self):
+        def provider(game, request, valid_targets):
+            if request.deciding_player == self.local_player:
+                self._targeting_request = request
+                self._targeting_valid_targets = valid_targets
+                self._targeting_result = None
+                self._targeting_event.clear()
+                if self.targeting_request_callback:
+                    self.targeting_request_callback(request, valid_targets)
+                self._targeting_event.wait()
+                return self._targeting_result
+            else:
+                # AI / 命令行回退：随机选第一个
+                import random
+                return random.choice(valid_targets) if valid_targets else None
+        return provider
+
+    def submit_local_targeting(self, target: Any):
+        """GUI 调用：提交本地玩家的指向选择。"""
+        self._targeting_result = target
+        self._targeting_event.set()
 
     def submit_local_choice(self, chosen: str):
         self._choice_result = chosen
@@ -1130,6 +1159,11 @@ class BattleFrame(tk.Frame):
         self._drag_start_y = 0
         self._drag_label = None
 
+        # 棋盘尺寸（随 Canvas 大小动态调整）
+        self.cell_size = self.CELL_SIZE
+        self.board_offset_x = self.BOARD_OFFSET_X
+        self.board_offset_y = self.BOARD_OFFSET_Y
+
         self._build_ui()
         self._draw_board_grid()
         self._start_game_thread()
@@ -1270,13 +1304,13 @@ class BattleFrame(tk.Frame):
             self._dragging_serial = None
             return
         # 判断释放位置是否在棋盘内
-        canvas_x = event.x_root - self.canvas.winfo_rootx() - self.BOARD_OFFSET_X
-        canvas_y = event.y_root - self.canvas.winfo_rooty() - self.BOARD_OFFSET_Y
-        board_w = self.BOARD_COLS * self.CELL_SIZE
-        board_h = self.BOARD_ROWS * self.CELL_SIZE
+        canvas_x = event.x_root - self.canvas.winfo_rootx() - self.board_offset_x
+        canvas_y = event.y_root - self.canvas.winfo_rooty() - self.board_offset_y
+        board_w = self.BOARD_COLS * self.cell_size
+        board_h = self.BOARD_ROWS * self.cell_size
         if 0 <= canvas_x < board_w and 0 <= canvas_y < board_h:
-            c = int(canvas_x // self.CELL_SIZE)
-            r = int(canvas_y // self.CELL_SIZE)
+            c = int(canvas_x // self.cell_size)
+            r = int(canvas_y // self.cell_size)
             self._try_play_at_position(self._dragging_serial, (r, c))
         self._dragging_card = None
         self._dragging_serial = None
@@ -1306,49 +1340,158 @@ class BattleFrame(tk.Frame):
         if not self.duel.game.board.is_valid_deploy(target, active, card):
             self._flash_invalid_at(target)
             return
-        if self.duel.game.board.get_minion_at(target):
+        existing = self.duel.game.board.get_minion_at(target)
+        if existing and not (
+            ("漂浮物" in existing.keywords and existing.owner == active) or
+            ("藤蔓" in card.keywords and existing.owner == active)
+        ):
             self._flash_invalid_at(target)
             return
         self._submit_play(serial, target)
 
+    def _on_board_resize(self, event):
+        """棋盘 Canvas 大小变化时重新计算单元格尺寸并重绘。
+
+        限制最大 cell_size 为 80（原始大小），只在小窗口时自动缩小，
+        避免全屏时棋盘过大遮挡信息面板。
+        """
+        w, h = event.width, event.height
+        if w < 200 or h < 200:
+            return
+        margin = 20
+        label_h = 25  # 底部列名标签高度
+        new_cell = min((w - margin * 2) // self.BOARD_COLS,
+                       (h - margin * 2 - label_h) // self.BOARD_ROWS)
+        # 最大 105px，最小 40px
+        new_cell = max(min(new_cell, 105), 40)
+        new_offset_x = (w - self.BOARD_COLS * new_cell) // 2
+        new_offset_y = (h - self.BOARD_ROWS * new_cell - label_h) // 2
+        if (new_cell != self.cell_size or
+            new_offset_x != self.board_offset_x or
+            new_offset_y != self.board_offset_y):
+            self.cell_size = new_cell
+            self.board_offset_x = new_offset_x
+            self.board_offset_y = new_offset_y
+            self._draw_board_grid()
+            if self.duel.game:
+                self._render_board()
+
+    def _build_player_info_panel(self, parent, player, is_local):
+        """构建单个玩家信息面板，返回包含所有 widget 的字典。"""
+        frame = tk.Frame(parent, height=100, bg="#fafafa",
+                         highlightthickness=1, highlightbackground="#bdbdbd")
+        frame.pack_propagate(False)
+        frame.pack(fill=tk.X, pady=2)
+
+        # 行0：名字 + 手牌数（醒目）
+        row0 = tk.Frame(frame, bg="#fafafa")
+        row0.pack(fill=tk.X, padx=10, pady=(5, 0))
+
+        name_label = tk.Label(row0, text=player.name, font=("Microsoft YaHei", 12, "bold"),
+                              bg="#fafafa", anchor="w")
+        name_label.pack(side=tk.LEFT)
+
+        hand_label = tk.Label(row0, text="手牌:0", font=("Microsoft YaHei", 13, "bold"),
+                              bg="#fafafa", fg="#1565c0")
+        hand_label.pack(side=tk.RIGHT)
+
+        # 行1：HP
+        row1 = tk.Frame(frame, bg="#fafafa")
+        row1.pack(fill=tk.X, padx=10, pady=(2, 0))
+
+        hp_frame = tk.Frame(row1, bg="#fafafa")
+        hp_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        hp_bar = ttk.Progressbar(hp_frame, length=160, mode="determinate", maximum=30)
+        hp_bar.pack(side=tk.LEFT)
+
+        hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 10, "bold"),
+                            bg="#fafafa", fg="#d32f2f")
+        hp_label.pack(side=tk.LEFT, padx=(6, 0))
+
+        # 分隔线
+        sep = tk.Frame(frame, height=1, bg="#e0e0e0")
+        sep.pack(fill=tk.X, padx=10, pady=3)
+
+        # 行2：资源 + 牌库信息
+        row2 = tk.Frame(frame, bg="#fafafa")
+        row2.pack(fill=tk.X, padx=10, pady=(0, 5))
+
+        t_label = tk.Label(row2, text="T: -/-", font=("Microsoft YaHei", 10, "bold"),
+                           bg="#fafafa", fg="#1976d2")
+        t_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        c_label = tk.Label(row2, text="C: -/-", font=("Microsoft YaHei", 10, "bold"),
+                           bg="#fafafa", fg="#388e3c")
+        c_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        b_label = tk.Label(row2, text="B: 0", font=("Microsoft YaHei", 10, "bold"),
+                           bg="#fafafa", fg="#7b1fa2")
+        b_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        s_label = tk.Label(row2, text="S: 0", font=("Microsoft YaHei", 10, "bold"),
+                           bg="#fafafa", fg="#f57c00")
+        s_label.pack(side=tk.LEFT, padx=(0, 15))
+
+        deck_label = tk.Label(row2, text="抽牌堆:0", font=("Microsoft YaHei", 9),
+                              bg="#fafafa")
+        deck_label.pack(side=tk.LEFT, padx=(0, 8))
+
+        dis_label = tk.Label(row2, text="弃牌堆:0", font=("Microsoft YaHei", 9),
+                             bg="#fafafa")
+        dis_label.pack(side=tk.LEFT, padx=(0, 8))
+
+        con_label = tk.Label(row2, text="阴谋序列:0", font=("Microsoft YaHei", 9),
+                             bg="#fafafa")
+        con_label.pack(side=tk.LEFT, padx=(0, 8))
+
+        # 点击绑定（将面板作为指向目标）
+        clickable = [frame, row0, row1, row2, name_label, hand_label,
+                     hp_frame, hp_bar, hp_label,
+                     sep, t_label, c_label, b_label, s_label,
+                     deck_label, dis_label, con_label]
+        for w in clickable:
+            w.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
+
+        return {
+            "frame": frame, "row0": row0, "row1": row1, "row2": row2,
+            "name_label": name_label, "hand_label": hand_label,
+            "hp_frame": hp_frame, "hp_bar": hp_bar, "hp_label": hp_label,
+            "t_label": t_label, "c_label": c_label,
+            "b_label": b_label, "s_label": s_label,
+            "deck_label": deck_label, "dis_label": dis_label,
+            "conspiracy_label": con_label,
+        }
+
     def _build_ui(self):
-        # 左侧棋盘
-        self.canvas = tk.Canvas(self, width=500, height=500, bg="white")
-        self.canvas.pack(side=tk.LEFT, padx=10, pady=10)
+        # 左侧整体（垂直布局：对手信息 + 棋盘 + 本地玩家信息）
+        left = tk.Frame(self)
+        left.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.98)
+
+        # 对手信息（棋盘上方）
+        self.opponent_info = self._build_player_info_panel(left, self.opponent, is_local=False)
+
+        # 棋盘（自适应大小）
+        self.canvas = tk.Canvas(left, width=500, height=500, bg="white")
+        self.canvas.pack(fill=tk.BOTH, expand=True, pady=2)
         self.canvas.bind("<Button-1>", self._on_canvas_click)
+        self.canvas.bind("<Configure>", self._on_board_resize)
+
+        # 本地玩家信息（棋盘下方）
+        self.local_info = self._build_player_info_panel(left, self.local_player, is_local=True)
+
+        self.info_labels = {
+            self.opponent.name: self.opponent_info,
+            self.local_player.name: self.local_info,
+        }
 
         # 右侧
         right = tk.Frame(self)
-        right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        right.place(relx=0.50, rely=0.01, relwidth=0.48, relheight=0.98)
 
         # 阶段显示
         self.phase_label = tk.Label(right, text="等待游戏开始...", font=("Microsoft YaHei", 14, "bold"), fg="#d32f2f")
         self.phase_label.pack(fill=tk.X, pady=(0, 5))
-
-        # 玩家信息
-        info_frame = tk.LabelFrame(right, text="玩家信息", padx=5, pady=5)
-        info_frame.pack(fill=tk.X, pady=5)
-        self.info_labels = {}
-        for pname in [self.local_player.name, self.opponent.name]:
-            lbl = tk.Label(info_frame, text=f"{pname}: 等待中...", anchor="w")
-            lbl.pack(fill=tk.X)
-            self.info_labels[pname] = lbl
-
-        # 牌堆 / 弃牌堆 视觉区
-        deck_frame = tk.LabelFrame(right, text="牌库")
-        deck_frame.pack(fill=tk.X, pady=5)
-        self.deck_canvases = {}
-        for pname in [self.local_player.name, self.opponent.name]:
-            row = tk.Frame(deck_frame)
-            row.pack(fill=tk.X, pady=2)
-            tk.Label(row, text=pname, width=8, anchor="w").pack(side=tk.LEFT)
-            # 牌堆
-            deck_cvs = tk.Canvas(row, width=50, height=70, bg="#f5f5f5", highlightthickness=1, highlightbackground="#bdbdbd")
-            deck_cvs.pack(side=tk.LEFT, padx=5)
-            # 弃牌堆
-            dis_cvs = tk.Canvas(row, width=50, height=70, bg="#f5f5f5", highlightthickness=1, highlightbackground="#bdbdbd")
-            dis_cvs.pack(side=tk.LEFT, padx=5)
-            self.deck_canvases[pname] = {"deck": deck_cvs, "discard": dis_cvs}
 
         # 手牌
         hand_frame = tk.LabelFrame(right, text="手牌")
@@ -1400,7 +1543,7 @@ class BattleFrame(tk.Frame):
         # 卡牌详情文本栏（悬停时显示）
         detail_frame = tk.LabelFrame(right, text="卡牌详情")
         detail_frame.pack(fill=tk.X, pady=5)
-        self.detail_text = tk.Text(detail_frame, height=10, wrap=tk.WORD,
+        self.detail_text = tk.Text(detail_frame, height=5, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
                                    bg="#fafafa", fg="#333")
         self.detail_text.pack(fill=tk.X, padx=5, pady=5)
@@ -1463,9 +1606,15 @@ class BattleFrame(tk.Frame):
         valid = []
         if isinstance(card, MinionCard):
             # 随从卡：合法部署位置（空位）
-            valid = [t for t in active.get_valid_targets(card)
-                     if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card)
-                     and self.duel.game.board.get_minion_at(t) is None]
+            valid = []
+            for t in active.get_valid_targets(card):
+                if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card):
+                    existing = self.duel.game.board.get_minion_at(t)
+                    if existing is None or (
+                        ("漂浮物" in existing.keywords and existing.owner == active) or
+                        ("藤蔓" in card.keywords and existing.owner == active)
+                    ):
+                        valid.append(t)
         elif isinstance(card, Strategy):
             # 策略卡：单指向的合法目标（位置或异象）
             valid = [t for t in active.get_valid_targets(card)
@@ -1474,15 +1623,15 @@ class BattleFrame(tk.Frame):
         for target in valid:
             if isinstance(target, tuple) and len(target) == 2:
                 r, c = target
-                cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
-                cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+                cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
                                              outline="#4caf50", width=2, dash=(4, 4),
                                              tags="preview_hint")
             elif hasattr(target, "position") and target.position:
                 r, c = target.position
-                cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
-                cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+                cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
                                              outline="#4caf50", width=2, dash=(4, 4),
                                              tags="preview_hint")
@@ -1493,13 +1642,18 @@ class BattleFrame(tk.Frame):
 
     def _draw_board_grid(self):
         am = get_asset_manager()
+        # 清理旧网格（避免 resize 时重叠绘制）
+        self.canvas.delete("board_grid")
+        for r in range(5):
+            for c in range(5):
+                self.canvas.delete(f"cell_{r}_{c}")
         self._tile_image_refs = {}
         for r in range(5):
             for c in range(5):
-                x1 = c * self.CELL_SIZE + self.BOARD_OFFSET_X
-                y1 = r * self.CELL_SIZE + self.BOARD_OFFSET_Y
-                x2 = x1 + self.CELL_SIZE
-                y2 = y1 + self.CELL_SIZE
+                x1 = c * self.cell_size + self.board_offset_x
+                y1 = r * self.cell_size + self.board_offset_y
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
                 color = "#e0f7fa"
                 terrain_id = None
                 if r in (0, 1):
@@ -1514,17 +1668,17 @@ class BattleFrame(tk.Frame):
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black", tags=f"cell_{r}_{c}")
                 # 尝试加载地形纹理
                 if terrain_id:
-                    tile = am.get_board_tile(terrain_id, self.CELL_SIZE)
+                    tile = am.get_board_tile(terrain_id, self.cell_size)
                     if tile:
                         self._tile_image_refs[(r, c)] = tile
-                        self.canvas.create_image(x1 + self.CELL_SIZE // 2, y1 + self.CELL_SIZE // 2,
+                        self.canvas.create_image(x1 + self.cell_size // 2, y1 + self.cell_size // 2,
                                                  image=tile, tags=f"cell_{r}_{c}")
         for c, name in enumerate(self.COL_NAMES):
-            x1 = c * self.CELL_SIZE + self.BOARD_OFFSET_X
-            x2 = x1 + self.CELL_SIZE
-            label_y = 5 * self.CELL_SIZE + self.BOARD_OFFSET_Y
+            x1 = c * self.cell_size + self.board_offset_x
+            x2 = x1 + self.cell_size
+            label_y = 5 * self.cell_size + self.board_offset_y
             self.canvas.create_rectangle(x1, label_y, x2, label_y + 20, fill="#cfd8dc", outline="black", tags="board_grid")
-            self.canvas.create_text(x1 + self.CELL_SIZE // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
+            self.canvas.create_text(x1 + self.cell_size // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
@@ -1632,8 +1786,8 @@ class BattleFrame(tk.Frame):
         am = get_asset_manager()
         self._minion_image_refs = {}
         for (r, c), m in self.duel.game.board.minion_place.items():
-            cx = c * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
-            cy = r * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+            cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+            cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             color = "#42a5f5" if m.owner.side == self.local_player.side else "#ef5350"
             tag = f"minion_{r}_{c}"
             # 根据关键词决定边框颜色
@@ -1651,6 +1805,13 @@ class BattleFrame(tk.Frame):
             elif m.keywords.get("成长") is not None and m.keywords.get("成长") is not False:
                 outline = "#4caf50"  # 绿色
                 width = 3
+            # 漂浮物/藤蔓宿主：特殊边框色
+            if getattr(m, "float_host", None):
+                outline = "#ffc107"  # 金色
+                width = 4
+            elif getattr(m, "vine_host", None):
+                outline = "#9c27b0"  # 紫色
+                width = 4
             # 阴影
             self.canvas.create_rectangle(cx - 28, cy - 23, cx + 32, cy + 27, fill="#757575", outline="", tags=(tag, "minion"))
             # 尝试加载肖像缩略图
@@ -1723,21 +1884,21 @@ class BattleFrame(tk.Frame):
             pending = getattr(m, "_pending_attack_targets", None)
             if not pending or not isinstance(pending, list):
                 continue
-            x1 = c * self.CELL_SIZE + self.CELL_SIZE // 2
-            y1 = r * self.CELL_SIZE + self.CELL_SIZE // 2
+            x1 = c * self.cell_size + self.cell_size // 2
+            y1 = r * self.cell_size + self.cell_size // 2
             for target in pending:
                 if hasattr(target, "position") and target.position:
                     tr, tc = target.position
-                    x2 = tc * self.CELL_SIZE + self.CELL_SIZE // 2
-                    y2 = tr * self.CELL_SIZE + self.CELL_SIZE // 2
+                    x2 = tc * self.cell_size + self.cell_size // 2
+                    y2 = tr * self.cell_size + self.cell_size // 2
                     self.canvas.create_line(x1, y1, x2, y2,
                                             fill="#ffeb3b", dash=(4, 4), width=2,
                                             arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 高亮指向来源异象（金色发光边框）
         if self._targeting_source_minion and self._targeting_source_minion.position:
             sr, sc = self._targeting_source_minion.position
-            scx = sc * self.CELL_SIZE + self.CELL_SIZE // 2
-            scy = sr * self.CELL_SIZE + self.CELL_SIZE // 2
+            scx = sc * self.cell_size + self.cell_size // 2
+            scy = sr * self.cell_size + self.cell_size // 2
             self.canvas.create_rectangle(scx - 34, scy - 29, scx + 34, scy + 29,
                                          outline="gold", width=4, tags="target_hint")
         # 高亮合法目标（位置）——黄色方框
@@ -1745,8 +1906,8 @@ class BattleFrame(tk.Frame):
             for t in self.valid_targets:
                 if isinstance(t, tuple) and len(t) == 2:
                     vr, vc = t
-                    vcx = vc * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_X
-                    vcy = vr * self.CELL_SIZE + self.CELL_SIZE // 2 + self.BOARD_OFFSET_Y
+                    vcx = vc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                    vcy = vr * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
                                                  outline="#ffd600", width=4,
                                                  fill="#fff59d", stipple="gray50",
@@ -1896,45 +2057,51 @@ class BattleFrame(tk.Frame):
     def _render_info(self):
         if not self.duel.game:
             return
-        am = get_asset_manager()
-        back_img = am.get_card_back("default", 46, 66)
-        for pname, lbl in self.info_labels.items():
+        for pname, widgets in self.info_labels.items():
             player = None
             if self.duel.game.p1.name == pname:
                 player = self.duel.game.p1
             elif self.duel.game.p2.name == pname:
                 player = self.duel.game.p2
-            if player:
-                active_mark = " ●" if self.duel.game.current_player == player else ""
-                lbl.config(text=(
-                    f"{pname}{active_mark} | HP:{player.health}/{player.health_max} "
-                    f"T:{player.t_point}/{player.t_point_max} "
-                    f"C:{player.c_point}/{player.c_point_max} B:{player.b_point} S:{player.s_point} "
-                    f"手牌:{len(player.card_hand)} | "
-                    f"卡组:{len(player.card_deck)} 弃牌:{len(player.card_dis)} 阴谋:{len(player.active_conspiracies)}"
-                ))
-                # 更新牌堆/弃牌堆 Canvas
-                cvs_map = self.deck_canvases.get(pname)
-                if cvs_map:
-                    for key, count in [("deck", len(player.card_deck)), ("discard", len(player.card_dis))]:
-                        cvs = cvs_map[key]
-                        cvs.delete("all")
-                        if back_img:
-                            cvs.create_image(25, 35, image=back_img)
-                            cvs.image = back_img
-                        else:
-                            cvs.create_rectangle(2, 2, 48, 68, fill="#8d6e63", outline="#5d4037", width=2)
-                        cvs.create_text(25, 60, text=str(count), fill="white",
-                                        font=("Microsoft YaHei", 10, "bold"))
-            # 绑定点击事件以支持将玩家作为指向目标
-            lbl.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
-            # 高亮提示：如果当前处于指向模式且该玩家是合法目标，改变背景色
-            if self._in_targeting_mode and player and player in self._targeting_valid_targets:
-                lbl.config(bg="#fff59d", cursor="hand2")
-            elif self.duel.game.current_player and self.duel.game.current_player.name == pname:
-                lbl.config(bg="#e8f5e9", cursor="arrow")
+            if not player:
+                continue
+
+            is_current = self.duel.game.current_player == player
+            is_target = self._in_targeting_mode and player in self._targeting_valid_targets
+
+            # 背景色
+            if is_target:
+                bg = "#fff59d"
+            elif is_current:
+                bg = "#e8f5e9"
             else:
-                lbl.config(bg="SystemButtonFace", cursor="arrow")
+                bg = "#fafafa"
+
+            for key in ["frame", "row0", "row1", "row2", "name_label", "hp_frame", "hp_label",
+                        "t_label", "c_label", "b_label", "s_label",
+                        "hand_label", "deck_label", "dis_label", "conspiracy_label"]:
+                if key in widgets:
+                    widgets[key].config(bg=bg)
+
+            # 回合标记 + 名字
+            active_mark = "● " if is_current else ""
+            widgets["name_label"].config(text=f"{active_mark}{pname}")
+
+            # HP
+            widgets["hp_bar"].config(maximum=player.health_max, value=player.health)
+            widgets["hp_label"].config(text=f"{player.health}/{player.health_max}")
+
+            # 资源
+            widgets["t_label"].config(text=f"T:{player.t_point}/{player.t_point_max}")
+            widgets["c_label"].config(text=f"C:{player.c_point}/{player.c_point_max}")
+            widgets["b_label"].config(text=f"B:{player.b_point}")
+            widgets["s_label"].config(text=f"S:{player.s_point}")
+
+            # 牌组信息
+            widgets["hand_label"].config(text=f"手牌:{len(player.card_hand)}")
+            widgets["deck_label"].config(text=f"抽牌堆:{len(player.card_deck)}")
+            widgets["dis_label"].config(text=f"弃牌堆:{len(player.card_dis)}")
+            widgets["conspiracy_label"].config(text=f"阴谋序列:{len(player.active_conspiracies)}")
 
     def _on_minion_click(self, minion: Minion):
         if not self._in_targeting_mode:
@@ -2166,10 +2333,15 @@ class BattleFrame(tk.Frame):
 
     def _enter_deploy_targeting(self, serial: int, card, active):
         """进入随从卡部署位置选择。"""
-        valid = [t for t in active.get_valid_targets(card)
-                 if isinstance(t, tuple) and self.duel.game
-                 and self.duel.game.board.is_valid_deploy(t, active, card)
-                 and self.duel.game.board.get_minion_at(t) is None]
+        valid = []
+        for t in active.get_valid_targets(card):
+            if isinstance(t, tuple) and self.duel.game and self.duel.game.board.is_valid_deploy(t, active, card):
+                existing = self.duel.game.board.get_minion_at(t)
+                if existing is None or (
+                    ("漂浮物" in existing.keywords and existing.owner == active) or
+                    ("藤蔓" in card.keywords and existing.owner == active)
+                ):
+                    valid.append(t)
         if not valid:
             self._submit_play(serial, None)
             return
@@ -2215,8 +2387,8 @@ class BattleFrame(tk.Frame):
             r, c = target.position
         else:
             return
-        cx = c * self.CELL_SIZE + self.CELL_SIZE // 2
-        cy = r * self.CELL_SIZE + self.CELL_SIZE // 2
+        cx = c * self.cell_size + self.cell_size // 2
+        cy = r * self.cell_size + self.cell_size // 2
         flash = self.canvas.create_rectangle(cx - 40, cy - 40, cx + 40, cy + 40,
                                              outline="#ff1744", width=4,
                                              tags="flash_hint")
@@ -2229,8 +2401,8 @@ class BattleFrame(tk.Frame):
         # 网络对战中，只能操作本地玩家；本地测试中，当前回合玩家均可操作
         if isinstance(self.duel, NetworkDuel) and active != self.local_player:
             return
-        c = (event.x - self.BOARD_OFFSET_X) // self.CELL_SIZE
-        r = (event.y - self.BOARD_OFFSET_Y) // self.CELL_SIZE
+        c = (event.x - self.board_offset_x) // self.cell_size
+        r = (event.y - self.board_offset_y) // self.cell_size
         target = (r, c)
 
         # 1. 如果处于指向模式，优先处理目标选择
@@ -2661,6 +2833,15 @@ class BattleFrame(tk.Frame):
                         break
         if pointed_by:
             lines.append(f"被指向: {', '.join(pointed_by)}")
+        # 漂浮物/藤蔓宿主信息
+        host = getattr(minion, "float_host", None) or getattr(minion, "vine_host", None)
+        if host:
+            lines.append("")
+            host_type = "漂浮物" if getattr(minion, "float_host", None) else "藤蔓"
+            lines.append(f"▓ {host_type}: {host.name}")
+            lines.append(f"   攻击/生命: {host.attack}/{host.health}")
+            if getattr(host, "keywords", None):
+                lines.append(f"   关键词: {self._fmt_keywords(host.keywords)}")
         text = "\n".join(lines)
         self._tooltip = Tooltip(self.canvas, text, event.x_root, event.y_root)
 

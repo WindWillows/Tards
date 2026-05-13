@@ -615,7 +615,6 @@ def _huanmozhe_special(minion, player, game, extras=None):
 
 
 @special
-@special
 def _haitun_special(minion, player, game, extras=None):
     """海豚：部署：展示卡组顶的3张牌，选择1张加入手牌，另2张置入卡组底。"""
     discover_from_deck_top(player, 3, game, title="海豚：选择1张牌加入手牌")
@@ -823,26 +822,38 @@ def _tntpao_special(minion, player, game, extras=None):
 @special
 def _shanhun_special(minion, player, game, extras=None):
     """善魂：部署：指向1个异象。亡语：使其+2/2。"""
+    from tards.targeting import TargetingRequest
 
-    target = None
-    if extras:
-        target = extras[0]
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
 
-    if target and isinstance(target, Minion) and target.is_alive():
-        minion._shanhun_target = target
-        print(f"  善魂指向了 {target.name}")
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "善魂：选择1个异象"
+    req.deciding_player = player
 
-        def _dr(m, p, b):
-            t = getattr(m, "_shanhun_target", None)
-            if t and t.is_alive():
-                t.gain_attack(2, permanent=True)
-                t.gain_health_bonus(2, permanent=True)
-                t.current_health += 2
-                print(f"  善魂的亡语使 {t.name} +2/+2")
-
-        add_deathrattle(minion, _dr)
-    else:
+    target = game.targeting_system.request_target(req)
+    if target is None:
         print("  善魂：未指向有效异象")
+        return
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  善魂：目标无效")
+        return
+
+    minion._shanhun_target = target
+    print(f"  善魂指向了 {target.name}")
+
+    def _dr(m, p, b):
+        t = getattr(m, "_shanhun_target", None)
+        if t and t.is_alive():
+            t.gain_attack(2, permanent=True)
+            t.gain_health_bonus(2, permanent=True)
+            t.current_health += 2
+            print(f"  善魂的亡语使 {t.name} +2/+2")
+
+    add_deathrattle(minion, _dr)
 
 
 @special
@@ -1427,7 +1438,6 @@ def _nishiz_special(minion, player, game, extras=None):
     on("after_damage", on_after_damage, game, minion)
 
 
-@special
 @special
 def _dongxuezhizhu_special(minion, player, game, extras=None):
     """洞穴蜘蛛：部署：将1个异象的攻击力设为1。亡语：将1张"蜘蛛眼"加入手牌。"""
@@ -2590,7 +2600,6 @@ def _zhidaojishu_effect(player, target, game, extras=None):
 
 
 @strategy
-@strategy
 def _hongji_effect(player, target, game, extras=None):
     """轰击：消灭1个受伤异象，将1张"TNT炮"加入手牌。"""
     from tards.targeting import TargetingRequest
@@ -3234,7 +3243,6 @@ def _huoshi_targets(player, board):
 
 
 @strategy
-@strategy
 def _huoshi_effect(player, target, game, extras=None):
     """火矢：使1个陆地异象获得+4攻击力。"""
     from tards.targeting import TargetingRequest
@@ -3317,7 +3325,6 @@ def _erdiao_effect(player, target, game, extras=None):
     return True
 
 
-@strategy
 @strategy
 def _zhongcheng_effect(player, target, game, extras=None):
     """忠诚：使1个友方异象获得亡语：将本异象的复制加入手牌。"""
@@ -3671,7 +3678,6 @@ def _yelian_effect(player, target, game, extras=None):
     return True
 
 
-@strategy
 @strategy
 def _cuiruotongmeng_effect(player, target, game, extras=None):
     """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，回合结束时，将其移除。"""
@@ -4099,7 +4105,6 @@ STRATEGY_MAP = {
 # =============================================================================
 
 @special
-@special
 def _jiangshizhuren_special(minion, player, game, extras=None):
     """僵尸猪人：部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。"""
     from tards.targeting import TargetingRequest
@@ -4127,7 +4132,6 @@ def _jiangshizhuren_special(minion, player, game, extras=None):
     return True
 
 
-@strategy
 @strategy
 def _guaiwulieren_strategy(player, target, game, extras=None):
     """怪物猎人：使1个友方生物异象+1/3，然后与1个敌方异象对战。"""
@@ -4803,7 +4807,6 @@ def _jinxiguapian_effect(player, target, game, extras=None):
 
 
 @strategy
-@strategy
 def _yinyu_effect(player, target, game, extras=None):
     """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。"""
     from tards.targeting import TargetingRequest
@@ -4862,7 +4865,6 @@ def _anye_effect(player, target, game, extras=None):
     return True
 
 
-@strategy
 @strategy
 def _poxi_effect(player, target, game, extras=None):
     """破袭：使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。"""

@@ -233,7 +233,6 @@ def _wangling_special(minion, player, game, extras=None):
 # 硫氰化钾：部署：使1个异象获得恐惧。若其已具有恐惧，将其HP设为1点。
 # =============================================================================
 @special
-@special
 def _liuqinghuajia_special(minion, player, game, extras=None):
     """硫氰化钾：部署：使1个异象获得恐惧。若其已具有恐惧，将其HP设为1点。"""
     from tards.targeting import TargetingRequest
@@ -2232,7 +2231,6 @@ def _xuanchen_special(minion, player, game, extras=None):
     return True
 
 
-@special
 @special
 def _jupian_special(minion, player, game, extras=None):
     """锯片：部署：对1个异象和你造成3点伤害。"""

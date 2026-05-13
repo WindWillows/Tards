@@ -1,0 +1,11 @@
+{
+  "name": "漂浮物测试",
+  "is_test_deck": true,
+  "immersion_points": {
+    "DISCRETE": 3
+  },
+  "cards": {
+    "船": 3,
+    "蠹虫": 4
+  }
+}
