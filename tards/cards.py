@@ -95,6 +95,13 @@ class Card:
             if hasattr(self, "_card_cost_modifiers"):
                 self._card_cost_modifiers.clear()
 
+        # 卡牌离开战场/场上时，自动清理 Card.on() 等监听器
+        if old_location in ("board", "hand") and new_location in ("graveyard", "discard", "exiled"):
+            if game and hasattr(game, "lifecycle"):
+                game.lifecycle.clear_card(self, reason=f"{old_location}->{new_location}")
+            else:
+                self.off_all()
+
         if game and hasattr(game, "event_bus"):
             game.emit_event("card_moved", card=self, from_loc=old_location, to_loc=new_location)
 
@@ -750,16 +757,16 @@ class Minion:
                         print(f"  {self.name} 的消灭被阻止")
                         return
 
-                self.clear_all_provided_auras()
+                # 从棋盘移除（remove_minion 内部会自动调用 lifecycle.clear_minion 如果存在）
                 self.board.remove_minion(self.position)
 
-                # 清理本异象的 EventBus 监听器（旧兼容层）
-                if game and hasattr(self, '_event_owner_id'):
-                    game.unregister_listeners_by_owner(self._event_owner_id)
-
-                # 清理本异象通过 GameHistory 统一注册的监听器
-                if game and hasattr(game, 'history'):
-                    game.history.unlisten_by_owner(self)
+                # 降级：旧兼容路径（无 lifecycle 时手动清理）
+                if not (game and hasattr(game, 'lifecycle')):
+                    self.clear_all_provided_auras()
+                    if game and hasattr(self, '_event_owner_id'):
+                        game.unregister_listeners_by_owner(self._event_owner_id)
+                    if game and hasattr(game, 'history'):
+                        game.history.unlisten_by_owner(self)
 
                 if game:
                     game.emit_event(EVENT_DEATH, minion=self, player=self.owner)

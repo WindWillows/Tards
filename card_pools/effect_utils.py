@@ -2334,6 +2334,7 @@ def register_terrain_enforcement(
         "trigger": "turn_end",
         "turn": end_turn,
         "fn": _cleanup,
+        "owner": minion,  # 绑定 owner：minion 死亡时自动跳过
     })
 
 

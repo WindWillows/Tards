@@ -80,6 +80,10 @@ class Game:
         # 结构化状态日志（机器可读，用于全局统计如失去T槽数、出牌数等）
         self._state_log: List[Dict[str, Any]] = []
 
+        # 监听器生命周期管理器
+        from .lifecycle import ListenerLifetimeManager
+        self.lifecycle = ListenerLifetimeManager(self)
+
         # 绑定引用
         self.board.game_ref = self
         for p in self.players:
@@ -1198,12 +1202,22 @@ class Game:
         ]
 
     def _process_delayed_effects(self, trigger: str):
-        """处理延迟效果队列中匹配当前触发时机的回调。"""
+        """处理延迟效果队列中匹配当前触发时机的回调。
+
+        新增：若条目绑定了 owner，且 owner 已死亡/不在场上，则跳过执行。
+        """
         if not hasattr(self, "_delayed_effects"):
             return
         to_run = []
         remaining = []
         for entry in self._delayed_effects:
+            # owner 存活检查
+            owner = entry.get("owner")
+            if owner is not None:
+                is_alive = getattr(owner, "is_alive", None)
+                if is_alive is not None and not is_alive():
+                    continue  # owner 已死亡，跳过该条目
+
             if entry.get("trigger") == trigger:
                 turn = entry.get("turn", 0)
                 player = entry.get("player")

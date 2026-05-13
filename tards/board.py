@@ -99,11 +99,9 @@ class Board:
 
         m = self.minion_place.pop(target, None)
         if m:
-            # 清理部署钩子
-            if self.game_ref:
-                m.clear_deploy_hook(self.game_ref)
-            # 清理本 minion 向其它异象提供的所有光环
-            m.clear_all_provided_auras()
+            # 统一清理该异象关联的所有监听器和回调
+            if self.game_ref and hasattr(self.game_ref, "lifecycle"):
+                self.game_ref.lifecycle.clear_minion(m, reason="removed")
             # 如果移除的是藤蔓，释放宿主
             if hasattr(m, 'vine_host') and m.vine_host:
                 host = m.vine_host
