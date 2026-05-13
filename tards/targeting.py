@@ -46,7 +46,7 @@ class TargetingRequest:
         on_confirm: 选择完成后回调，接收 target（单目标时）或 List[target]（多目标时）。
         on_cancel: 取消时回调。
     """
-    source: Any
+    source: Any = None
     scope_fn: Optional[Callable[["Player", "Board"], List[Any]]] = None
     numeric_options: Optional[List[int]] = None
     count: int = 1

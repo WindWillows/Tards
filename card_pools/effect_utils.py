@@ -1034,7 +1034,7 @@ def _init_event_name_map():
     }
 
 
-def on(period: str, callback, game, minion=None, priority: int = 0) -> int:
+def on(period: str, callback, game, minion=None, priority: int = 0, once: bool = False) -> int:
     """注册一个事件监听器。period 支持中英文事件名。
 
     常用 period：
@@ -1048,10 +1048,11 @@ def on(period: str, callback, game, minion=None, priority: int = 0) -> int:
       "card_played"/"卡牌打出", "bell"/"鸣钟", "death"/"死亡"
 
     minion 为 None 时，监听器无 owner（需手动注销）。
+    once=True 时，监听器触发一次后自动注销。
     """
     _init_event_name_map()
     event_type = _EVENT_NAME_MAP.get(period, period)
-    return game.history.listen(event_type, callback, owner=minion, priority=priority)
+    return game.history.listen(event_type, callback, owner=minion, priority=priority, once=once)
 
 
 # =============================================================================
