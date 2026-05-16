@@ -347,6 +347,7 @@ def _jiaopian_effect(player, target, game, extras=None):
 def _peiti_effect(player, target, game, extras=None):
     """配体：场上每有1个恐惧异象，使1个纯净异象+1/+1。"""
     from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
     # 统计场上恐惧异象数量
     fear_count = 0
@@ -358,8 +359,20 @@ def _peiti_effect(player, target, game, extras=None):
         print("  配体：场上没有恐惧异象")
         return True
 
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "配体：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, Minion) or not target.is_alive():
-        print("  配体：目标不合法")
+        print("  配体：目标无效")
         return False
 
     target.gain_attack(fear_count, permanent=True)
@@ -441,12 +454,7 @@ def _ziyou_effect(player, target, game, extras=None):
         if not tracked.is_alive() and sc:
             echo = create_echo_card(sc, getattr(sc, "echo_level", 1))
             echo.owner = player
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(echo)
-                print(f"  自由即奴役：{tracked.name} 离开战场，回响加入手牌")
-            else:
-                player.card_dis.append(echo)
-                print(f"  自由即奴役：手牌已满，回响被弃置")
+            player.add_card_to_hand(echo, game=game, emit_events=False)
         else:
             print(f"  自由即奴役：{tracked.name} 仍存活，无回响")
 
@@ -562,9 +570,22 @@ def _yongheng_effect(player, target, game, extras=None):
     """永恒奴役：将恐惧异象的复制加入手牌。"""
     from card_pools.effect_utils import copy_card_to_hand
     from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "永恒奴役：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, Minion) or not target.is_alive():
-        print("  永恒奴役：目标不合法")
+        print("  永恒奴役：目标无效")
         return False
 
     sc = getattr(target, "source_card", None)
@@ -594,12 +615,7 @@ def _jiaojuan_effect(player, target, game, extras=None):
     film_def = DEFAULT_REGISTRY.get("胶片")
     if film_def:
         film = film_def.to_game_card(opponent)
-        if len(opponent.card_hand) < opponent.card_hand_max:
-            opponent.card_hand.append(film)
-            print(f"  胶卷：胶片加入 {opponent.name} 手牌")
-        else:
-            opponent.card_dis.append(film)
-            print(f"  胶卷：{opponent.name} 手牌已满，胶片被弃置")
+        opponent.add_card_to_hand(film, game=game, emit_events=False)
     else:
         print("  胶卷：找不到胶片定义")
 
@@ -675,12 +691,10 @@ def _zhongying_effect(player, target, game, extras=None):
     if count > 0 and film_def:
         added = 0
         for _ in range(count):
-            if len(opponent.card_hand) < opponent.card_hand_max:
-                film = film_def.to_game_card(opponent)
-                opponent.card_hand.append(film)
-                added += 1
-            else:
+            film = film_def.to_game_card(opponent)
+            if not opponent.add_card_to_hand(film, game=game, emit_events=False):
                 break
+            added += 1
         print(f"  重影：{opponent.name} 的胶片数量翻倍（+{added}张）")
     else:
         print(f"  重影：{opponent.name} 手牌中无胶片")
@@ -772,8 +786,21 @@ def _wujiandi_yu_effect(player, target, game, extras=None):
 def _wangyi_effect(player, target, game, extras=None):
     """王翼弃兵：弃1张牌，消灭1个折算花费不大于此牌的异象。"""
     from card_pools.effect_utils import convert_cost_to_t, destroy_minion
-    from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
+    # 阶段1：选择手牌中的1张卡弃掉
+    def hand_scope(p, board):
+        return [c for c in p.card_hand]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "王翼弃兵：选择1张手牌弃掉"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if target not in player.card_hand:
         print("  王翼弃兵：目标不在手牌中")
         return False
@@ -876,17 +903,7 @@ def _guobao_effect(player, target, game, extras=None, card=None):
     if jiaopian_def:
         for _ in range(2):
             jp = jiaopian_def.to_game_card(opponent)
-            if len(opponent.card_hand) < opponent.card_hand_max:
-                opponent.card_hand.append(jp)
-                jp.move_to("hand", game)
-                game.emit_event(EVENT_DRAW, player=opponent, card=jp)
-                print(f"  过曝！：{jp.name} 加入 {opponent.name} 手牌")
-            else:
-                opponent.card_dis.append(jp)
-                jp.move_to("discard", game)
-                game.emit_event(EVENT_DISCARDED, player=opponent, card=jp, reason="mill")
-                game.emit_event(EVENT_MILLED, player=opponent, card=jp)
-                print(f"  过曝！：{opponent.name} 手牌已满，胶片被弃置")
+            opponent.add_card_to_hand(jp, game=game, emit_events=False)
 
     # 对所有异象造成等同于对方手中胶片数目的伤害（包含刚加入的）
     jiaopian_count = sum(1 for c in opponent.card_hand if getattr(c, "name", None) == "胶片")
@@ -983,12 +1000,7 @@ def _xiajian_effect(player, target, game, extras=None, card=None):
     )
 
     # 手牌有空间则加入手牌，否则爆掉（直接销毁，不进弃牌堆）
-    if len(owner.card_hand) < owner.card_hand_max:
-        owner.card_hand.append(new_card)
-        new_card.move_to("hand", game)
-        print(f"  狭间：{minion.name} 返回 {owner.name} 手牌")
-    else:
-        print(f"  狭间：{minion.name} 返回手牌失败（手牌满），爆掉")
+    owner.add_card_to_hand(new_card, game=game, emit_events=False)
 
     # 2. 冰冻相邻两列的敌方异象（不包含目标所在列）
     adjacent_cols = []
@@ -1133,15 +1145,28 @@ def _weiwei_yuzhui_effect(player, target, game, extras=None, card=None):
     """巍巍欲坠：对1个高地异象造成6点伤害。若被消灭，将其回响加入手牌。"""
     from card_pools.effect_utils import create_echo_card
     from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
-    if target is None or not isinstance(target, Minion) or not target.is_alive():
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.position[1] == 0]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "巍巍欲坠：选择1个高地异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  巍巍欲坠：目标无效")
         return False
 
     # 验证目标在高地列
-    if isinstance(target.position, (list, tuple)) and len(target.position) >= 2:
-        if target.position[1] != 0:
-            print("  巍巍欲坠：目标不在高地列")
-            return False
+    if target.position[1] != 0:
+        print("  巍巍欲坠：目标不在高地列")
+        return False
 
     # 造成6点伤害
     target.take_damage(6, source_type="strategy")
@@ -1153,14 +1178,7 @@ def _weiwei_yuzhui_effect(player, target, game, extras=None, card=None):
         if source_card:
             echo = create_echo_card(source_card, echo_level=1)
             echo.owner = player
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(echo)
-                echo.move_to("hand", game)
-                print(f"  巍巍欲坠：{echo.name} 的回响加入手牌")
-            else:
-                player.card_dis.append(echo)
-                echo.move_to("discard", game)
-                print(f"  巍巍欲坠：手牌已满，回响被弃置")
+            player.add_card_to_hand(echo, game=game, emit_events=False)
 
     return True
 
@@ -1731,15 +1749,8 @@ def _dujiaodadao_special(minion, player, game, extras=None):
     opponent = game.p1 if player == game.p1 else game.p2
     if opponent.card_deck:
         card = opponent.card_deck.pop()
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            card.owner = player
-            card.move_to("hand", game)
-            print(f"  独脚大盗：{player.name} 从 {opponent.name} 的牌库顶抽到了 {card.name}")
-        else:
-            card.move_to("discard", game)
-            player.card_dis.append(card)
-            print(f"  独脚大盗：{player.name} 手牌满，抽到的 {card.name} 被弃置")
+        player.add_card_to_hand(card, game=game, emit_events=False)
+        card.owner = player
     else:
         print(f"  独脚大盗：{opponent.name} 的牌库已空")
     return True
@@ -1937,8 +1948,15 @@ def _shuixieshi_game_start(player, game, card):
 
 
 def _shuixieshi_draw_effect(player, game, card):
-    """水漫缮写室抽取效果：选择1张手牌洗入卡组，获得等同于此牌折算花费的HP。"""
+    """水漫缮写室抽取效果：选择1张手牌洗入卡组，获得等同于此牌折算花费的HP。
+
+    对局开始阶段（current_turn == 0）不触发，避免阻塞开局抽牌流程。
+    """
     from card_pools.effect_utils import convert_cost_to_t
+
+    # 开局初始化阶段跳过，防止阻塞游戏线程
+    if getattr(game, "current_turn", 0) == 0:
+        return
 
     if not player.card_hand:
         print("  水漫缮写室：手牌为空，无法执行抽取效果")
@@ -2204,14 +2222,7 @@ def _xuanchen_special(minion, player, game, extras=None):
     chosen = shown[idx]
 
     # 置入手牌（或手牌满则磨牌）
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(chosen)
-        chosen.move_to("hand", game)
-        print(f"  宣辰：将 {chosen.name} 置入手牌")
-    else:
-        chosen.move_to("discard", game)
-        player.card_dis.append(chosen)
-        print(f"  宣辰：手牌已满，{chosen.name} 被弃置")
+    player.add_card_to_hand(chosen, game=game, emit_events=False)
 
     # 剩余牌保持原顺序放回牌库顶
     remaining = [c for c in shown if c is not chosen]

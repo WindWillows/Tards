@@ -120,10 +120,14 @@ class Cost:
             if remaining_t + player.c_point < self.ct:
                 return False, f"CT不足（需要{self.ct}CT，当前剩余T+C={remaining_t + player.c_point}）"
 
-        # 检查手牌中的矿物卡（考虑堆叠）
+        # 检查手牌中的矿物卡（card_hand + extra_hand，考虑堆叠）
         from .cards import MineralCard
         hand_minerals = {}
         for card in player.card_hand:
+            if isinstance(card, MineralCard):
+                count = getattr(card, "stack_count", 1)
+                hand_minerals[card.mineral_type] = hand_minerals.get(card.mineral_type, 0) + count
+        for card in player.extra_hand:
             if isinstance(card, MineralCard):
                 count = getattr(card, "stack_count", 1)
                 hand_minerals[card.mineral_type] = hand_minerals.get(card.mineral_type, 0) + count
@@ -162,11 +166,29 @@ class Cost:
             if pay_t:
                 player.t_point_change(-pay_t)
 
-        # 支付手牌矿物（考虑堆叠，从后往前处理避免索引问题）
+        # 支付手牌矿物（优先消耗 extra_hand，再消耗 card_hand；考虑堆叠）
+        extra_hand_consumed = False
         if self.minerals:
             for mtype, need in self.minerals.items():
                 remaining = need
+                # 1) 先从 extra_hand 消耗
+                for i in range(len(player.extra_hand) - 1, -1, -1):
+                    if remaining <= 0:
+                        break
+                    card = player.extra_hand[i]
+                    if isinstance(card, MineralCard) and card.mineral_type == mtype:
+                        stack = getattr(card, "stack_count", 1)
+                        if stack <= remaining:
+                            player.extra_hand.pop(i)
+                            remaining -= stack
+                        else:
+                            card.stack_count -= remaining
+                            remaining = 0
+                        extra_hand_consumed = True
+                # 2) 再从 card_hand 消耗
                 for i in range(len(player.card_hand) - 1, -1, -1):
+                    if remaining <= 0:
+                        break
                     card = player.card_hand[i]
                     if isinstance(card, MineralCard) and card.mineral_type == mtype:
                         stack = getattr(card, "stack_count", 1)
@@ -176,7 +198,9 @@ class Cost:
                         else:
                             card.stack_count -= remaining
                             remaining = 0
-                        if remaining <= 0:
-                            break
+
+        # extra_hand 空出后，自动从 card_hand 补入矿物
+        if extra_hand_consumed:
+            player._compact_extra_hand()
 
         return True

@@ -226,10 +226,7 @@ def _yingwu_special(minion, player, game, extras=None):
                 on_phase_start=getattr(target_card, "on_phase_start", None),
                 on_phase_end=getattr(target_card, "on_phase_end", None),
             )
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(copied)
-            else:
-                player.card_dis.append(copied)
+            player.add_card_to_hand(copied, game=game, emit_events=False)
             print(f"  {player.name} 获得 {target_card.name} 的复制")
             minion._yingwu_target_card = None
         minion._yingwu_copied_this_turn = False
@@ -334,10 +331,7 @@ def _zhuling_special(minion, player, game, extras=None):
         if DROP_POOL:
             drop_def = random.choice(DROP_POOL)
             drop_card = drop_def.to_game_card(player)
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(drop_card)
-            else:
-                player.card_dis.append(drop_card)
+            player.add_card_to_hand(drop_card, game=game, emit_events=False)
             print(f"  {player.name} 的猪灵触发：获得 {drop_card.name}")
         else:
             print(f"  {player.name} 的猪灵触发：掉落物卡池为空")
@@ -460,10 +454,7 @@ def _zhulinggongbing_special(minion, player, game, extras=None):
             glj_def = DEFAULT_REGISTRY.get("光灵箭")
             if glj_def:
                 glj = glj_def.to_game_card(player)
-                if len(player.card_hand) < player.card_hand_max:
-                    player.card_hand.append(glj)
-                else:
-                    player.card_dis.append(glj)
+                player.add_card_to_hand(glj, game=game, emit_events=False)
                 print(f"  {player.name} 获得光灵箭")
 
     on("after_damage", _on_after_damage, game, minion)
@@ -1264,12 +1255,7 @@ def _zhongshengmao_special(minion, player, game, extras=None):
         def _dr(m, p, b):
             card = create_card_by_name(target_name, p)
             if card:
-                if len(p.card_hand) < p.card_hand_max:
-                    p.card_hand.append(card)
-                    print(f"  {target_name} 的亡语：将回响加入手牌")
-                else:
-                    p.card_dis.append(card)
-                    print(f"  {target_name} 的亡语：手牌已满，回响被弃置")
+                p.add_card_to_hand(card, game=game, emit_events=False)
         return _dr
 
     def _aura_fn(target):
@@ -1468,10 +1454,7 @@ def _dongxuezhizhu_special(minion, player, game, extras=None):
         zzy_def = DEFAULT_REGISTRY.get("蜘蛛眼")
         if zzy_def:
             zzy = zzy_def.to_game_card(p)
-            if len(p.card_hand) < p.card_hand_max:
-                p.card_hand.append(zzy)
-            else:
-                p.card_dis.append(zzy)
+            p.add_card_to_hand(zzy, game=game, emit_events=False)
             print(f"  {p.name} 获得蜘蛛眼")
 
     add_deathrattle(minion, _deathrattle)
@@ -1610,12 +1593,7 @@ def _shuaichong_special(minion, player, game, extras=None):
             break
     if found_idx is not None:
         card = player.card_deck.pop(found_idx)
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            print(f"  {player.name} 从牌库中抽到了 {card.name}")
-        else:
-            player.card_dis.append(card)
-            print(f"  {player.name} 手牌满，{card.name} 被弃置")
+        player.add_card_to_hand(card, game=game, emit_events=False)
     else:
         print(f"  {player.name} 牌库中没有蠹虫")
 
@@ -2244,9 +2222,25 @@ def _guanglingjian_strategy(player, target, game, extras=None):
 @strategy
 def _zhanlipin_strategy(player, target, game, extras=None):
     """战利品：触发1个异象的亡语。若是敌方异象，再抹除其亡语。"""
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print("  [警告] 战利品没有有效目标")
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "战利品：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
         return False
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  战利品：目标无效")
+        return False
+
     dr = target.keywords.get("亡语")
     if dr and callable(dr):
         print(f"  触发 {target.name} 的亡语")
@@ -2291,15 +2285,8 @@ def _fuxing_effect(player, target, game, extras=None):
             copied.cost = copy.copy(card.cost)
             copied.cost.t += 1
 
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(copied)
-                copied.move_to("hand", game)
-                print(f"  复兴：复制 {card.name} 加入手牌，花费+1T")
-                processed_ids.add(id(copied))
-            else:
-                player.card_dis.append(copied)
-                copied.move_to("discard", game)
-                print(f"  复兴：手牌已满，{card.name} 的复制被弃置")
+            player.add_card_to_hand(copied, game=game, emit_events=False)
+            processed_ids.add(id(copied))
 
     from card_pools.effect_utils import on
     on("phase_end", _on_phase_end, game, minion=None)
@@ -2663,10 +2650,25 @@ def _tnt_strategy(player, target, game, extras=None):
 @strategy
 def _hongshifen_strategy(player, target, game, extras=None):
     """红石粉：使1个非生命异象具有协同。抽1张牌。"""
-    # 注："非生命异象"的定义待确认，当前实现为任意异象赋予协同
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print("  [警告] 红石粉没有有效目标")
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "红石粉：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
         return False
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  红石粉：目标无效")
+        return False
+
     gain_keyword(target, "协同")
     draw_cards(player, 1, game)
     return True
@@ -2711,7 +2713,21 @@ _ehanglei_targets = target_mix(target("minion"), target("player", enemy=True))
 @strategy
 def _ehanglei_strategy(player, target, game, extras=None):
     """恶魂之泪：对1个目标造成2点伤害。对方随机弃1张牌。"""
+    from tards.targeting import TargetingRequest
     from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()] + [game.p1, game.p2]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "恶魂之泪：选择1个目标"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
 
     if isinstance(target, Minion):
         deal_damage_to_minion(target, 2, source=None, game=game)
@@ -3066,14 +3082,34 @@ def _cunzhuangyingxiong_strategy(player, target, game, extras=None):
 @strategy
 def _jielue_strategy(player, target, game, extras=None):
     """劫掠：消灭1个花费不大于3T的异象。若其处于协同，从对方卡组顶抽1张牌。"""
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print("  [警告] 劫掠没有有效目标")
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        opponent = game.p1 if p == game.p2 else game.p2
+        result = []
+        for m in board.minion_place.values():
+            if not m.is_alive() or m.owner != opponent:
+                continue
+            sc = getattr(m, "source_card", None)
+            cost = getattr(sc, "cost", None)
+            if cost and getattr(cost, "t", 999) <= 3:
+                result.append(m)
+        return result
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "劫掠：选择1个花费不大于3T的敌方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
         return False
-    # 检查花费
-    cost = getattr(target.source_card, "cost", None)
-    if not cost or cost.t > 3:
-        print(f"  {target.name} 的花费大于3T，无法劫掠")
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  劫掠：目标无效")
         return False
+
     destroy_minion(target, game)
     # 检查协同：同列有友方异象
     col = target.position[1]
@@ -3085,13 +3121,8 @@ def _jielue_strategy(player, target, game, extras=None):
         opponent = target.owner
         if opponent.card_deck:
             card = opponent.card_deck.pop()
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-                card.owner = player
-                print(f"  {player.name} 从 {opponent.name} 的牌库顶抽到了 {card.name}")
-            else:
-                player.card_dis.append(card)
-                print(f"  {player.name} 手牌满，抽到的 {card.name} 被弃置")
+            player.add_card_to_hand(card, game=game, emit_events=False)
+            card.owner = player
     return True
 
 
@@ -3104,14 +3135,7 @@ def _gaolu_draw_trigger(player, game, card):
     if mineral is None:
         print(f"  高炉抽取：无法创建 {chosen_name}")
         return
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(mineral)
-        mineral.move_to("hand", game)
-        print(f"  高炉抽取：将 {chosen_name} 加入手牌")
-    else:
-        player.card_dis.append(mineral)
-        mineral.move_to("discard", game)
-        print(f"  高炉抽取：手牌已满，{chosen_name} 被弃置")
+    player.add_card_to_hand(mineral, game=game, emit_events=False)
 
 
 @special
@@ -3264,7 +3288,7 @@ def _huoshi_effect(player, target, game, extras=None):
     if game.board._is_water_at(t.position):
         print("  火矢：目标必须是陆地异象")
         return False
-    t.attack += 4
+    t.gain_attack(4, permanent=True)
     print(f"  火矢：{t.name} 获得 +4 攻击力")
     return True
 
@@ -3314,14 +3338,7 @@ def _erdiao_effect(player, target, game, extras=None):
         if book is None:
             print(f"  饵钓：无法创建书")
             continue
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(book)
-            book.move_to("hand", game)
-            print(f"  饵钓：将书加入手牌")
-        else:
-            player.card_dis.append(book)
-            book.move_to("discard", game)
-            print(f"  饵钓：手牌已满，书被弃置")
+        player.add_card_to_hand(book, game=game, emit_events=False)
     return True
 
 
@@ -3353,14 +3370,7 @@ def _zhongcheng_effect(player, target, game, extras=None):
         if copy_card is None:
             print(f"  {m.name} 的亡语：无法创建复制")
             return
-        if len(p.card_hand) < p.card_hand_max:
-            p.card_hand.append(copy_card)
-            copy_card.move_to("hand", b)
-            print(f"  {m.name} 的亡语：将复制加入手牌")
-        else:
-            p.card_dis.append(copy_card)
-            copy_card.move_to("discard", b)
-            print(f"  {m.name} 的亡语：手牌已满，复制被弃置")
+        p.add_card_to_hand(copy_card, game=game, emit_events=False)
 
     add_deathrattle(t, _dr)
     print(f"  忠诚：{t.name} 获得亡语")
@@ -3536,14 +3546,7 @@ def _kanfa_effect(player, target, game, extras=None):
     # 2. 将掘进！加入手牌
     juejin = create_card_by_name("掘进！", player)
     if juejin:
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(juejin)
-            juejin.move_to("hand", game)
-            print("  砍伐！：将掘进！加入手牌")
-        else:
-            player.card_dis.append(juejin)
-            juejin.move_to("discard", game)
-            print("  砍伐！：手牌已满，掘进！被弃置")
+        player.add_card_to_hand(juejin, game=game, emit_events=False)
     return True
 
 
@@ -3593,14 +3596,7 @@ def _tiezhen_effect(player, target, game, extras=None):
         copied = _copy.copy(chosen_card)
         if copied.keywords:
             copied.keywords = copied.keywords.copy()
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(copied)
-            copied.move_to("hand", game)
-            print(f"  铁砧：将 {chosen_card.name} 的复制加入手牌")
-        else:
-            player.card_dis.append(copied)
-            copied.move_to("discard", game)
-            print(f"  铁砧：手牌已满，{chosen_card.name} 的复制被弃置")
+        player.add_card_to_hand(copied, game=game, emit_events=False)
     # 4. 若有铁锭，抽1张牌
     has_tieding = any(c.name == "铁锭" for c in player.card_hand)
     if has_tieding:
@@ -3972,14 +3968,7 @@ def _chuizhushujing_effect(player, target, game, extras=None, card=None):
         new_card._chuizhushujing_draw = draw_count + 1
         # 转交给对方
         new_card.owner = opponent
-        if len(opponent.card_hand) < opponent.card_hand_max:
-            opponent.card_hand.append(new_card)
-            new_card.move_to("hand", game)
-            print(f"  垂直竖井：将费用+1的垂直竖井交给 {opponent.name}（下回抽{draw_count + 1}张）")
-        else:
-            opponent.card_dis.append(new_card)
-            new_card.move_to("discard", game)
-            print(f"  垂直竖井：对方手牌已满，增强的垂直竖井被弃置")
+        opponent.add_card_to_hand(new_card, game=game, emit_events=False)
     else:
         print("  垂直竖井：无法获取卡牌实例，传花失败")
 
@@ -4068,8 +4057,8 @@ STRATEGY_MAP = {
     "盘曲矿道": "_panqukuandao_strategy",
     "火药": "_huoyao_strategy",
     "村庄英雄": "_cunzhuangyingxiong_strategy",
-    "劫掠": "_jielue_strategy",
-    # 对战相关
+    "劫掠": "_jielue_srategy",
+    # 对战相关t
     "怪物猎人": "_guaiwulieren_strategy",
     # 对战效果
     "怪物猎人": "_guaiwulieren_strategy",
@@ -5165,12 +5154,7 @@ def _yanhuaqiaochi_effect(player, target, game, extras=None):
         print(f"  烟花鞘翅：将 {card.name} 加入战场 {pos}")
         return True
     else:
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            print(f"  烟花鞘翅：部署失败，{card.name} 加入手牌")
-        else:
-            player.card_dis.append(card)
-            print(f"  烟花鞘翅：部署失败且手牌已满，{card.name} 被弃置")
+        player.add_card_to_hand(card, game=game, emit_events=False)
         return False
 
 

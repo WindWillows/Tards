@@ -5,7 +5,7 @@ from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY
 from tards.targets import target_none, target
 from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand
 from tards.constants import (
-    EVENT_DEPLOYED, EVENT_CARD_PLAYED, EVENT_BELL, EVENT_BEFORE_STACK_RESOLVE,
+    EVENT_DEPLOYED, EVENT_CARD_PLAYED, EVENT_BELL, EVENT_BRAKE, EVENT_BEFORE_STACK_RESOLVE,
     EVENT_DRAW, EVENT_BEFORE_POINT, EVENT_TURN_START, EVENT_DEATH, EVENT_BEFORE_ATTACK,
 )
 from tards.cards import Strategy, MinionCard, Minion
@@ -134,12 +134,12 @@ def _ruhe_condition(game, event_data, player):
 # ---------- 怪石 ----------
 def _guaishi_condition(game, event_data, player):
     """对方拉闸且剩余T点为0时触发。"""
-    if event_data.get("event_type") != EVENT_BELL:
+    if event_data.get("event_type") != EVENT_BRAKE:
         return False
-    bell_player = event_data.get("player")
-    if not bell_player or bell_player == player:
+    brake_player = event_data.get("player")
+    if not brake_player or brake_player == player:
         return False
-    if bell_player.t_point != 0:
+    if brake_player.t_point != 0:
         return False
     return True
 
@@ -244,7 +244,6 @@ register_card(
     tags=['生物', '陆生'],
     is_token=True,
     targets_fn=target("position", friendly=True),
-    special_fn=_youniao_special,
 )
 
 register_card(
@@ -259,7 +258,6 @@ register_card(
     keywords={"协同": True, "丰饶": 2},
     description="回合结束：消灭友方场上的“松鼠”。每消灭一只，献祭等级+1。",
     targets_fn=target("position", friendly=True),
-    special_fn=_youniao_special,
 )
 
 register_card(
@@ -288,7 +286,6 @@ register_card(
     keywords={"协同": True, "绝缘": True, "丰饶": 3, "亡语": True},
     description="亡语：若献祭点数溢出，抽1张牌。",
     targets_fn=target("position", friendly=True),
-    special_fn=_youniao_special,
 )
 
 register_card(
@@ -887,7 +884,6 @@ register_card(
     on_statue_activate=_arthropod_top_effect,
     description="（雕像激活后将在回合结束时移除 保留增益） 激活时：所有友方昆虫异象具有亡语；对对手造成1点伤害。",
     targets_fn=target("position", friendly=True),
-    special_fn=_youniao_special,
 )
 
 register_card(
@@ -906,7 +902,6 @@ register_card(
     on_statue_fuse=_arthropod_bottom_effect,
     description="（只有“上下匹配”的雕像可以在一回合内拼装 否则需要两回合） 融合：激活座首，所有友方昆虫异象进入战场时+1/1。",
     targets_fn=target("position", friendly=True),
-    special_fn=_youniao_special,
 )
 
 register_card(

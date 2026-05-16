@@ -11,17 +11,13 @@ if TYPE_CHECKING:
     from .game import Game
 
 
-def _give_card_to_hand(player: "Player", card_def_name: str, reason: str):
+def _give_card_to_hand(player: "Player", card_def_name: str, reason: str, game: Optional["Game"] = None):
     from .card_db import DEFAULT_REGISTRY
     card_def = DEFAULT_REGISTRY.get(card_def_name)
     if not card_def:
         return
     card = card_def.to_game_card(player)
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(card)
-    else:
-        player.card_dis.append(card)
-    print(f"  {player.name} {reason}：获得 {card_def_name}")
+    player.add_card_to_hand(card, game=game, reason=reason, emit_events=False)
 
 
 class Player:
@@ -31,6 +27,7 @@ class Player:
         self.name = name
         self.card_deck = card_deck[:]
         self.card_hand: List[Card] = []
+        self.extra_hand: List[Card] = []
         self.card_dis: List[Card] = []
         self.original_deck_defs: List[Any] = list(original_deck_defs) if original_deck_defs else []  # CardDefinition 列表，用于开发
         self.active_conspiracies: List[Conspiracy] = []
@@ -46,6 +43,7 @@ class Player:
         self.s_point = 0
 
         self.card_hand_max = 8
+        self.extra_hand_max = 0
         self.draw_fail = 0
         self.bell = False
         self.braked = False
@@ -59,6 +57,7 @@ class Player:
         self.immersion_points: Dict["Pack", int] = {}
         self.squirrel_deck: List[Card] = []
         self.squirrel_exchanged_this_turn: bool = False
+        self.squirrel_draw_enabled: bool = False
         self._cards_played_this_phase: int = 0
         self._underworld_candle_20_given: bool = False
         self._underworld_candle_10_given: bool = False
@@ -205,7 +204,7 @@ class Player:
         return False
 
     def _try_stack_to_hand(self, card: "Card") -> bool:
-        """尝试将卡牌堆叠到手牌中已有的同名卡牌上。
+        """尝试将卡牌堆叠到手牌中已有的同名卡牌上（包括矿物手牌区）。
         
         仅当卡牌 stack_limit > 1 且手牌中有同名卡牌未达上限时成功。
         成功时增加目标卡牌的 stack_count，返回 True。
@@ -213,12 +212,97 @@ class Player:
         """
         if card.stack_limit <= 1:
             return False
-        for existing in self.card_hand:
+        for existing in self.card_hand + self.extra_hand:
             if existing.name == card.name and existing.stack_count < existing.stack_limit:
                 existing.stack_count += 1
                 print(f"  {self.name} 的 [{card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
                 return True
         return False
+
+    def _get_hand_card(self, serial: int) -> Optional[Card]:
+        """根据 serial（1-based）获取手牌中的卡牌（涵盖 card_hand + extra_hand）。"""
+        if serial < 1:
+            return None
+        if serial <= len(self.card_hand):
+            return self.card_hand[serial - 1]
+        idx = serial - len(self.card_hand) - 1
+        if idx < len(self.extra_hand):
+            return self.extra_hand[idx]
+        return None
+
+    def _hand_space_for(self, card: Card) -> tuple[bool, Optional[str]]:
+        """检查手牌是否有空间容纳该卡。
+        
+        返回 (can_add, target)。target 为 "stack" / "mineral" / "normal" / None。
+        """
+        # 先尝试堆叠
+        if card.stack_limit > 1:
+            for existing in self.card_hand + self.extra_hand:
+                if existing.name == card.name and existing.stack_count < existing.stack_limit:
+                    return True, "stack"
+        
+        if isinstance(card, MineralCard) and len(self.extra_hand) < self.extra_hand_max:
+            return True, "mineral"
+        
+        if len(self.card_hand) < self.card_hand_max:
+            return True, "normal"
+        
+        return False, None
+
+    def add_card_to_hand(self, card: Card, game: Optional["Game"] = None,
+                         reason: str = "", emit_events: bool = True,
+                         mark_drawn: bool = False) -> bool:
+        """将卡牌加入手牌（自动处理堆叠、矿物优先入 extra_hand、满牌弃置）。
+        
+        返回 True 表示成功加入手牌，False 表示因满牌被弃置。
+        """
+        can_add, target = self._hand_space_for(card)
+        
+        if target == "stack":
+            for existing in self.card_hand + self.extra_hand:
+                if existing.name == card.name and existing.stack_count < existing.stack_limit:
+                    existing.stack_count += 1
+                    print(f"  {self.name} 的 [{card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
+                    break
+        elif target == "mineral":
+            self.extra_hand.append(card)
+            card.move_to("hand", game)
+        elif target == "normal":
+            self.card_hand.append(card)
+            card.move_to("hand", game)
+        else:
+            # 手牌满，弃置
+            card.move_to("discard", game)
+            self.card_dis.append(card)
+            print(f"  {self.name} 手牌已满，{card.name} 被弃置")
+            if game and emit_events:
+                game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
+                game.emit_event(EVENT_MILLED, player=self, card=card)
+            return False
+        
+        if mark_drawn:
+            card._acquired_by_draw = True
+        if reason:
+            print(f"  {self.name} {reason}：获得 [{card.name}]")
+        else:
+            print(f"  {self.name} 获得 [{card.name}]")
+        if game and emit_events:
+            game.emit_event(EVENT_DRAW, player=self, card=card)
+        return True
+
+    def _compact_extra_hand(self):
+        """当 extra_hand 有空位时，将 card_hand 中的矿物移动到 extra_hand。"""
+        while len(self.extra_hand) < self.extra_hand_max:
+            moved = False
+            for card in list(self.card_hand):
+                if isinstance(card, MineralCard):
+                    self.card_hand.remove(card)
+                    self.extra_hand.append(card)
+                    print(f"  {self.name} 的 [{card.name}] 从普通手牌区移入矿物手牌区")
+                    moved = True
+                    break
+            if not moved:
+                break
 
     def draw_card(self, amount: int, game: Optional["Game"] = None):
         drawn_names = []
@@ -232,28 +316,30 @@ class Player:
                 amount -= 1
                 continue
             card = self.card_deck.pop()
-            card.move_to("hand", game)
             if self._try_stack_to_hand(card):
                 # 堆叠成功，不占用新手牌位
-                pass
-            elif len(self.card_hand) >= self.card_hand_max:
-                # 手牌满且无法堆叠，磨牌
-                card.move_to("discard", game)
-                self.card_dis.append(card)
+                card._acquired_by_draw = True
+                drawn_names.append(card.name)
                 amount -= 1
-                print(f"  {self.name} 手牌已满，{card.name} 被弃置")
                 if game:
-                    game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
-                    game.emit_event(EVENT_MILLED, player=self, card=card)
+                    game.emit_event(EVENT_DRAW, player=self, card=card)
+                # 触发"抽取"效果
+                draw_trigger = getattr(card, "hidden_keywords", {}).get("抽取")
+                if draw_trigger:
+                    try:
+                        draw_trigger(self, game, card)
+                    except Exception as e:
+                        print(f"  [抽取效果错误] {card.name}: {e}")
                 continue
+            
+            ok = self.add_card_to_hand(card, game=game, emit_events=True, mark_drawn=True)
+            if ok:
+                drawn_names.append(card.name)
             else:
-                self.card_hand.append(card)
-            card._acquired_by_draw = True  # 标记为抽牌获得
-            drawn_names.append(card.name)
+                # 被弃置了（磨牌），add_card_to_hand 已处理事件
+                pass
             amount -= 1
-            if game:
-                game.emit_event(EVENT_DRAW, player=self, card=card)
-            # 触发"抽取"效果（具有"抽取"隐藏关键词的卡牌被抽到时执行）
+            # 触发"抽取"效果
             draw_trigger = getattr(card, "hidden_keywords", {}).get("抽取")
             if draw_trigger:
                 try:
@@ -340,25 +426,36 @@ class Player:
         return card.targets
 
     def exchange_mineral(self, mineral_card: MineralCard, game: Optional["Game"] = None) -> bool:
-        """花费兑换费用获取一张矿物卡并加入手牌。"""
+        """花费兑换费用获取一张矿物卡并加入手牌（优先放入 extra_hand）。"""
         if not mineral_card.exchange_cost.can_afford(self):
             return False
         if not mineral_card.exchange_cost.pay(self):
             return False
-        if self._try_stack_to_hand(mineral_card):
-            mineral_card.move_to("hand", game)
-            print(f"  {self.name} 兑换了 [{mineral_card.name}]（堆叠）")
-        elif len(self.card_hand) >= self.card_hand_max:
-            mineral_card.move_to("discard", game)
-            self.card_dis.append(mineral_card)
-            print(f"  {self.name} 手牌已满，{mineral_card.name} 被弃置")
-            if game:
-                game.emit_event(EVENT_DISCARDED, player=self, card=mineral_card, reason="mill")
-                game.emit_event(EVENT_MILLED, player=self, card=mineral_card)
-        else:
-            self.card_hand.append(mineral_card)
+        # 1. 优先在 extra_hand 中堆叠
+        stacked = False
+        if mineral_card.stack_limit > 1:
+            for existing in self.extra_hand:
+                if existing.name == mineral_card.name and existing.stack_count < existing.stack_limit:
+                    existing.stack_count += 1
+                    print(f"  {self.name} 的 [{mineral_card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
+                    stacked = True
+                    break
+        # 2. extra_hand 未满，直接放入（优先于 card_hand 中的堆叠）
+        if not stacked and len(self.extra_hand) < self.extra_hand_max:
+            self.extra_hand.append(mineral_card)
             mineral_card.move_to("hand", game)
             print(f"  {self.name} 兑换了 [{mineral_card.name}]")
+            if game:
+                game.emit_event("mineral_exchanged", player=self, card=mineral_card)
+            return True
+        # 3. extra_hand 满了，再尝试在 card_hand 中堆叠
+        if not stacked and self._try_stack_to_hand(mineral_card):
+            mineral_card.move_to("hand", game)
+            print(f"  {self.name} 兑换了 [{mineral_card.name}]（堆叠）")
+            stacked = True
+        # 4. 放入普通手牌区或弃置
+        if not stacked:
+            self.add_card_to_hand(mineral_card, game=game, reason="兑换了", emit_events=False)
         if game:
             game.emit_event("mineral_exchanged", player=self, card=mineral_card)
         return True
@@ -380,9 +477,10 @@ class Player:
         return cost
 
     def card_can_play(self, serial: int, target: Any) -> tuple[bool, str]:
-        if serial < 1 or serial > len(self.card_hand):
+        card = self._get_hand_card(serial)
+        if card is None:
             return False, "手牌序号无效"
-        card = self.card_hand[serial - 1]
+        cost = self._get_play_cost(card)
         cost = self._get_play_cost(card)
         ok, reason = cost.can_afford_detail(self)
         if not ok:
@@ -415,20 +513,50 @@ class Player:
             game: Game 实例。
             reason: 弃置原因，"effect" 为效果弃置，"mill" 为手牌满磨牌。
         """
+        removed = False
         if card in self.card_hand:
             self.card_hand.remove(card)
+            removed = True
+        elif card in self.extra_hand:
+            self.extra_hand.remove(card)
+            removed = True
+        if not removed:
+            return
         card.move_to("discard", game)
         self.card_dis.append(card)
         if game:
             game.emit_event(EVENT_DISCARDED, player=self, card=card, reason=reason)
         print(f"  {self.name} 弃置了 [{card.name}]")
+        if isinstance(card, MineralCard):
+            self._compact_extra_hand()
+
+    def _remove_card_from_hand(self, card: Card) -> bool:
+        """从手牌中移除一张卡（不触发事件）。返回是否成功移除。"""
+        if card in self.card_hand:
+            self.card_hand.remove(card)
+            return True
+        if card in self.extra_hand:
+            self.extra_hand.remove(card)
+            return True
+        return False
+
+    def _add_echo_to_hand(self, echo_card: Card):
+        """将回响卡加入手牌（优先普通手牌区）。"""
+        if len(self.card_hand) < self.card_hand_max:
+            self.card_hand.append(echo_card)
+        elif isinstance(echo_card, MineralCard) and len(self.extra_hand) < self.extra_hand_max:
+            self.extra_hand.append(echo_card)
+        else:
+            self.card_hand.append(echo_card)
 
     def play_card(self, serial: int, target: Any, game: "Game", bluff: bool = False, extra_targets: Optional[List[Any]] = None) -> bool:
         ok, reason = self.card_can_play(serial, target)
         if not ok:
             print(f"  {reason}")
             return False
-        card = self.card_hand[serial - 1]
+        card = self._get_hand_card(serial)
+        if card is None:
+            return False
 
         # 堆叠处理：若 stack_count > 1，减1并用副本执行效果
         original_card = card
@@ -471,8 +599,8 @@ class Player:
                 target = event.data.get("target", target)
             def deploy_fn():
                 # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
-                if not getattr(card, "_is_stack_copy", False) and card in self.card_hand:
-                    self.card_hand.remove(card)
+                if not getattr(card, "_is_stack_copy", False):
+                    self._remove_card_from_hand(card)
                 card.move_to("resolving", game)
                 effect = card.effect(player=self, target=target, game=game, extra_targets=extra_targets)
                 if effect:
@@ -490,7 +618,7 @@ class Player:
                         )
                         echo_card.echo_level = card.echo_level - 1
                         echo_card._is_echo = True
-                        self.card_hand.append(echo_card)
+                        self._add_echo_to_hand(echo_card)
                         print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                     game.emit_event(EVENT_CARD_PLAYED, player=self, card=card)
                 else:
@@ -516,8 +644,8 @@ class Player:
 
             def play_fn():
                 # 先离开手牌，进入临时结算区（effect 执行时不在手牌中）
-                if not getattr(card, "_is_stack_copy", False) and card in self.card_hand:
-                    self.card_hand.remove(card)
+                if not getattr(card, "_is_stack_copy", False):
+                    self._remove_card_from_hand(card)
                 card.move_to("resolving", game)
                 prev = getattr(game, "_current_strategy_player", None)
                 game._current_strategy_player = self
@@ -532,11 +660,12 @@ class Player:
                     if is_mineral:
                         print(f"  {self.name} 因打出矿物，失去所有剩余 C 点")
                         self.c_point = 0
+                        self._compact_extra_hand()
                     if card.echo_level > 0:
                         import copy
                         echo_card = copy.copy(card)
                         echo_card.echo_level = card.echo_level - 1
-                        self.card_hand.append(echo_card)
+                        self._add_echo_to_hand(echo_card)
                         print(f"  {self.name} 获得异放 [{echo_card.name}]（异放 {echo_card.echo_level}）")
                 else:
                     # 效果失败，回滚
@@ -559,8 +688,7 @@ class Player:
             else:
                 def activate_fn():
                     # 阴谋激活时同样先离开手牌
-                    if card in self.card_hand:
-                        self.card_hand.remove(card)
+                    self._remove_card_from_hand(card)
                     card.move_to("active_conspiracy", game)
                     print(f"  {self.name} 暗中激活了阴谋 [{card.name}]")
                     self.active_conspiracies.append(card)

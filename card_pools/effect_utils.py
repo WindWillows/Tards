@@ -301,12 +301,11 @@ def return_minion_to_hand(minion: "Minion", game: "Game") -> bool:
         special=getattr(sc, "special", None),
         keywords=dict(sc.keywords) if hasattr(sc, "keywords") else {},
     )
-    if len(owner.card_hand) < owner.card_hand_max:
-        owner.card_hand.append(new_card)
+    ok = owner.add_card_to_hand(new_card, game=game, emit_events=False)
+    if ok:
         print(f"  {minion.name} 返回 {owner.name} 手牌")
         return True
     else:
-        owner.card_dis.append(new_card)
         print(f"  {minion.name} 返回手牌失败（手牌满），已弃置")
         return False
 
@@ -508,12 +507,17 @@ def discard_card(player: "Player", card: "Card") -> bool:
 
     返回 True 表示成功弃置，False 表示该卡不在手牌中。
     """
-    if card not in player.card_hand:
+    if card in player.card_hand:
+        player.card_hand.remove(card)
+    elif card in player.extra_hand:
+        player.extra_hand.remove(card)
+    else:
         print(f"  [警告] {card.name} 不在 {player.name} 的手牌中，弃置失败")
         return False
-    player.card_hand.remove(card)
     player.card_dis.append(card)
     print(f"  {player.name} 弃置了 {card.name}")
+    if isinstance(card, MineralCard):
+        player._compact_extra_hand()
     return True
 
 
@@ -586,12 +590,11 @@ def copy_card_to_hand(
     )
     if cost_modifier:
         cost_modifier(new_card.cost)
-    if len(owner.card_hand) < owner.card_hand_max:
-        owner.card_hand.append(new_card)
+    ok = owner.add_card_to_hand(new_card, game=game, emit_events=False)
+    if ok:
         print(f"  {owner.name} 获得 {new_card.name} 的复制")
         return True
     else:
-        owner.card_dis.append(new_card)
         print(f"  {owner.name} 手牌满，{new_card.name} 的复制被弃置")
         return False
 
@@ -884,12 +887,11 @@ def add_card_to_hand_by_name(name: str, owner: "Player", game: Optional["Game"] 
     card = create_card_by_name(name, owner)
     if not card:
         return False
-    if len(owner.card_hand) < owner.card_hand_max:
-        owner.card_hand.append(card)
+    ok = owner.add_card_to_hand(card, game=game, emit_events=False)
+    if ok:
         print(f"  {owner.name} 获得 {name}")
         return True
     else:
-        owner.card_dis.append(card)
         print(f"  {owner.name} 手牌满，{name} 被弃置")
         return False
 
@@ -1106,12 +1108,7 @@ def give_card_by_name(player: "Player", name: str, reason: str = "") -> bool:
     if not card_def:
         return False
     card = card_def.to_game_card(player)
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(card)
-    else:
-        player.card_dis.append(card)
-    msg = f"  {player.name} {reason}：获得 {name}" if reason else f"  {player.name} 获得 {name}"
-    print(msg)
+    player.add_card_to_hand(card, game=None, reason=reason, emit_events=False)
     return True
 
 
@@ -2150,12 +2147,7 @@ def discover_from_deck_top(
 
     # 从牌库移除并加入手牌
     player.card_deck.remove(chosen_card)
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(chosen_card)
-        print(f"  {player.name} 展示了卡组顶 {len(candidates)} 张，选择了 {chosen_card.name} 加入手牌")
-    else:
-        player.card_dis.append(chosen_card)
-        print(f"  {player.name} 手牌已满，{chosen_card.name} 被弃置")
+    player.add_card_to_hand(chosen_card, game=game, reason=f"展示了卡组顶 {len(candidates)} 张，选择了 {chosen_card.name} 加入")
 
     # 其余置底
     remaining = [c for c in candidates if c is not chosen_card]
@@ -2190,17 +2182,10 @@ def draw_cards_of_type(
                 break
             # 移除这张牌
             player.card_deck.pop(i)
-            if len(player.card_hand) >= player.card_hand_max:
-                player.card_dis.append(card)
-                print(f"  {player.name} 手牌已满，{card.name} 被弃置")
-                amount -= 1
-                continue
-            player.card_hand.append(card)
-            drawn.append(card)
+            ok = player.add_card_to_hand(card, game=game)
+            if ok:
+                drawn.append(card)
             amount -= 1
-            if game:
-                from tards.constants import EVENT_DRAW
-                game.emit_event(EVENT_DRAW, player=player, card=card)
             # 不移 i，因为 pop 后下一个元素前移
         else:
             i += 1

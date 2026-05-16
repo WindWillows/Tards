@@ -4,6 +4,7 @@ from .cards import MineralCard, Minion, MinionCard, Strategy, Conspiracy
 from .card_db import DEFAULT_REGISTRY, CardType, Pack
 from .constants import (
     EVENT_BELL,
+    EVENT_BRAKE,
     EVENT_CARD_PLAYED,
     EVENT_CONSPIRACY_TRIGGERED,
     EVENT_DEATH,
@@ -472,8 +473,8 @@ class Game:
             # 应用沉浸度开局增益
             discrete_pts = p.immersion_points.get(Pack.DISCRETE, 0)
             if discrete_pts >= 1:
-                p.card_hand_max += 1
-                print(f"  {p.name} 离散沉浸度 {discrete_pts}：手牌上限+1")
+                p.extra_hand_max = 2
+                print(f"  {p.name} 离散沉浸度 {discrete_pts}：获得2个矿物手牌上限")
             # 离散沉浸度2级：第5和第10回合抽牌阶段获得2C（取代1T），C槽上限4
             # 具体实现在抽牌阶段
 
@@ -562,7 +563,15 @@ class Game:
                 p._skip_next_draw = False
                 print(f"  {p.name} 跳过抽牌")
             else:
-                p.draw_card(1, game=self)
+                # 冥刻1级：若开启了"抽松鼠"，从松鼠牌堆抽牌（替代本回合的普通抽牌）
+                underworld_pts = p.immersion_points.get(Pack.UNDERWORLD, 0)
+                if underworld_pts >= 1 and p.squirrel_draw_enabled and p.squirrel_deck:
+                    card = p.squirrel_deck.pop()
+                    p.add_card_to_hand(card, game=self, reason="冥刻沉浸度抽取松鼠")
+                    p.squirrel_draw_enabled = False
+                    print(f"  {p.name} 从松鼠牌堆抽取了松鼠")
+                else:
+                    p.draw_card(1, game=self)
 
         for p in [first, second]:
             # 血契1级：抽牌阶段-1HP，+1S（流失生命值，不触发'受到伤害时'效果）
@@ -665,6 +674,7 @@ class Game:
             if act_type == "brake":
                 active.braked = True
                 print(f"  {active.name} 拉闸")
+                self.emit_event(EVENT_BRAKE, player=active)
                 active, opponent = opponent, active
                 if active.braked:
                     print("  双方均已拉闸，出牌阶段结束")
@@ -706,12 +716,7 @@ class Game:
                 else:
                     active.t_point_change(-1)
                     card = active.squirrel_deck.pop()
-                    if len(active.card_hand) < active.card_hand_max:
-                        active.card_hand.append(card)
-                        print(f"  {active.name} 消耗1T兑换了松鼠")
-                    else:
-                        active.card_dis.append(card)
-                        print(f"  {active.name} 手牌已满，兑换的松鼠被弃置")
+                    active.add_card_to_hand(card, game=self, reason="消耗1T兑换了")
                     active.squirrel_exchanged_this_turn = True
             elif act_type == "play":
                 serial = action.get("serial")
@@ -728,13 +733,10 @@ class Game:
                         temp_b *= 2
                         print(f"  {active.name} 双倍血契触发，获得 {temp_b}B")
                     active.b_point += temp_b
-                old_chooser = active.sacrifice_chooser
-                if valid_sacs:
-                    active.sacrifice_chooser = lambda req, v=valid_sacs: v
                 try:
                     can_play, reason = active.card_can_play(serial, target)
                     if can_play:
-                        card = active.card_hand[serial - 1]
+                        card = active._get_hand_card(serial)
                         # 全局部署限制检查（仅随从卡）
                         if isinstance(card, MinionCard):
                             blocked = False
@@ -744,15 +746,26 @@ class Game:
                                     blocked = True
                                     break
                             if blocked:
+                                active.b_point -= temp_b
                                 continue
+                        # 将预选献祭目标暂存到卡牌上，供 effect() 异步读取
+                        if valid_sacs and card is not None:
+                            card._preselected_sacrifices = valid_sacs
                         print(f"  {active.name} 尝试打出 {card.name} (目标: {self._fmt_target(target)})")
                         ok = active.play_card(serial, target, self, bluff=bluff)
                         if not ok:
                             print(f"  出牌失败")
+                            # 出牌失败时回滚预加的献祭 B 点
+                            active.b_point -= temp_b
                     else:
                         print(f"  非法出牌请求：{reason}")
+                        # 无法出牌时回滚预加的献祭 B 点
+                        active.b_point -= temp_b
                 finally:
-                    active.sacrifice_chooser = old_chooser
+                    # 清理暂存的预选献祭目标
+                    card = active._get_hand_card(serial)
+                    if card is not None and hasattr(card, '_preselected_sacrifices'):
+                        delattr(card, '_preselected_sacrifices')
             elif act_type == "set_attack_targets":
                 pos = action.get("pos")
                 targets = action.get("targets", [])
@@ -1304,12 +1317,9 @@ class Game:
             card = result.to_game_card(player)
             if modify_fn:
                 modify_fn(card)
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-                print(f"  {player.name} 开发：获得 [{card.name}]")
-            else:
+            ok = player.add_card_to_hand(card, game=self, reason="开发：获得")
+            if not ok:
                 if overflow_to_discard:
-                    player.card_dis.append(card)
                     print(f"  {player.name} 开发但手牌已满：{card.name} 被弃置")
                 else:
                     player.card_deck.append(card)

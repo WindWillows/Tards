@@ -223,7 +223,11 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
 
     # 鲜血费用：执行献祭（消灭友方异象、触发事件，不管理 b_point）
     if card.cost.b > 0:
-        sacrifices = player.request_sacrifice(card.cost.b)
+        # 优先使用 game.py 预选并暂存的献祭目标（避免异步 effect_queue 执行时
+        # sacrifice_chooser 已被提前恢复而导致 request_sacrifice 返回 None）
+        sacrifices = getattr(card, '_preselected_sacrifices', None)
+        if sacrifices is None:
+            sacrifices = player.request_sacrifice(card.cost.b)
         if sacrifices is None:
             print("  献祭不足，无法部署")
             return False
@@ -296,10 +300,7 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
         if "休眠" not in minion.base_keywords:
             minion.base_keywords["休眠"] = 1
             minion.recalculate()
-        # 触发全局部署光环钩子
-        for hook in getattr(game, "deploy_hooks", []):
-            hook(minion)
-        # 部署效果（special）— 起点是新创建的异象
+        # 部署效果（special）— 先让新异象完成自身初始化（注册监听器等）
         if card.special:
             import inspect
             sig = inspect.signature(card.special)
@@ -311,6 +312,9 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
                 # special_fn 取消了部署（例如玩家取消指向），回滚
                 board.remove_minion(minion.position)
                 return False
+        # 触发全局部署光环钩子（如侦测器等对其他异象部署作出反应）
+        for hook in getattr(game, "deploy_hooks", []):
+            hook(minion)
         game.emit_event(EVENT_DEPLOYED, minion=minion, player=player, card=card)
 
         # === AFTER_DEPLOY 事件 ===

@@ -524,13 +524,7 @@ def _jijuxie_special(minion, player, game, extras=None):
             echo = create_echo_card(source_card, echo_level=1)
             echo.owner = player
             echo._jijuxie_echo = True
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(echo)
-                echo.move_to("hand", game)
-                print(f"  寄居蟹：{target.name} 的回响加入手牌")
-            else:
-                player.card_dis.append(echo)
-                print(f"  寄居蟹：手牌已满，{target.name} 的回响被弃置")
+            player.add_card_to_hand(echo, game=game, emit_events=False)
 
     # 回合开始（结算阶段开始）：弃掉寄居蟹生成的回响
     def on_phase_start(event, g):
@@ -800,12 +794,7 @@ def _linshu_special(minion, player, game, extras=None):
         card = create_card_by_name("松鼠", player)
         if card:
             card.cost.t = 0
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-                print(f"  林鼠：{player.name} 将0T松鼠加入手牌")
-            else:
-                player.card_dis.append(card)
-                print(f"  林鼠：{player.name} 手牌满，0T松鼠被弃置")
+            player.add_card_to_hand(card, game=game, emit_events=False)
 
 
 @special
@@ -1246,15 +1235,8 @@ def _ou_special(minion, player, game, extras=None):
             print("  鸥亡语：牌库中没有异象")
             return
         p.card_deck.pop(drawn_idx)
-        if len(p.card_hand) < p.card_hand_max:
-            p.card_hand.append(drawn)
-            drawn.move_to("hand", game)
-            drawn.keywords["两栖"] = True
-            print(f"  鸥亡语：抽到 {drawn.name}，使其具有两栖")
-        else:
-            p.card_dis.append(drawn)
-            drawn.move_to("discard", game)
-            print(f"  鸥亡语：抽到 {drawn.name}，但手牌已满被弃置")
+        p.add_card_to_hand(drawn, game=game, emit_events=False)
+        drawn.keywords["两栖"] = True
 
     add_deathrattle(minion, deathrattle)
     return True
@@ -1416,12 +1398,7 @@ def _heli_special(minion, player, game, extras=None):
             print("  河狸：找不到河坝定义")
             return
         heba_card = heba_def.to_game_card(opponent)
-        if len(opponent.card_hand) < opponent.card_hand_max:
-            opponent.card_hand.append(heba_card)
-            print(f"  河狸：将河坝加入 {opponent.name} 手牌")
-        else:
-            opponent.card_dis.append(heba_card)
-            print(f"  河狸：{opponent.name} 手牌已满，河坝被弃置")
+        opponent.add_card_to_hand(heba_card, game=game, emit_events=False)
 
     minion.on_turn_start = on_turn_start
     return True
@@ -2418,10 +2395,30 @@ def _xurui_effect(game, event_data, player):
     player.t_point_change(4)
 
 def _moshui_effect(game, event_data, player):
-    """反制的主要工作已在 condition_fn 的堆栈推入中完成，
-    此处仅打印确认信息。阴谋卡本身由 register_conspiracy 自动弃置。
-    """
-    print(f"  阴谋 [墨水] 结算完毕")
+    """对方使用花费不大于4T的策略时，改为将其洗入对方卡组。"""
+    frame = event_data.get("frame")
+    if not frame:
+        print(f"  [警告] 阴谋 [墨水] 未找到堆栈帧")
+        return
+
+    card = getattr(frame, "source", None)
+    if not card or not isinstance(card, Strategy):
+        print(f"  [警告] 阴谋 [墨水] 未找到策略卡")
+        return
+
+    # 取消当前策略效果
+    frame.cancelled = True
+
+    # 将策略卡洗入对方卡组
+    target_player = getattr(card, "owner", None)
+    if target_player and card in target_player.card_hand:
+        target_player.card_hand.remove(card)
+        target_player.card_deck.append(card)
+        import random
+        random.shuffle(target_player.card_deck)
+        print(f"  阴谋 [墨水] 将 [{card.name}] 洗入 {target_player.name} 的卡组")
+    else:
+        print(f"  [警告] 阴谋 [墨水] 未能在手牌中找到 [{card.name}]")
 
 def _jinfeng_effect(game, event_data, player):
     """弃掉对方抽到的牌，并随机使其一张手牌花费+1T。"""
@@ -2452,8 +2449,41 @@ def _liqun_effect(game, event_data, player):
     print(f"  阴谋 [离群] 消灭了 {len(to_destroy)} 个进入协同状态的异象")
 
 def _ruhe_effect(game, event_data, player):
-    """注册回合开始监听器，延迟部署被反制的异象。"""
-    listener_id = id(event_data)
+    """对方部署异象前，将其移除，在下回合开始后将其加入原位。"""
+    frame = event_data.get("frame")
+    if not frame:
+        print(f"  [警告] 阴谋 [入河] 未找到堆栈帧")
+        return
+
+    # 取消当前部署
+    frame.cancelled = True
+
+    card = getattr(frame, "source", None)
+    if not card or not isinstance(card, MinionCard):
+        print(f"  [警告] 阴谋 [入河] 未找到被部署的异象")
+        return
+
+    deploy_player = getattr(card, "owner", None)
+    pos = getattr(card, "_deploy_target", None)
+    if not deploy_player or not pos:
+        print(f"  [警告] 阴谋 [入河] 未找到部署信息")
+        return
+
+    # 保存到下回合重新部署
+    if not hasattr(game, "_ruhe_pending"):
+        game._ruhe_pending = []
+
+    game._ruhe_pending.append({
+        "card": card,
+        "player": deploy_player,
+        "pos": pos,
+        "trigger_turn": game.current_turn + 1,
+    })
+
+    print(f"  阴谋 [入河] 将 [{card.name}] 移除，下回合重新部署至 {pos}")
+
+    # 注册回合开始监听器
+    listener_id = id(card)
 
     def _redeploy_listener(event):
         pending = getattr(game, "_ruhe_pending", [])
@@ -2496,7 +2526,6 @@ def _ruhe_effect(game, event_data, player):
             game.unregister_listeners_by_owner(listener_id)
 
     game.register_listener(EVENT_TURN_START, _redeploy_listener, priority=50, owner_id=listener_id)
-    print(f"  阴谋 [入河] 效果触发：等待下回合将异象加入原位")
 
 def _guaishi_effect(game, event_data, player):
     """对方永久失去一个T槽。"""
@@ -2544,12 +2573,9 @@ def _songshuping_effect(player, target, game, extras=None):
     discarded = 0
     for _ in range(count):
         card = squirrel_def.to_game_card(player)
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            added += 1
-        else:
-            player.card_dis.append(card)
-            discarded += 1
+        player.add_card_to_hand(card, game=game, emit_events=False)
+        added += 1
+        discarded += 1
 
     player._squirrel_bottle_used = used_count + 1
 
@@ -2560,15 +2586,28 @@ def _songshuping_effect(player, target, game, extras=None):
     return True
 
 def _shudong_effect(player, target, game, extras=None):
-    from card_pools.effect_utils import all_friendly_minions, deploy_card_copy
+    from card_pools.effect_utils import all_friendly_minions, deploy_card_copy, empty_positions
 
-
-    # 1. 部署松鼠
+    # 1. 选择部署位置并部署松鼠
     squirrel_def = DEFAULT_REGISTRY.get("松鼠")
     if not squirrel_def:
         return False
     card = squirrel_def.to_game_card(player)
-    ok = deploy_card_copy(player, game, card, target)
+
+    empties = empty_positions(player, game.board)
+    valid = [pos for pos in empties if game.board.is_valid_deploy(pos, player, card)]
+    if not valid:
+        print("  树洞：无合法空位部署松鼠")
+        return False
+
+    options = [f"{i+1}. 第{pos[0]+1}行第{pos[1]+1}列" for i, pos in enumerate(valid)]
+    chosen = game.request_choice(player, options, title="树洞：选择部署位置")
+    if not chosen:
+        return False
+    idx = int(chosen.split('.')[0]) - 1
+    target_pos = valid[idx]
+
+    ok = deploy_card_copy(player, game, card, target_pos)
     if not ok:
         return False
 
@@ -2720,10 +2759,7 @@ def _guwang_effect(player, target, game, extras=None):
     card_def = DEFAULT_REGISTRY.get(card_name)
     if card_def:
         card = card_def.to_game_card(player)
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-        else:
-            player.card_dis.append(card)
+        player.add_card_to_hand(card, game=game, emit_events=False)
         print(f"  骨王：弃掉 [{target.name}]（献祭{sac_level}×丰饶{fer_level}={product}），获得 [{card_name}]")
     else:
         print(f"  骨王：找不到 {card_name} 的定义")
@@ -2738,12 +2774,7 @@ def _guwangzhi_hui_effect(player, target, game, extras=None):
     card = player.card_deck.pop()
     card.cost.t = max(0, card.cost.t - 2)
     card.cost.b += 1
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(card)
-        print(f"  骨王之惠：抽出 [{card.name}]，费用变为 {card.cost}")
-    else:
-        player.card_dis.append(card)
-        print(f"  骨王之惠：手牌已满，[{card.name}] 被弃置")
+    player.add_card_to_hand(card, game=game, emit_events=False)
     return True
 
 def _guwangzhi_shang_effect(player, target, game, extras=None):
@@ -2758,12 +2789,7 @@ def _guwangzhi_shang_effect(player, target, game, extras=None):
     for card in drawn:
         # 免除献祭点数：将鲜血费用设为0
         card.cost.b = 0
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            print(f"  骨王之赏：抽出 [{card.name}]，献祭点数已免除")
-        else:
-            player.card_dis.append(card)
-            print(f"  骨王之赏：手牌已满，[{card.name}] 被弃置")
+        player.add_card_to_hand(card, game=game, emit_events=False)
     return True
 
 def _lazhu_cost_modifier(card, cost):
@@ -2842,11 +2868,7 @@ def _pimaoshang_effect(player, target, game, extras=None):
         drawn = 0
         for card in minion_cards[:2]:
             player.card_deck.remove(card)
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-            else:
-                player.card_dis.append(card)
-                print(f"  皮毛商：手牌已满，{card.name} 被弃置")
+            player.add_card_to_hand(card, game=game, emit_events=False)
             drawn += 1
         print(f"  皮毛商：从卡组中抽出 {drawn} 张异象")
     elif choice == "获得4T":
@@ -2987,10 +3009,14 @@ def _bopidao_effect(player, target, game, extras=None):
 
 def _yanping_effect(player, target, game, extras=None):
     from tards.cards import MinionCard
-    if not isinstance(target, int) or not (0 <= target < 5):
-        return False
 
-    col = target
+    # 选择列
+    options = [f"{i}. {game.board.COL_NAMES[i]}" for i in range(5)]
+    chosen = game.request_choice(player, options, title="岩瓶：选择一列")
+    if not chosen:
+        return False
+    col = int(chosen.split('.')[0])
+
     # 永久覆盖该列为高地
     if not hasattr(game, "_terrain_overrides"):
         game._terrain_overrides = {}
@@ -3002,11 +3028,7 @@ def _yanping_effect(player, target, game, extras=None):
     for i, card in enumerate(player.card_deck):
         if isinstance(card, MinionCard) and card.keywords.get("高地", False):
             player.card_deck.pop(i)
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-            else:
-                player.card_dis.append(card)
-                print(f"  岩瓶：手牌已满，{card.name} 被弃置")
+            player.add_card_to_hand(card, game=game, emit_events=False)
             print(f"  岩瓶：抽出高地异象 [{card.name}]")
             return True
 
@@ -3173,12 +3195,7 @@ def _xiangji_effect(player, target, game, extras=None):
         if hasattr(sc, cb):
             setattr(new_card, cb, getattr(sc, cb))
 
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(new_card)
-        print(f"  相机：将 [{target.name}] 移入 {player.name} 手牌")
-    else:
-        player.card_dis.append(new_card)
-        print(f"  相机：手牌已满，{target.name} 被弃置")
+    player.add_card_to_hand(new_card, game=game, emit_events=False)
     return True
 
 def _shalou_effect(player, target, game, extras=None):
@@ -3281,8 +3298,21 @@ def _shizhong_effect(player, target, game, extras=None):
     from tards.cards import MinionCard, Minion
     from card_pools.effect_utils import on, empty_positions
     from tards.constants import EVENT_PHASE_START
+    from tards.targeting import TargetingRequest
     import random
 
+    def hand_scope(p, board):
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "时钟：选择手牌中的1张异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         return False
 
@@ -3343,11 +3373,26 @@ def _shizhong_effect(player, target, game, extras=None):
     if not getattr(player, "_shizhong_listener_registered", False):
         on(EVENT_PHASE_START, on_draw_phase, game)
         player._shizhong_listener_registered = True
+        player._shizhong_listener_registered = True
 
     return True
 
 def _yinghuo_effect(player, target, game, extras=None):
     from tards.cards import MinionCard
+    from tards.targeting import TargetingRequest
+
+    def hand_scope(p, board):
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "营火：选择手牌中的1张异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         return False
 
@@ -3442,6 +3487,21 @@ def _mudiaoshi_effect(player, target, game, extras=None):
     return True
 
 def _muqi_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner == p and (getattr(m, "statue_top", False) or getattr(m, "statue_bottom", False))]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "木漆：选择1个座首或底座异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not target.is_alive() or target.owner != player:
         return False
     if not (getattr(target, "statue_top", False) or getattr(target, "statue_bottom", False)):
@@ -3455,6 +3515,22 @@ def _muqi_effect(player, target, game, extras=None):
     return True
 
 def _make_effect(player, target, game, extras=None):
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive()]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "玛珂：选择1个异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
+
     def filter_fn(t, damage, source):
         return t is target
 
@@ -3500,12 +3576,15 @@ def _hanji_effect(player, target, game, extras=None):
 
 def _shanhong_effect(player, target, game, extras=None):
     """山洪：使一列陆地算作水路直到下回合结束。失去1个T槽。"""
-    if not isinstance(target, int) or not (0 <= target <= 3):
-        print("  山洪：目标列不合法")
-        return False
-
-    col = target
     from card_pools.effect_utils import register_terrain_enforcement
+
+    # 选择列
+    options = [f"{i}. {game.board.COL_NAMES[i]}" for i in range(4)]
+    chosen = game.request_choice(player, options, title="山洪：选择一列（0-3）")
+    if not chosen:
+        return False
+    col = int(chosen.split('.')[0])
+
     register_terrain_enforcement(game, col, "水路", game.current_turn + 1)
     print(f"  山洪：第 {col} 列（{game.board.COL_NAMES[col]}）被视为水路，直到下回合结束")
 
@@ -3559,9 +3638,23 @@ def _shachen_effect(player, target, game, extras=None):
     """沙尘：眩晕一个敌方异象。若本回合对方先手，结束双方出牌阶段。"""
     from card_pools.effect_utils import give_temp_keyword_until_turn_end
     from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
+    def scope(p, board):
+        opponent = game.p2 if p == game.p1 else game.p1
+        return [m for m in board.minion_place.values() if m.is_alive() and m.owner == opponent]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "沙尘：选择1个敌方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, Minion) or not target.is_alive():
-        print("  沙尘：目标不合法")
+        print("  沙尘：目标无效")
         return False
 
     give_temp_keyword_until_turn_end(target, "眩晕", 1)
@@ -3688,23 +3781,15 @@ def _tudao_effect(player, target, game, extras=None):
     for _ in range(2):
         if player.squirrel_deck:
             card = player.squirrel_deck.pop()
-            if len(player.card_hand) < player.card_hand_max:
-                player.card_hand.append(card)
-                squirrel_count += 1
-            else:
-                player.card_dis.append(card)
-                print(f"  屠刀：手牌已满，松鼠被弃置")
+            player.add_card_to_hand(card, game=game, emit_events=False)
+            squirrel_count += 1
         else:
             # squirrel_deck 空了，从 registry 创建
             squirrel_def = DEFAULT_REGISTRY.get("松鼠")
             if squirrel_def:
                 card = squirrel_def.to_game_card(player)
-                if len(player.card_hand) < player.card_hand_max:
-                    player.card_hand.append(card)
-                    squirrel_count += 1
-                else:
-                    player.card_dis.append(card)
-                    print(f"  屠刀：手牌已满，松鼠被弃置")
+                player.add_card_to_hand(card, game=game, emit_events=False)
+                squirrel_count += 1
     print(f"  屠刀：{player.name} 将 {squirrel_count} 张松鼠加入手牌")
 
     # 注册献祭监听器
@@ -3730,6 +3815,20 @@ def _tudao_effect(player, target, game, extras=None):
 
 def _zhenban_effect(player, target, game, extras=None):
     """砧板：弃一张牌，抽一张花费更高的牌。若弃牌献祭等级×丰饶等级≥2，获得2B。"""
+    from tards.targeting import TargetingRequest
+
+    def hand_scope(p, board):
+        return [c for c in p.card_hand]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "砧板：选择1张手牌弃掉"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if target not in player.card_hand:
         print("  砧板：目标不在手牌中")
         return False
@@ -3753,12 +3852,7 @@ def _zhenban_effect(player, target, game, extras=None):
             break
 
     if drawn:
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(drawn)
-            print(f"  砧板：抽出更高费牌 [{drawn.name}]")
-        else:
-            player.card_dis.append(drawn)
-            print(f"  砧板：手牌已满，[{drawn.name}] 被弃置")
+        player.add_card_to_hand(drawn, game=game, emit_events=False)
     else:
         print("  砧板：牌库中没有更高费的牌")
 
@@ -3789,9 +3883,22 @@ def _haichen_effect(player, target, game, extras=None):
     """还尘：消灭一个受伤异象。若是友方异象，抽三张牌。"""
     from tards.cards import Minion
     from card_pools.effect_utils import destroy_minion
+    from tards.targeting import TargetingRequest
 
+    def scope(p, board):
+        return [m for m in board.minion_place.values() if m.is_alive() and m.current_health < m.max_health]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = scope
+    req.prompt = "还尘：选择1个受伤异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, Minion) or not target.is_alive():
-        print("  还尘：目标不合法")
+        print("  还尘：目标无效")
         return False
 
     if target.current_health >= target.max_health:
@@ -3855,12 +3962,7 @@ def _jidai_effect(player, target, game, extras=None):
         for attr in ("statue_top", "statue_bottom", "statue_pair"):
             if hasattr(sc, attr):
                 setattr(new_card, attr, getattr(sc, attr))
-        if len(owner.card_hand) < owner.card_hand_max:
-            owner.card_hand.append(new_card)
-            print(f"  继代亡语：{new_card.name}({new_card.attack}/{new_card.health}) 加入 {owner.name} 手牌")
-        else:
-            owner.card_dis.append(new_card)
-            print(f"  继代亡语：手牌已满，{new_card.name} 被弃置")
+        owner.add_card_to_hand(new_card, game=game, emit_events=False)
 
     add_deathrattle(target, _deathrattle)
     print(f"  继代：{target.name} 获得亡语")
@@ -3932,7 +4034,20 @@ def _lunhui_effect(player, target, game, extras=None):
     """轮回：弃1张牌，抽1张。若弃掉回响，对目标造成4点伤害。"""
     from card_pools.effect_utils import deal_damage_to_minion, deal_damage_to_player
     from tards.cards import Minion
+    from tards.targeting import TargetingRequest
 
+    def hand_scope(p, board):
+        return [c for c in p.card_hand]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "轮回：选择1张手牌弃掉"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if target not in player.card_hand:
         print("  轮回：目标不在手牌中")
         return False
@@ -3963,7 +4078,20 @@ def _lunhui_effect(player, target, game, extras=None):
 def _gengti_effect(player, target, game, extras=None):
     """更替：使手牌中的1个回响异象回响等级+1。"""
     from tards.cards import MinionCard
+    from tards.targeting import TargetingRequest
 
+    def hand_scope(p, board):
+        return [c for c in p.card_hand if isinstance(c, MinionCard) and getattr(c, "echo_level", 0) > 0]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "更替：选择手牌中的1个异放异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         print("  更替：目标不合法")
         return False
@@ -4010,8 +4138,21 @@ def _liulinfengsheng_effect(player, target, game, extras=None):
     from tards.cards import MinionCard, Minion
     from tards.cost import Cost
     from card_pools.effect_utils import empty_positions
+    from tards.targeting import TargetingRequest
     import random
 
+    def hand_scope(p, board):
+        return [c for c in p.card_hand if isinstance(c, MinionCard)]
+
+    req = TargetingRequest()
+    req.source = player
+    req.scope_fn = hand_scope
+    req.prompt = "柳林风声：选择手牌中的1张异象弃掉"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        return False
     if not isinstance(target, MinionCard) or target not in player.card_hand:
         print("  柳林风声：目标不在手牌中")
         return False
@@ -4037,13 +4178,8 @@ def _liulinfengsheng_effect(player, target, game, extras=None):
     shadow_card.pack = getattr(target, "pack", None)
     shadow_card._liulin_shadow = True
 
-    if len(opponent.card_hand) < opponent.card_hand_max:
-        opponent.card_hand.append(shadow_card)
-        print(f"  柳林风声：{shadow_card.name}(5T) 加入 {opponent.name} 手牌")
-    else:
-        opponent.card_dis.append(shadow_card)
-        print(f"  柳林风声：{opponent.name} 手牌已满，复制卡被弃置")
-        return True
+    opponent.add_card_to_hand(shadow_card, game=game, emit_events=False)
+    return True
 
     # deploy_hook：对方部署异象时触发
     def deploy_hook(minion):
@@ -4115,12 +4251,7 @@ def _hesheng_effect(player, target, game, extras=None):
 
     # 从牌库移除并加入手牌
     player.card_deck.remove(best)
-    if len(player.card_hand) < player.card_hand_max:
-        player.card_hand.append(best)
-        print(f"  贺胜：[{best.name}] 加入手牌")
-    else:
-        player.card_dis.append(best)
-        print(f"  贺胜：手牌已满，[{best.name}] 被弃置")
+    player.add_card_to_hand(best, game=game, emit_events=False)
 
     # 其余置底
     remaining = [c for c in candidates if c is not best]
@@ -4269,14 +4400,7 @@ def _xinyue_effect(player, target, game, extras=None, card=None):
                 return
 
         # 加入手牌（手牌满则弃置）
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(card)
-            card.move_to("hand", game)
-            print(f"  新月：将此卡加入 {player.name} 手牌")
-        else:
-            player.card_dis.append(card)
-            card.move_to("discard", game)
-            print(f"  新月：{player.name} 手牌已满，此卡被弃置")
+        player.add_card_to_hand(card, game=game, emit_events=False)
 
     card.on(EVENT_CONSPIRACY_TRIGGERED, _on_conspiracy_triggered)
     print(f"  新月：已注册阴谋触发监听器")
@@ -4990,12 +5114,7 @@ def _guan_special(minion, player, game, extras=None):
         echo = create_echo_card(source_card, echo_level=1)
         echo.owner = player
 
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(echo)
-            echo.move_to("hand", game)
-            print(f"  鹳：{destroyed.name} 的回响加入手牌")
-        else:
-            print(f"  鹳：手牌已满，{destroyed.name} 的回响无法加入手牌")
+        player.add_card_to_hand(echo, game=game, emit_events=False)
 
     game.history.listen(EVENT_AFTER_DESTROY, on_after_destroy, owner=minion)
     return True
@@ -5482,12 +5601,7 @@ def _liegou_special(minion, player, game, extras=None):
         echo = create_echo_card(source_card, echo_level=1)
         echo.owner = player
 
-        if len(player.card_hand) < player.card_hand_max:
-            player.card_hand.append(echo)
-            echo.move_to("hand", game)
-            print(f"  鬣狗：{destroyed.name} 的回响加入手牌")
-        else:
-            print(f"  鬣狗：手牌已满，{destroyed.name} 的回响无法加入手牌")
+        player.add_card_to_hand(echo, game=game, emit_events=False)
 
     # 效果2：打出或弃掉回响 → 鬣狗返回手牌
     def on_card_played_or_discarded(event, g):

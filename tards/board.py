@@ -49,14 +49,14 @@ class Board:
         is_water = self._is_water_at(pos)
         aquatic = card.keywords.get("水生", False) or card.keywords.get("两栖", False)
 
-        # 漂浮物：可以在其上部署异象，无视水路限制
-        if existing and "漂浮物" in existing.keywords and existing.owner == player:
-            return True
-
-        if is_water and not aquatic:
-            return False
-        if not is_water and card.keywords.get("水生", False):
-            return False
+        # 漂浮物：仅豁免"非水生/两栖异象不能部署在水路"的限制，
+        # 不豁免河岸、高地、独行、协同等其他部署限制。
+        on_friendly_float = existing and "漂浮物" in existing.keywords and existing.owner == player
+        if not on_friendly_float:
+            if is_water and not aquatic:
+                return False
+            if not is_water and card.keywords.get("水生", False):
+                return False
         from card_pools.effect_utils import get_terrain_at
         terrain = get_terrain_at(self.game_ref, pos) if self.game_ref else None
         if "高地" in card.keywords and c != 0 and terrain != "高地":
