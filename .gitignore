@@ -56,3 +56,4 @@ rustdesk.exe
 assets/fonts/*.ttf
 assets/fonts/*.ttc
 assets/fonts/*.otf
+*_screenshot.png
