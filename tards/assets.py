@@ -39,6 +39,7 @@ class AssetManager:
     def __init__(self, base_path: str = "assets"):
         self.base_path = Path(base_path)
         self._cache: Dict[Tuple[str, Tuple[int, int]], Optional[ImageTk.PhotoImage]] = {}
+        self._raw_cache: Dict[Tuple[str, Tuple[int, int]], Optional[Image.Image]] = {}
         self._config: Dict[str, str] = {}
         self._load_config()
 
@@ -98,6 +99,7 @@ class AssetManager:
     def clear_cache(self) -> None:
         """清空图像缓存。用于资源热更新。"""
         self._cache.clear()
+        self._raw_cache.clear()
 
     # ------------------------------------------------------------------
     # 内部实现
@@ -114,8 +116,9 @@ class AssetManager:
         self._cache[(cache_key, (width, height))] = img
         return img
 
-    def _load_and_scale(self, asset_id: str, default_dir: str,
-                        width: int, height: int) -> Optional[ImageTk.PhotoImage]:
+    def _load_raw_image(self, asset_id: str, default_dir: str,
+                         width: int, height: int) -> Optional[Image.Image]:
+        """加载并缩放原始 PIL Image，供 pygame 等外部渲染器使用。"""
         path = self._resolve_path(asset_id, default_dir)
         if path is None or not path.exists():
             return None
@@ -125,9 +128,65 @@ class AssetManager:
                 img = img.convert("RGBA")
             if img.size != (width, height):
                 img = img.resize((width, height), Image.LANCZOS)
-            return ImageTk.PhotoImage(img)
+            return img
         except Exception:
             return None
+
+    def _load_and_scale(self, asset_id: str, default_dir: str,
+                        width: int, height: int) -> Optional[ImageTk.PhotoImage]:
+        img = self._load_raw_image(asset_id, default_dir, width, height)
+        if img is None:
+            return None
+        return ImageTk.PhotoImage(img)
+
+    def get_raw_image(self, cache_key: str, width: int, height: int,
+                      default_dir: str, asset_id: str) -> Optional[Image.Image]:
+        """加载原始 PIL Image 并缓存。供外部渲染器（如 pygame）使用。"""
+        if not _PIL_AVAILABLE:
+            return None
+        key = (cache_key, (width, height))
+        cached = self._raw_cache.get(key)
+        if cached is not None or key in self._raw_cache:
+            return cached
+        img = self._load_raw_image(asset_id, default_dir, width, height)
+        self._raw_cache[key] = img
+        return img
+
+    # ------------------------------------------------------------------
+    # 原始图像公共 API（供 pygame 等外部渲染器使用）
+    # ------------------------------------------------------------------
+
+    def get_card_face_raw(self, asset_id: str, width: int, height: int) -> Optional[Image.Image]:
+        """加载卡面原始图像。"""
+        return self.get_raw_image(f"card_face:{asset_id}", width, height, "cards/faces", asset_id)
+
+    def get_card_back_raw(self, asset_id: Optional[str], width: int, height: int) -> Optional[Image.Image]:
+        """加载卡背原始图像。"""
+        aid = asset_id or "default"
+        return self.get_raw_image(f"card_back:{aid}", width, height, "cards/backs", aid)
+
+    def get_thumbnail_raw(self, asset_id: str, width: int, height: int) -> Optional[Image.Image]:
+        """加载缩略图原始图像。若不存在，回退到卡面。"""
+        thumb = self.get_raw_image(f"thumb:{asset_id}", width, height, "cards/thumbnails", asset_id)
+        if thumb is not None:
+            return thumb
+        return self.get_card_face_raw(asset_id, width, height)
+
+    def get_icon_raw(self, icon_id: str, size: int) -> Optional[Image.Image]:
+        """加载关键词图标原始图像。"""
+        return self.get_raw_image(f"icon:{icon_id}", size, size, "icons/keywords", icon_id)
+
+    def get_type_icon_raw(self, icon_id: str, size: int) -> Optional[Image.Image]:
+        """加载类型图标原始图像。"""
+        return self.get_raw_image(f"type_icon:{icon_id}", size, size, "icons/types", icon_id)
+
+    def get_board_tile_raw(self, terrain_id: str, size: int) -> Optional[Image.Image]:
+        """加载棋盘格子纹理原始图像。"""
+        return self.get_raw_image(f"tile:{terrain_id}", size, size, "board/tiles", terrain_id)
+
+    def get_ui_element_raw(self, element_id: str, width: int, height: int) -> Optional[Image.Image]:
+        """加载 UI 装饰元素原始图像。"""
+        return self.get_raw_image(f"ui:{element_id}", width, height, "board/ui", element_id)
 
     def _resolve_path(self, asset_id: str, default_dir: str) -> Optional[Path]:
         # 1. 优先使用 config.json 映射

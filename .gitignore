@@ -53,3 +53,6 @@ _plan_targeting_refactor.md
 mobile_server/.env
 ttyd.exe
 rustdesk.exe
+assets/fonts/*.ttf
+assets/fonts/*.ttc
+assets/fonts/*.otf

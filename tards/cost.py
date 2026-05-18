@@ -159,9 +159,13 @@ class Cost:
             player.s_point -= self.s
 
         # 支付 CT：优先消耗 C，再消耗 T
+        self._last_ct_c = 0
+        self._last_ct_t = 0
         if self.ct > 0:
             pay_c = min(player.c_point, self.ct)
             pay_t = self.ct - pay_c
+            self._last_ct_c = pay_c
+            self._last_ct_t = pay_t
             if pay_c:
                 player.c_point_change(-pay_c)
             if pay_t:
@@ -220,7 +224,17 @@ class Cost:
         return True
 
     def rollback(self, player: "Player") -> None:
-        """回滚上次 pay() 消耗的矿物。必须在同一张卡、同一次出牌流程中调用。"""
+        """回滚上次 pay() 消耗的资源（CT + 矿物）。必须在同一张卡、同一次出牌流程中调用。"""
+        # 恢复 CT 消耗的 C 和 T
+        ct_c = getattr(self, "_last_ct_c", 0)
+        ct_t = getattr(self, "_last_ct_t", 0)
+        if ct_c:
+            player.c_point_change(ct_c)
+        if ct_t:
+            player.t_point_change(ct_t)
+        self._last_ct_c = 0
+        self._last_ct_t = 0
+
         for record in getattr(self, "_last_consumed_minerals", []):
             card = record["card"]
             if record["whole"]:
