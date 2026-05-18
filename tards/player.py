@@ -384,6 +384,21 @@ class Player:
                 "turn": getattr(game, "current_turn", 0),
             })
 
+    def c_point_max_change(self, delta: int):
+        """改变C槽上限。"""
+        old = self.c_point_max
+        self.c_point_max = max(0, self.c_point_max + delta)
+        actual_delta = self.c_point_max - old
+        game = getattr(self.board_ref, "game_ref", None)
+        if game:
+            from .constants import EVENT_C_MAX_CHANGED
+            game.emit_event(
+                EVENT_C_MAX_CHANGED,
+                player=self,
+                old=old,
+                new=self.c_point_max,
+            )
+
     def c_point_change(self, delta: int):
         game = getattr(self.board_ref, "game_ref", None)
 
@@ -588,6 +603,7 @@ class Player:
                 self.b_point_change(cost.b)
                 self.s_point_change(cost.s)
                 self.c_point_change(cost.c)
+                cost.rollback(self)
                 self._cards_played_this_phase -= 1
                 return False
 
@@ -632,6 +648,7 @@ class Player:
                     self.b_point_change(cost.b)
                     self.s_point_change(cost.s)
                     self.c_point_change(cost.c)
+                    cost.rollback(self)
             game.effect_queue.resolve(f"部署 [{card.name}]", deploy_fn, source=card)
             return True
 
@@ -678,6 +695,7 @@ class Player:
                     self.b_point += card.cost.b
                     self.s_point += card.cost.s
                     self.c_point_change(card.cost.c)
+                    card.cost.rollback(self)
             game.effect_queue.resolve(f"打出 [{card.name}]", play_fn, source=card)
             return True
 

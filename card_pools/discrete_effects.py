@@ -881,7 +881,7 @@ def _banxiangou_special(minion, player, game, extras=None):
 
 def _xiangshu_evolve(minion, player, game):
     """橡树：成长时，获得1个C槽，抽1张牌。"""
-    player.c_point_max += 1
+    player.c_point_max_change(1)
     draw_cards(player, 1, game)
     print(f"  橡树成长：{player.name} 获得1个C槽并抽1张牌")
 
@@ -1467,7 +1467,7 @@ def _kuangche_special(minion, player, game, extras=None):
 
     def _kuangche_deathrattle(m, p, b):
         """矿车亡语：获得1个T槽。"""
-        p.t_point_max += 1
+        p.t_point_max_change(1)
         print(f"  {p.name} 获得1个T槽，T槽上限={p.t_point_max}，当前T点={p.t_point}")
 
     add_deathrattle(minion, _kuangche_deathrattle)
@@ -1651,7 +1651,8 @@ def _shujia_special(minion, player, game, extras=None):
 
     def _on_damaged(event):
         if event.get("target") == minion:
-            add_card_to_hand_by_name("书", player)
+            # 使用 minion.owner 以支持所有权转移（如鱼钩）
+            add_card_to_hand_by_name("书", minion.owner)
 
     on_damaged(minion, game, _on_damaged)
 
@@ -1944,11 +1945,12 @@ def _huanyi_special(minion, player, game, extras=None):
 @special
 def _xinbiao_special(minion, player, game, extras=None):
     """信标：你获得1个C槽或T槽时，开发1张卡组中的牌。若手牌已满，将其洗入卡组。"""
-    from tards.constants import EVENT_T_MAX_CHANGED
-    def on_t_max_change(event):
+    from tards.constants import EVENT_T_MAX_CHANGED, EVENT_C_MAX_CHANGED
+    def on_slot_increase(event):
         if event.data.get("player") == player and event.data.get("new", 0) > event.data.get("old", 0):
             game.develop_card(player, player.original_deck_defs, overflow_to_discard=False)
-    add_event_listener(minion, game, EVENT_T_MAX_CHANGED, on_t_max_change)
+    add_event_listener(minion, game, EVENT_T_MAX_CHANGED, on_slot_increase)
+    add_event_listener(minion, game, EVENT_C_MAX_CHANGED, on_slot_increase)
 
 
 @special
@@ -2040,7 +2042,7 @@ def _gengzhi_strategy(player, target, game, extras=None):
 @strategy
 def _mubiao_strategy(player, target, game, extras=None):
     """木镐：获得1个额外的C槽。"""
-    player.c_point_max += 1
+    player.c_point_max_change(1)
     print(f"  {player.name} 获得1个额外C槽，C槽上限={player.c_point_max}")
     return True
 
@@ -2048,7 +2050,7 @@ def _mubiao_strategy(player, target, game, extras=None):
 @strategy
 def _shibiao_strategy(player, target, game, extras=None):
     """石镐：获得1个额外的T槽。然后若剩余T点不少于2，抽一张牌。"""
-    player.t_point_max += 1
+    player.t_point_max_change(1)
     print(f"  {player.name} 获得1个额外T槽，T槽上限={player.t_point_max}")
     if player.t_point >= 2:
         draw_cards(player, 1, game)
@@ -2058,8 +2060,8 @@ def _shibiao_strategy(player, target, game, extras=None):
 @strategy
 def _jinbiao_strategy(player, target, game, extras=None):
     """金镐：获得1个额外的C槽和T槽。然后若你的HP低于对手，你获得+4HP。"""
-    player.c_point_max += 1
-    player.t_point_max += 1
+    player.c_point_max_change(1)
+    player.t_point_max_change(1)
     print(f"  {player.name} 获得1个额外C槽和T槽")
     opponent = game.p2 if player == game.p1 else game.p1
     if player.health < opponent.health:
@@ -2071,8 +2073,8 @@ def _jinbiao_strategy(player, target, game, extras=None):
 def _zuanshibiao_strategy(player, target, game, extras=None):
     """钻石镐：获得1个额外的C槽和2个额外的T槽。
     然后若对方异象数更多，随机消灭一个花费不大于4T的敌方异象。"""
-    player.c_point_max += 1
-    player.t_point_max += 2
+    player.c_point_max_change(1)
+    player.t_point_max_change(2)
     print(f"  {player.name} 获得1个额外C槽和2个额外T槽")
     enemy_count = len(all_enemy_minions(game, player))
     friendly_count = len(all_friendly_minions(game, player))
@@ -3150,9 +3152,10 @@ def _kuqideheiyaoshi_special(minion, player, game, extras=None):
             return
         if not deployed.source_card.keywords.get("回响", False):
             return
-        deployed.attack += 2
-        deployed.health += 2
+        deployed.base_attack += 2
+        deployed.base_max_health += 2
         deployed.current_health += 2
+        deployed.recalculate()
         print(f"  哭泣的黑曜石：{deployed.name} 部署时获得 +2/2")
 
     on("deployed", on_deployed, game, minion)
@@ -3235,7 +3238,7 @@ SPECIAL_MAP = {
 @strategy
 def _tiegao_effect(player, target, game, extras=None):
     """铁镐：获得2个额外的C槽。回合结束：抽一张牌。（一次性）"""
-    player.c_point_max += 2
+    player.c_point_max_change(2)
     print(f"  {player.name} 获得2个额外C槽")
 
     def on_phase_end(event):
@@ -3251,11 +3254,11 @@ def _tiegao_effect(player, target, game, extras=None):
 @strategy
 def _duochongsheji_effect(player, target, game, extras=None):
     """多重射击：对所有敌方目标造成2点伤害。"""
-    enemy = game.get_opponent(player)
+    from card_pools.effect_utils import get_opponent
+    enemy = get_opponent(game, player)
     for minion in all_enemy_minions(game, player):
-        if minion.is_alive():
-            deal_damage_to_minion(minion, 2, source=None, game=game)
-            print(f"  多重射击：对 {minion.name} 造成2点伤害")
+        deal_damage_to_minion(minion, 2, source=None, game=game)
+        print(f"  多重射击：对 {minion.name} 造成2点伤害")
     deal_damage_to_player(enemy, 2, source=None, game=game)
     print(f"  多重射击：对 {enemy.name} 造成2点伤害")
     return True
@@ -3399,9 +3402,6 @@ def _jitui_effect(player, target, game, extras=None):
     if not isinstance(target, Minion) or not target.is_alive():
         print("  击退：目标无效")
         return False
-    if not isinstance(target, Minion):
-        print("  击退：目标必须是异象")
-        return False
     from tards.auto_effects import return_to_hand
     return_to_hand(target, game, target.owner)
     return True
@@ -3455,9 +3455,10 @@ def _shenhaitansuozhe_effect(player, target, game, extras=None):
         return False
 
     if mode == "+2/2":
-        t.attack += 2
-        t.health += 2
+        t.base_attack += 2
+        t.base_max_health += 2
         t.current_health += 2
+        t.recalculate()
         print(f"  深海探索者：{t.name} 获得 +2/2")
     else:
         deal_damage_to_minion(t, 6, source=None, game=game)
@@ -3487,10 +3488,7 @@ def _baohu_effect(player, target, game, extras=None):
     if not isinstance(target, Minion) or not target.is_alive():
         print("  保护：目标无效")
         return False
-    if not isinstance(target, Minion):
-        print("  保护：目标必须是异象")
-        return False
-    target.health += 3
+    target.base_max_health += 3
     target.current_health += 3
     target.keywords["坚韧"] = target.keywords.get("坚韧", 0) + 1
     target.recalculate()
@@ -3501,7 +3499,7 @@ def _baohu_effect(player, target, game, extras=None):
 @strategy
 def _xiaolv_effect(player, target, game, extras=None):
     """效率：获得1个额外的C槽。"""
-    player.c_point_max += 1
+    player.c_point_max_change(1)
     print(f"  {player.name} 获得1个额外C槽")
     return True
 
@@ -3515,14 +3513,15 @@ def _jingyanxiubu_effect(player, target, game, extras=None):
         player.draw_card(to_draw, game=game)
         print(f"  经验修补：{player.name} 将手牌补至6张")
     # 2. 获得额外槽位
-    player.c_point_max += 1
-    player.t_point_max += 1
+    player.c_point_max_change(1)
+    player.t_point_max_change(1)
     print(f"  经验修补：{player.name} 获得1个额外C槽和T槽")
     # 3. 友方异象+4HP（含上限）
     for minion in all_friendly_minions(game, player):
         if minion.is_alive():
-            minion.health += 4
+            minion.base_max_health += 4
             minion.current_health += 4
+            minion.recalculate()
             print(f"  经验修补：{minion.name} 获得 +4HP")
     return True
 
@@ -3907,11 +3906,11 @@ def _yuguwajue_effect(player, target, game, extras=None):
     pool = random.sample(candidates, min(3, len(candidates)))
     options = [d.name for d in pool]
     choice = game.request_choice(player, options, title="鱼骨挖掘：开发1张异象")
-    if choice < 0 or choice >= len(pool):
+    if choice is None or choice not in options:
         print("  鱼骨挖掘：未选择")
         return True
 
-    chosen_def = pool[choice]
+    chosen_def = next(d for d in pool if d.name == choice)
 
     # 3. 复制加入战场（不触发部署效果）
     empties = empty_positions(player, game.board)
@@ -4115,7 +4114,10 @@ def _jiangshizhuren_special(minion, player, game, extras=None):
     was_alive = enemy.is_alive()
     initiate_combat(minion, enemy, game)
 
-    if was_alive and not enemy.is_alive():
+    # minion_death() 将实际移除操作放入 effect_queue，is_alive() 在同步检查时仍为 True
+    # 需要同时检查 _pending_death 标志
+    enemy_died = not enemy.is_alive() or getattr(enemy, "_pending_death", False)
+    if was_alive and enemy_died:
         buff_minion(minion, atk_delta=-1, hp_delta=0)
         print(f"  {minion.name} 因消灭目标，攻击力-1")
     return True
@@ -4543,6 +4545,7 @@ def _qingjinshi_mineral(player, game):
 # 原 discrete.py 内联 lambda 迁移（策略效果）
 # =============================================================================
 
+@strategy
 def _fengli_effect(player, target, game, extras=None):
     """锋利：对一个异象造成6点伤害。"""
     from tards.targeting import TargetingRequest
@@ -4568,12 +4571,14 @@ def _fengli_effect(player, target, game, extras=None):
     return True
 
 
+@strategy
 def _shiyun_effect(player, target, game, extras=None):
     """时运：抽2张牌。"""
     player.draw_card(2, game=game)
     return True
 
 
+@strategy
 def _jingzhuicaiji_effect(player, target, game, extras=None):
     """精准采集：开发1张卡组中的牌。"""
     game.develop_card(player, player.original_deck_defs)
@@ -4612,9 +4617,6 @@ def _bingshuangxingzhe_effect(player, target, game, extras=None):
 
     if not isinstance(target, Minion) or not target.is_alive():
         print("  冰霜行者：目标无效")
-        return False
-    if not target or not hasattr(target, "is_alive") or not target.is_alive():
-        print("  [警告] 冰霜行者：未选择有效的目标异象")
         return False
 
     # 给目标冰冻1

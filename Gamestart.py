@@ -168,19 +168,15 @@ class LocalDuel:
 
     def _make_targeting_provider(self):
         def provider(game, request, valid_targets):
-            if request.deciding_player == self.local_player:
-                self._targeting_request = request
-                self._targeting_valid_targets = valid_targets
-                self._targeting_result = None
-                self._targeting_event.clear()
-                if self.targeting_request_callback:
-                    self.targeting_request_callback(request, valid_targets)
-                self._targeting_event.wait()
-                return self._targeting_result
-            else:
-                # AI / 命令行回退：随机选第一个
-                import random
-                return random.choice(valid_targets) if valid_targets else None
+            # 本地对战（人机测试/双人对战）：无论哪个玩家回合，都交给 GUI 让玩家选择
+            self._targeting_request = request
+            self._targeting_valid_targets = valid_targets
+            self._targeting_result = None
+            self._targeting_event.clear()
+            if self.targeting_request_callback:
+                self.targeting_request_callback(request, valid_targets)
+            self._targeting_event.wait()
+            return self._targeting_result
         return provider
 
     def submit_local_targeting(self, target: Any):
@@ -551,22 +547,40 @@ class DeckBuilderFrame(tk.Frame):
 
     # ===== BattleFrame 卡牌详情大图 =====
     def _update_detail_text(self, card):
-        """在右侧文本栏中显示卡牌信息（悬停时触发）。"""
+        """在右侧文本栏中显示卡牌信息（悬停时触发）。支持手牌(Card)和场上异象(Minion)。"""
         if not hasattr(self, "detail_text"):
             return
 
-        # 从 CardDefinition 获取描述（Card 对象本身没有 description）
+        # 获取描述：优先从 card 本身，其次从 source_card（场上异象），最后从注册表
         desc = getattr(card, "description", "")
+        if not desc and hasattr(card, "source_card") and card.source_card:
+            desc = getattr(card.source_card, "description", "")
         if not desc and DEFAULT_REGISTRY:
             card_def = DEFAULT_REGISTRY.get(card.name)
             if card_def:
                 desc = getattr(card_def, "description", "")
 
-        lines = [f"【{card.name}】  费用: {card.cost}"]
-        if isinstance(card, MinionCard):
+        # 获取费用：手牌直接用 card.cost，场上异象从 source_card 获取
+        cost = getattr(card, "cost", None)
+        if cost is None and hasattr(card, "source_card"):
+            cost = card.source_card.cost
+        if cost is None:
+            cost = "?"
+
+        lines = [f"【{card.name}】  费用: {cost}"]
+
+        from tards.cards import Minion
+        if isinstance(card, Minion):
             lines.append(f"攻击/生命: {card.attack}/{card.health}")
-        if getattr(card, "keywords", None):
-            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in card.keywords.items())
+            kw_dict = card.display_keywords
+        elif isinstance(card, MinionCard):
+            lines.append(f"攻击/生命: {card.attack}/{card.health}")
+            kw_dict = getattr(card, "keywords", None) or {}
+        else:
+            kw_dict = getattr(card, "keywords", None) or {}
+
+        if kw_dict:
+            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in kw_dict.items())
             lines.append(f"关键词: {kw}")
         if desc:
             lines.append(f"\n【效果】\n{desc}")
@@ -1282,6 +1296,15 @@ class BattleFrame(tk.Frame):
         if key.lower() == "a":
             self._auto_fill_attack_targets()
             return
+        # s: 兑换松鼠
+        if key.lower() == "s":
+            self._on_exchange_squirrel()
+            return
+        # i/g/d/m: 直接兑换对应矿物（铁锭/金矿/钻石/青金石）
+        mineral_keys = {"i": "I", "g": "G", "d": "D", "m": "M"}
+        if key.lower() in mineral_keys:
+            self._on_exchange_mineral(mineral_keys[key.lower()])
+            return
         # 1~0: 选择对应手牌（1~9 → serial 1~9，0 → serial 10）
         # 同时支持小键盘 KP_1 ~ KP_0
         key_map = {
@@ -1378,12 +1401,15 @@ class BattleFrame(tk.Frame):
             self._drag_label = None
         if not self._dragging_card:
             return
-        # 拖拽距离过短视为点击，不拦截
+        # 拖拽距离过短视为点击，走正常的点击出牌流程
         dist = ((event.x_root - self._drag_start_x) ** 2 +
                 (event.y_root - self._drag_start_y) ** 2) ** 0.5
         if dist < 20:
+            serial = self._dragging_serial
             self._dragging_card = None
             self._dragging_serial = None
+            if serial is not None:
+                self._on_hand_card_click(serial - 1)
             return
         # 判断释放位置是否在棋盘内
         canvas_x = event.x_root - self.canvas.winfo_rootx() - self.board_offset_x
@@ -1633,6 +1659,8 @@ class BattleFrame(tk.Frame):
         self.res_c_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_b_label = tk.Label(res_row1, text="B: 0", font=("Microsoft YaHei", 10, "bold"), fg="#7b1fa2")
         self.res_b_label.pack(side=tk.LEFT, padx=(0, 8))
+        self.res_sacrifice_label = tk.Label(res_row1, text="可献祭: 0", font=("Microsoft YaHei", 9), fg="#9c27b0")
+        self.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_s_label = tk.Label(res_row1, text="S: 0", font=("Microsoft YaHei", 10, "bold"), fg="#f57c00")
         self.res_s_label.pack(side=tk.LEFT, padx=(0, 8))
         res_row2 = tk.Frame(self.res_panel)
@@ -1689,7 +1717,7 @@ class BattleFrame(tk.Frame):
         # 卡牌详情文本栏（悬停时显示）
         detail_frame = tk.LabelFrame(right, text="卡牌详情")
         detail_frame.pack(fill=tk.X, pady=5)
-        self.detail_text = tk.Text(detail_frame, height=5, wrap=tk.WORD,
+        self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
                                    bg="#fafafa", fg="#333")
         self.detail_text.pack(fill=tk.X, padx=5, pady=5)
@@ -1847,7 +1875,7 @@ class BattleFrame(tk.Frame):
             x2 = x1 + self.cell_size
             label_y = 5 * self.cell_size + self.board_offset_y
             self.canvas.create_rectangle(x1, label_y, x2, label_y + 20, fill="#cfd8dc", outline="black", tags="board_grid")
-            self.canvas.create_text(x1 + self.cell_size // 2, label_y + 5, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
+            self.canvas.create_text(x1 + self.cell_size // 2, label_y + 2, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
@@ -2009,7 +2037,7 @@ class BattleFrame(tk.Frame):
             self.canvas.create_text(cx - 10, cy + 10, text=str(m.attack), fill=atk_color, font=("Microsoft YaHei", 10), tags=(tag, "minion"))
             self.canvas.create_text(cx, cy + 10, text="/", fill="white", font=("Microsoft YaHei", 10), tags=(tag, "minion"))
             self.canvas.create_text(cx + 10, cy + 10, text=str(m.health), fill=hp_color, font=("Microsoft YaHei", 10), tags=(tag, "minion"))
-            self.canvas.tag_bind(tag, "<Enter>", lambda e, mm=m: self._show_minion_tooltip(e, mm))
+            self.canvas.tag_bind(tag, "<Enter>", lambda e, mm=m: (self._show_minion_tooltip(e, mm), self._update_detail_text(mm)))
             self.canvas.tag_bind(tag, "<Leave>", lambda e: self._hide_tooltip())
             self.canvas.tag_bind(tag, "<Motion>", lambda e: self._move_tooltip(e.x_root, e.y_root))
             self.canvas.tag_bind(tag, "<Button-1>", lambda e, mm=m: self._on_minion_click(mm))
@@ -2176,66 +2204,84 @@ class BattleFrame(tk.Frame):
 
         step()
 
+    def _get_available_blood(self, player):
+        """计算场上友方异象可提供的献祭B点总和。"""
+        if not self.duel.game:
+            return 0
+        minions = self.duel.game.board.get_minions_of_player(player)
+        return sum(m.keywords.get("丰饶", 1) for m in minions if m.is_alive())
+
     def _render_hand_card(self, parent, card, idx, serial, active, card_type_colors, am, cw, ch, flash=False):
         """渲染单张手牌卡牌。"""
-        base_bg = card_type_colors.get(type(card), "white")
-        bg = "#fff9c4" if self.selected_card_idx == idx else base_bg
-        if self._in_targeting_mode and card in self._targeting_valid_targets:
-            bg = "#ffeb3b"
-        cost_ok, _ = card.cost.can_afford_detail(active)
-        can_play_now = (cost_ok and not self._in_targeting_mode
-                        and self.duel.game
-                        and self.duel.game.current_phase == "action")
-        frame_bg = "#4caf50" if can_play_now else "white"
-        frame_bd = 2 if can_play_now else 0
-        frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
-        frame.pack(side=tk.LEFT, padx=2)
-        if flash:
-            self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
-        cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
-        cvs.pack(padx=2, pady=2)
-        img = None
-        if getattr(card, "asset_id", None):
-            img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
-        if img:
-            cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
-            cvs.image = img
-        else:
-            cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
-        name = card.name
-        cost_str = str(card.cost)
-        stats = ""
-        if isinstance(card, MinionCard):
-            stats = f"{card.attack}/{card.health}"
-        cvs.create_text(cw // 2, 14, text=name, fill="#212121",
-                        font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-        cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
-                        font=("Microsoft YaHei", 8, "bold"), tags="card_text")
-        bottom_text = stats
-        if isinstance(card, Strategy):
-            bottom_text = "【策】"
-        elif isinstance(card, Conspiracy):
-            bottom_text = "【谋】"
-        elif isinstance(card, MineralCard):
-            bottom_text = "【矿】"
-        elif isinstance(card, MinionCard):
-            bottom_text = f"【随】{stats}"
-        cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
-                        font=("Microsoft YaHei", 8), tags="card_text")
-        if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-            cvs.create_oval(cw - 18, 2, cw - 2, 18, fill="#4caf50", outline="white", width=1, tags="activated_mark")
-            cvs.create_text(cw - 10, 10, text="激", fill="white",
-                            font=("Microsoft YaHei", 7, "bold"), tags="activated_mark")
-        stack_count = getattr(card, "stack_count", 1)
-        if stack_count > 1:
-            cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
-            cvs.create_text(cw - 12, ch - 12, text=str(stack_count), fill="white",
-                            font=("Microsoft YaHei", 9, "bold"), tags="stack_count")
-        cvs.bind("<Button-1>", lambda e, idx=idx: self._on_hand_card_click(idx))
-        cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
-        cvs.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s), self._update_detail_text(c)))
-        cvs.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview(), self._clear_detail_text()))
-        cvs.bind("<Motion>", lambda e, c=card: self._move_tooltip(e.x_root, e.y_root))
+        try:
+            base_bg = card_type_colors.get(type(card), "white")
+            bg = "#fff9c4" if self.selected_card_idx == idx else base_bg
+            if self._in_targeting_mode and card in self._targeting_valid_targets:
+                bg = "#ffeb3b"
+            # 计算可用B点（含场上可献祭异象）
+            available_blood = self._get_available_blood(active)
+            from tards.player import Player as PlayerCls
+            original_b = active.b_point
+            active.b_point = original_b + available_blood
+            cost_ok, _ = card.cost.can_afford_detail(active)
+            active.b_point = original_b
+            can_play_now = (cost_ok and not self._in_targeting_mode
+                            and self.duel.game
+                            and self.duel.game.current_phase == "action")
+            frame_bg = "#4caf50" if can_play_now else "white"
+            frame_bd = 2 if can_play_now else 0
+            frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
+            frame.pack(side=tk.LEFT, padx=2)
+            if flash:
+                self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
+            cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
+            cvs.pack(padx=2, pady=2)
+            img = None
+            if getattr(card, "asset_id", None):
+                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+            if img:
+                cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                cvs.image = img
+            else:
+                cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+            name = card.name
+            cost_str = str(card.cost)
+            stats = ""
+            if isinstance(card, MinionCard):
+                stats = f"{card.attack}/{card.health}"
+            cvs.create_text(cw // 2, 14, text=name, fill="#212121",
+                            font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+            cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+            bottom_text = stats
+            if isinstance(card, Strategy):
+                bottom_text = "【策】"
+            elif isinstance(card, Conspiracy):
+                bottom_text = "【谋】"
+            elif isinstance(card, MineralCard):
+                bottom_text = "【矿】"
+            elif isinstance(card, MinionCard):
+                bottom_text = f"【随】{stats}"
+            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
+                            font=("Microsoft YaHei", 8), tags="card_text")
+            if isinstance(card, Conspiracy) and card in active.active_conspiracies:
+                cvs.create_oval(cw - 18, 2, cw - 2, 18, fill="#4caf50", outline="white", width=1, tags="activated_mark")
+                cvs.create_text(cw - 10, 10, text="激", fill="white",
+                                font=("Microsoft YaHei", 7, "bold"), tags="activated_mark")
+            stack_count = getattr(card, "stack_count", 1)
+            if stack_count > 1:
+                cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
+                cvs.create_text(cw - 12, ch - 12, text=str(stack_count), fill="white",
+                                font=("Microsoft YaHei", 9, "bold"), tags="stack_count")
+            cvs.bind("<Button-1>", lambda e, idx=idx: self._on_hand_card_click(idx))
+            cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
+            cvs.bind("<Enter>", lambda e, c=card, s=serial: (self._show_card_tooltip(e, c), self._preview_deploy_positions(s), self._update_detail_text(c)))
+            cvs.bind("<Leave>", lambda e: (self._hide_tooltip(), self._clear_preview(), self._clear_detail_text()))
+            cvs.bind("<Motion>", lambda e, c=card: self._move_tooltip(e.x_root, e.y_root))
+        except Exception as e:
+            print(f"[_render_hand_card] 渲染卡牌异常 [{getattr(card, 'name', 'unknown')}]: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _render_hand(self):
         active = self.duel.game and self.duel.game.current_player
@@ -2299,6 +2345,7 @@ class BattleFrame(tk.Frame):
     def _render_info(self):
         if not self.duel.game:
             return
+        from tards.card_db import Pack
         for pname, widgets in self.info_labels.items():
             player = None
             if self.duel.game.p1.name == pname:
@@ -2316,6 +2363,8 @@ class BattleFrame(tk.Frame):
                 bg = "#fff59d"
             elif is_current:
                 bg = "#e8f5e9"
+            elif getattr(player, "braked", False):
+                bg = "#ffebee"
             else:
                 bg = "#fafafa"
 
@@ -2381,6 +2430,13 @@ class BattleFrame(tk.Frame):
             self.res_t_label.config(text=f"T:{active.t_point}/{active.t_point_max}")
             self.res_c_label.config(text=f"C:{active.c_point}/{active.c_point_max}")
             self.res_b_label.config(text=f"B:{active.b_point}")
+            has_underworld = active.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
+            if has_underworld:
+                self.res_sacrifice_label.config(text=f"可献祭:{self._get_available_blood(active)}")
+                if not self.res_sacrifice_label.winfo_ismapped():
+                    self.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
+            else:
+                self.res_sacrifice_label.pack_forget()
             self.res_s_label.config(text=f"S:{active.s_point}")
             self.res_deck_label.config(text=f"抽牌堆:{len(active.card_deck)}")
             self.res_dis_label.config(text=f"弃牌堆:{len(active.card_dis)}")
@@ -2391,7 +2447,6 @@ class BattleFrame(tk.Frame):
 
         # 同步"抽松鼠"复选框状态（仅本地玩家可操作）
         if active and (not isinstance(self.duel, NetworkDuel) or active == self.local_player):
-            from tards.card_db import Pack
             has_underworld = active.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
             if has_underworld and active.squirrel_deck:
                 self.squirrel_draw_cb.pack(side=tk.LEFT, padx=5)
@@ -2444,6 +2499,7 @@ class BattleFrame(tk.Frame):
         self.hint_label.config(text=prompt, font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f")
         self._render_board()
         self._render_info()
+        self._render_hand()
 
     def _show_targeting(self, request: TargetingRequest, valid_targets: List[Any]):
         """响应 targeting_request 事件，渲染指向选项。"""
@@ -2616,18 +2672,24 @@ class BattleFrame(tk.Frame):
         # 随从卡：先处理献祭，再选择部署位置
         if isinstance(card, MinionCard):
             if card.cost.b > 0:
+                # 若当前B点已足够，直接部署，无需献祭
+                if active.b_point >= card.cost.b:
+                    self._enter_deploy_targeting(serial, card, active)
+                    return
+                # B点不足，需要献祭补充差额
+                need = card.cost.b - active.b_point
                 minions = list(self.duel.game.board.get_minions_of_player(active)) if self.duel.game else []
                 if not minions:
-                    self.hint_label.config(text="场上没有可献祭的友方异象")
+                    self.hint_label.config(text="B点不足，且场上没有可献祭的友方异象")
                     return
                 def on_sacrifice_confirm(selected: List[Minion]):
                     total = sum(m.keywords.get("丰饶", 1) for m in selected)
-                    if total < card.cost.b:
-                        self.hint_label.config(text="献祭不足，无法部署")
+                    if total < need:
+                        self.hint_label.config(text=f"献祭不足，还需{need}点鲜血")
                         return
                     self._pending_sacrifices = selected
                     self._enter_deploy_targeting(serial, card, active)
-                SacrificeDialog(self, minions, card.cost.b, on_sacrifice_confirm)
+                SacrificeDialog(self, minions, need, on_sacrifice_confirm)
                 return
             self._enter_deploy_targeting(serial, card, active)
             return
@@ -2927,6 +2989,37 @@ class BattleFrame(tk.Frame):
             return
         self.duel.submit_local_action({"type": "exchange_squirrel"})
         self._add_history("兑换松鼠", is_play=True)
+
+    def _on_exchange_mineral(self, mineral_type: str):
+        """按快捷键直接兑换指定矿物（I/G/D/M）。"""
+        active = self.duel.game and self.duel.game.current_player
+        if not active:
+            return
+        if isinstance(self.duel, NetworkDuel) and active != self.local_player:
+            return
+        from tards.card_db import Pack
+        if active.immersion_points.get(Pack.DISCRETE, 0) < 1:
+            messagebox.showinfo("兑换矿物", "你没有离散沉浸度，无法兑换矿物")
+            return
+
+        # 查找对应 mineral_type 的可兑换矿物
+        target_name = None
+        for name, card_def in DEFAULT_REGISTRY._cards.items():
+            if card_def.card_type == CardType.MINERAL and card_def.mineral_type == mineral_type:
+                tmp_card = card_def.to_game_card(active)
+                if tmp_card.exchange_cost.can_afford(active):
+                    target_name = name
+                    break
+
+        if not target_name:
+            mineral_names = {"I": "铁锭", "G": "金矿", "D": "钻石", "M": "青金石"}
+            messagebox.showinfo("兑换矿物", f"当前无法兑换{mineral_names.get(mineral_type, mineral_type)}")
+            return
+
+        self.duel.submit_local_action({"type": "exchange", "card_name": target_name})
+        self._add_history(f"兑换矿物 [{target_name}]", is_play=True)
+        self.hint_label.config(text=f"已兑换 {target_name}")
+        self.after(1500, self._reset_guide_hint)
         self.hint_label.config(text="已兑换松鼠")
 
     def _clear_selection(self):
@@ -2938,24 +3031,49 @@ class BattleFrame(tk.Frame):
         self._render_board()
 
     def _schedule_refresh(self):
-        self._try_refresh()
+        try:
+            self._try_refresh()
+        except Exception as e:
+            print(f"[_schedule_refresh] 异常: {e}")
+            import traceback
+            traceback.print_exc()
         self.after(200, self._schedule_refresh)
 
     def _try_refresh(self):
-        if gui_refresh_event.is_set():
-            gui_refresh_event.clear()
-            self._render_info()
-            self._render_board()
-            self._render_hand()
-            if self.duel.game:
-                active = self.duel.game.current_player
-                if isinstance(self.duel, NetworkDuel):
-                    if active == self.local_player:
-                        self.hint_label.config(text=f"轮到你的行动")
+        try:
+            if gui_refresh_event.is_set():
+                gui_refresh_event.clear()
+                try:
+                    self._render_info()
+                except Exception as e:
+                    print(f"[_try_refresh] _render_info 异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+                try:
+                    self._render_board()
+                except Exception as e:
+                    print(f"[_try_refresh] _render_board 异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+                try:
+                    self._render_hand()
+                except Exception as e:
+                    print(f"[_try_refresh] _render_hand 异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+                if self.duel.game:
+                    active = self.duel.game.current_player
+                    if isinstance(self.duel, NetworkDuel):
+                        if active == self.local_player:
+                            self.hint_label.config(text=f"轮到你的行动")
+                        else:
+                            self.hint_label.config(text=f"等待 {active.name} 行动...")
                     else:
-                        self.hint_label.config(text=f"等待 {active.name} 行动...")
-                else:
-                    self.hint_label.config(text=f"轮到 {active.name} 行动")
+                        self.hint_label.config(text=f"轮到 {active.name} 行动")
+        except Exception as e:
+            print(f"[_try_refresh] 外层异常: {e}")
+            import traceback
+            traceback.print_exc()
         # 活跃阴谋显示（网络对战只显示自己的，本地测试显示当前回合玩家的）
         conspiracies_player = self.local_player
         if not isinstance(self.duel, NetworkDuel) and self.duel.game and self.duel.game.current_player:
@@ -3046,14 +3164,17 @@ class BattleFrame(tk.Frame):
             old_stdout = sys.stdout
             sys.stdout = self._GuiLogWriter(self, log_writer)
             try:
+                print("[GameThread] 游戏线程启动，准备运行 duel.run_game", file=sys.stderr)
                 self.duel.resolve_step_callback = lambda: (
                     gui_refresh_event.set(),
                     time.sleep(0.4),
                 )
                 self.duel.run_game(self.opponent)
+                print("[GameThread] duel.run_game 已返回", file=sys.stderr)
             except Exception as e:
                 import traceback
                 error_msg = f"游戏线程异常: {e}\n{traceback.format_exc()}"
+                print(error_msg, file=sys.stderr)
                 print(error_msg)
                 self.after(0, lambda: messagebox.showerror("游戏错误", error_msg))
             finally:
@@ -3253,14 +3374,17 @@ class BattleFrame(tk.Frame):
         self.app.show_menu()
 
     class _GuiLogWriter:
-        """把 print 输出同步到 GUI 日志框，实际文件写入委托给 BattleLogWriter。"""
+        """把 print 输出同步到 GUI 日志框，实际文件写入委托给 BattleLogWriter。
+        网络对局不显示实时日志，仅本地对局同步到 GUI。"""
         def __init__(self, gui: "BattleFrame", log_writer):
             self.gui = gui
             self.log_writer = log_writer
         def write(self, s: str):
             if s.strip():
                 msg = s.strip()
-                self.gui.after(0, lambda msg=msg: self.gui._log(msg))
+                # 仅本地对局同步到 GUI 日志框；网络对局只写文件
+                if not isinstance(self.gui.duel, NetworkDuel):
+                    self.gui.after(0, lambda msg=msg: self.gui._log(msg))
                 self.log_writer.write(msg + "\n")
         def flush(self):
             self.log_writer.flush()

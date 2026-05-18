@@ -8,7 +8,7 @@ from .constants import (
     EVENT_CARD_PLAYED,
     EVENT_CONSPIRACY_TRIGGERED,
     EVENT_DEATH,
-    EVENT_DEPLOY,
+    EVENT_DEPLOYED,
     EVENT_DRAW,
     EVENT_PHASE_END,
     EVENT_PHASE_START,
@@ -121,13 +121,13 @@ class Game:
         # === 自动化时间节点效果（回合开始/结束等） ===
         event_data = dict(event_type=event_type, **kwargs)
         if event_type in (EVENT_TURN_START, EVENT_TURN_END, EVENT_PHASE_START,
-                          EVENT_PHASE_END, EVENT_DEPLOY, EVENT_DEATH,
+                          EVENT_PHASE_END, EVENT_DEPLOYED, EVENT_DEATH,
                           EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_SACRIFICE,
                           EVENT_BELL, EVENT_PLAYER_DAMAGE):
             self._trigger_auto_effects(event_type, event_data)
 
             # 雕像拼装检测
-            if event_type == EVENT_DEPLOY:
+            if event_type == EVENT_DEPLOYED:
                 self._check_statue_pair(event_data)
             if event_type == EVENT_PHASE_END and event_data.get("phase") == self.PHASE_RESOLVE:
                 self._resolve_statue_fusions()
@@ -281,13 +281,13 @@ class Game:
                     )
                 # 注入的动态效果（金西瓜片、重生锚等赋予的额外回合效果）
                 if trigger_injected_start and attr_name == "on_turn_start":
-                    for inj_fn in list(getattr(m, "_injected_turn_start", [])):
+                    for inj_fn in list(getattr(m, "_injected_turn_start", []) or []):
                         self.effect_queue.queue(
                             f"{m.name} 的注入回合开始效果",
                             lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
                         )
                 elif trigger_injected_end and attr_name == "on_turn_end":
-                    for inj_fn in list(getattr(m, "_injected_turn_end", [])):
+                    for inj_fn in list(getattr(m, "_injected_turn_end", []) or []):
                         self.effect_queue.queue(
                             f"{m.name} 的注入回合结束效果",
                             lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
@@ -605,16 +605,6 @@ class Game:
             if p.c_point_max > 0:
                 p.c_point = p.c_point_max
                 print(f"  {p.name} C槽={p.c_point_max}，获得 {p.c_point} C点")
-
-            # 发射通用 T槽上限变化事件（信标、火把等卡牌通过监听此事件触发）
-            if p.t_point_max > old_t_max:
-                from .constants import EVENT_T_MAX_CHANGED
-                self.emit_event(
-                    EVENT_T_MAX_CHANGED,
-                    player=p,
-                    old=old_t_max,
-                    new=p.t_point_max,
-                )
 
             # 重置冥刻2级松鼠兑换标记
             p.squirrel_exchanged_this_turn = False

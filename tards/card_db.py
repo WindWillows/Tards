@@ -140,6 +140,7 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            card.description = self.description
             echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
             if isinstance(echo_val, int):
                 card.echo_level = echo_val
@@ -168,6 +169,7 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            card.description = self.description
             echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
             if isinstance(echo_val, int):
                 card.echo_level = echo_val
@@ -195,6 +197,7 @@ class CardDefinition:
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
+            card.description = self.description
             echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
             if isinstance(echo_val, int):
                 card.echo_level = echo_val
@@ -219,6 +222,7 @@ class CardDefinition:
             card.on_game_start = self.on_game_start
             card.asset_id = self.asset_id
             card.asset_back_id = self.asset_back_id
+            card.description = self.description
             echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
             if isinstance(echo_val, int):
                 card.echo_level = echo_val

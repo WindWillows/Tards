@@ -26,7 +26,7 @@ from card_pools.effect_utils import (
     summon_minion_by_name,
 )
 from tards import DEFAULT_REGISTRY, Pack, Rarity, CardType
-from tards.cards import Minion, MinionCard
+from tards.cards import Minion, MinionCard, Strategy
 from tards.constants import EVENT_TURN_START, EVENT_SACRIFICE, EVENT_DISCARDED, EVENT_PHASE_START, EVENT_PHASE_END, EVENT_DEPLOYED, EVENT_AFTER_DESTROY, EVENT_BEFORE_DAMAGE, EVENT_AFTER_ATTACK, EVENT_CARD_PLAYED, EVENT_BEFORE_DESTROY, EVENT_BEFORE_DEPLOY, EVENT_DEATH
 
 SPECIAL_MAP = {
@@ -51,6 +51,7 @@ SPECIAL_MAP = {
     "猹": "_cha_special",
     "信天翁": "_xintianweng_special",
     "兀鹫": "_wujiu_special",
+    "黑山羊": "_heishanyang_special",
     "兵蚁": "_bingyi_special",
     "嘲鸫": "_chaodong_special",
     "地鼠": "_dishu_special",
@@ -214,6 +215,7 @@ __all__ = [
     "_cha_special",
     "_xintianweng_special",
     "_wujiu_special",
+    "_heishanyang_special",
     "_bingyi_special",
     "_chaodong_special",
     "_dishu_special",
@@ -1082,8 +1084,8 @@ def _lugui_special(minion, player, game, extras=None):
 def _cuiniao_special(minion, player, game, extras=None):
     """翠鸟：部署：若在水路，获得潜水和空袭。"""
     if minion.position and minion.position[1] == 4:
-        minion.keywords["潜水"] = True
-        minion.keywords["空袭"] = True
+        minion.base_keywords["潜水"] = True
+        minion.base_keywords["空袭"] = True
         minion.recalculate()
         print(f"  翠鸟部署于水路，获得潜水和空袭")
     return True
@@ -2183,6 +2185,30 @@ def _wujiu_special(minion, player, game, extras=None):
 
 
 @special
+def _heishanyang_special(minion, player, game, extras=None):
+    """黑山羊：亡语：若作为祭品且此次部署的B点溢出，抽1张牌。"""
+
+    def on_sacrifice(event):
+        sac_minion = event.data.get("minion")
+        if sac_minion is not minion:
+            return
+        total_blood = event.data.get("total_blood", 0)
+        required_blood = event.data.get("required_blood", 0)
+        if total_blood > required_blood:
+            minion._sacrifice_overflow = True
+
+    on("献祭", on_sacrifice, game, minion=minion)
+
+    def _dr(m, p, b):
+        if getattr(m, "_sacrifice_overflow", False):
+            g = b.game_ref if hasattr(b, "game_ref") else None
+            draw_cards(p, 1, game=g)
+            print(f"  黑山羊：献祭溢出，抽1张牌")
+
+    add_deathrattle(minion, _dr)
+
+
+@special
 def _xintianweng_special(minion, player, game, extras=None):
     """信天翁：部署：使异象更多一方的一个异象返回其所有者手中。"""
     # 统计部署前数量（排除自身）
@@ -2773,7 +2799,7 @@ def _guwangzhi_hui_effect(player, target, game, extras=None):
         return True
     card = player.card_deck.pop()
     card.cost.t = max(0, card.cost.t - 2)
-    card.cost.b += 1
+    card.cost.b -= 1
     player.add_card_to_hand(card, game=game, emit_events=False)
     return True
 
@@ -2862,7 +2888,7 @@ def _pimaoshang_effect(player, target, game, extras=None):
         print(f"  皮毛商：将 [{chosen.name}] 洗入卡组")
 
     # 阶段2：抉择
-    choice = (extras or [None])[0]
+    choice = game.request_choice(player, ["抽2张异象", "获得4T"], "皮毛商：抉择")
     if choice == "抽2张异象":
         minion_cards = [c for c in player.card_deck if isinstance(c, MinionCard)]
         drawn = 0
@@ -4179,7 +4205,6 @@ def _liulinfengsheng_effect(player, target, game, extras=None):
     shadow_card._liulin_shadow = True
 
     opponent.add_card_to_hand(shadow_card, game=game, emit_events=False)
-    return True
 
     # deploy_hook：对方部署异象时触发
     def deploy_hook(minion):
@@ -5469,13 +5494,14 @@ def _huanxingchong_special(minion, player, game, extras=None):
 @special
 def _shiqianzi_special(minion, player, game, extras=None):
     """石钱子：亡语：将一张"断尾"加入原位。"""
-    def _dr(m, p, g):
+    def _dr(m, p, b):
         pos = m.position
         if pos is None:
             print("  石钱子亡语：位置已丢失，无法召唤断尾")
             return
         from card_pools.effect_utils import summon_minion_by_name
-        result = summon_minion_by_name(g, "断尾", p, pos)
+        game = b.game_ref if hasattr(b, "game_ref") else None
+        result = summon_minion_by_name(game, "断尾", p, pos)
         if result:
             print(f"  石钱子亡语：在原位 {pos} 召唤断尾")
         else:

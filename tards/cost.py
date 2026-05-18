@@ -143,7 +143,8 @@ class Cost:
         return self.can_afford_detail(player)[0]
 
     def pay(self, player: "Player") -> bool:
-        """执行支付。支付前会自动检查，若无法支付则返回 False。"""
+        """执行支付。支付前会自动检查，若无法支付则返回 False。
+        支付成功的矿物消耗会被记录，供 rollback() 回滚。"""
         if not self.can_afford(player):
             return False
 
@@ -167,6 +168,7 @@ class Cost:
                 player.t_point_change(-pay_t)
 
         # 支付手牌矿物（优先消耗 extra_hand，再消耗 card_hand；考虑堆叠）
+        self._last_consumed_minerals: List[Dict[str, Any]] = []
         extra_hand_consumed = False
         if self.minerals:
             for mtype, need in self.minerals.items():
@@ -180,9 +182,15 @@ class Cost:
                         stack = getattr(card, "stack_count", 1)
                         if stack <= remaining:
                             player.extra_hand.pop(i)
+                            self._last_consumed_minerals.append({
+                                "source": "extra_hand", "card": card, "whole": True, "amount": stack
+                            })
                             remaining -= stack
                         else:
                             card.stack_count -= remaining
+                            self._last_consumed_minerals.append({
+                                "source": "extra_hand", "card": card, "whole": False, "amount": remaining
+                            })
                             remaining = 0
                         extra_hand_consumed = True
                 # 2) 再从 card_hand 消耗
@@ -194,9 +202,15 @@ class Cost:
                         stack = getattr(card, "stack_count", 1)
                         if stack <= remaining:
                             player.card_hand.pop(i)
+                            self._last_consumed_minerals.append({
+                                "source": "card_hand", "card": card, "whole": True, "amount": stack
+                            })
                             remaining -= stack
                         else:
                             card.stack_count -= remaining
+                            self._last_consumed_minerals.append({
+                                "source": "card_hand", "card": card, "whole": False, "amount": remaining
+                            })
                             remaining = 0
 
         # extra_hand 空出后，自动从 card_hand 补入矿物
@@ -204,3 +218,23 @@ class Cost:
             player._compact_extra_hand()
 
         return True
+
+    def rollback(self, player: "Player") -> None:
+        """回滚上次 pay() 消耗的矿物。必须在同一张卡、同一次出牌流程中调用。"""
+        for record in getattr(self, "_last_consumed_minerals", []):
+            card = record["card"]
+            if record["whole"]:
+                # 整个卡牌被移除，需要加回对应手牌区
+                if record["source"] == "extra_hand":
+                    if card not in player.extra_hand:
+                        player.extra_hand.append(card)
+                else:
+                    if card not in player.card_hand:
+                        player.card_hand.append(card)
+            else:
+                # 只减少了 stack_count，恢复即可
+                card.stack_count += record["amount"]
+        # 清理记录
+        self._last_consumed_minerals = []
+        # 恢复 extra_hand / card_hand 的矿物堆叠状态
+        player._compact_extra_hand()

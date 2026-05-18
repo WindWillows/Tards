@@ -4,7 +4,7 @@ from .constants import (
     EVENT_BELL,
     EVENT_CARD_PLAYED,
     EVENT_DEATH,
-    EVENT_DEPLOY,
+    EVENT_DEPLOYED,
     EVENT_DRAW,
     EVENT_PHASE_END,
     EVENT_PHASE_START,

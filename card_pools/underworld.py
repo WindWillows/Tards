@@ -286,6 +286,7 @@ register_card(
     keywords={"协同": True, "绝缘": True, "丰饶": 3, "亡语": True},
     description="亡语：若献祭点数溢出，抽1张牌。",
     targets_fn=target("position", friendly=True),
+    special_fn=_heishanyang_special,
 )
 
 register_card(
@@ -335,6 +336,7 @@ register_card(
     description="亡语：抽1张牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_zhuyan_special,
+    is_token=True,
 )
 
 register_card(
@@ -351,6 +353,7 @@ register_card(
     description="亡语：抽2张牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_datuanzhuyan_special,
+    is_token=True,
 )
 
 register_card(
@@ -1922,7 +1925,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     is_token=True,
-    description="抽一张牌，使其-2T1B。",
+    description="抽一张牌，使其-2T-1B。",
     targets_fn=target_none,
     effect_fn=_guwangzhi_hui_effect,
 )

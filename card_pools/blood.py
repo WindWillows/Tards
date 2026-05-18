@@ -489,7 +489,7 @@ register_card(
 
 register_card(
     name="水漫缮写室",
-    cost_str="8T",
+    cost_str="9T",
     card_type=CardType.MINION,
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,

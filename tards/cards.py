@@ -231,6 +231,7 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
         if sacrifices is None:
             print("  献祭不足，无法部署")
             return False
+        total_blood = sum(m.keywords.get("丰饶", 1) for m in sacrifices)
         for m in sacrifices:
             # 检查献祭次数
             if getattr(m, '_sacrifice_remaining', 0) <= 0:
@@ -245,7 +246,8 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
                 m.current_health = 0
                 m.minion_death()
                 print(f"  献祭 {m.name}，获得 {blood}B")
-            game.emit_event(EVENT_SACRIFICE, minion=m, player=player, blood=blood)
+            game.emit_event(EVENT_SACRIFICE, minion=m, player=player, blood=blood,
+                            required_blood=card.cost.b, total_blood=total_blood)
 
     # 回响：面板设为 1/1
     deploy_attack = 1 if card.keywords.get("回响", False) else card.attack
@@ -801,7 +803,7 @@ class Minion:
                     )
 
                     deathrattle = self.keywords.get("亡语")
-                    if deathrattle:
+                    if deathrattle and callable(deathrattle):
                         def make_dr(m=self, dr=deathrattle):
                             def fn():
                                 print(f"  {m.name} 的亡语触发")
