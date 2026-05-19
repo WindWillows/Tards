@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .card_db import CardDefinition, CardRegistry, CardType, Pack, Rarity
 from .cards import Card

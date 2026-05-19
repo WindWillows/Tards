@@ -2284,10 +2284,12 @@ class BattleFrame(tk.Frame):
             traceback.print_exc()
 
     def _render_hand(self):
-        active = self.duel.game and self.duel.game.current_player
-        if not active:
+        game = self.duel.game
+        if not game:
             return
-        if isinstance(self.duel, NetworkDuel) and active != self.local_player:
+        # 网络对局始终显示本地玩家手牌；本地对局显示当前回合玩家手牌
+        active = self.local_player if isinstance(self.duel, NetworkDuel) else game.current_player
+        if not active:
             return
         card_type_colors = {
             MinionCard: "#e3f2fd",
@@ -2412,14 +2414,17 @@ class BattleFrame(tk.Frame):
             widgets["dis_label"].config(text=f"弃牌堆:{len(player.card_dis)}")
             widgets["conspiracy_label"].config(text=f"阴谋序列:{len(player.active_conspiracies)}")
 
-        # 更新右侧"当前资源"面板（显示 current_player 的资源，方便决策）
-        active = self.duel.game.current_player if self.duel.game else None
-        if active:
+        # 更新右侧"当前资源"面板（网络对局显示本地玩家，本地对局显示当前回合玩家）
+        game = self.duel.game
+        active = game.current_player if game else None
+        # 网络对局中始终显示本地玩家资源，方便玩家随时查看自己的费用决策
+        display_player = self.local_player if isinstance(self.duel, NetworkDuel) else active
+        if display_player:
             for key, val, lbl in [
-                ("res_t", active.t_point, self.res_t_label),
-                ("res_c", active.c_point, self.res_c_label),
-                ("res_b", active.b_point, self.res_b_label),
-                ("res_s", active.s_point, self.res_s_label),
+                ("res_t", display_player.t_point, self.res_t_label),
+                ("res_c", display_player.c_point, self.res_c_label),
+                ("res_b", display_player.b_point, self.res_b_label),
+                ("res_s", display_player.s_point, self.res_s_label),
             ]:
                 old_val = self._prev_res_values.get(key)
                 if old_val is not None and val != old_val:
@@ -2427,21 +2432,21 @@ class BattleFrame(tk.Frame):
                     self._flash_res_label(lbl, flash_color, times=2, interval=150)
                 self._prev_res_values[key] = val
 
-            self.res_t_label.config(text=f"T:{active.t_point}/{active.t_point_max}")
-            self.res_c_label.config(text=f"C:{active.c_point}/{active.c_point_max}")
-            self.res_b_label.config(text=f"B:{active.b_point}")
-            has_underworld = active.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
+            self.res_t_label.config(text=f"T:{display_player.t_point}/{display_player.t_point_max}")
+            self.res_c_label.config(text=f"C:{display_player.c_point}/{display_player.c_point_max}")
+            self.res_b_label.config(text=f"B:{display_player.b_point}")
+            has_underworld = display_player.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
             if has_underworld:
-                self.res_sacrifice_label.config(text=f"可献祭:{self._get_available_blood(active)}")
+                self.res_sacrifice_label.config(text=f"可献祭:{self._get_available_blood(display_player)}")
                 if not self.res_sacrifice_label.winfo_ismapped():
                     self.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
             else:
                 self.res_sacrifice_label.pack_forget()
-            self.res_s_label.config(text=f"S:{active.s_point}")
-            self.res_deck_label.config(text=f"抽牌堆:{len(active.card_deck)}")
-            self.res_dis_label.config(text=f"弃牌堆:{len(active.card_dis)}")
-            self.res_conspiracy_label.config(text=f"阴谋序列:{len(active.active_conspiracies)}")
-            self.res_panel.config(text=f"{active.name} 的资源")
+            self.res_s_label.config(text=f"S:{display_player.s_point}")
+            self.res_deck_label.config(text=f"抽牌堆:{len(display_player.card_deck)}")
+            self.res_dis_label.config(text=f"弃牌堆:{len(display_player.card_dis)}")
+            self.res_conspiracy_label.config(text=f"阴谋序列:{len(display_player.active_conspiracies)}")
+            self.res_panel.config(text=f"{display_player.name} 的资源")
         else:
             self.res_panel.config(text="当前资源")
 
@@ -3041,7 +3046,9 @@ class BattleFrame(tk.Frame):
 
     def _try_refresh(self):
         try:
-            if gui_refresh_event.is_set():
+            # 网络对局：每 200ms 无条件刷新，确保对手操作可见
+            need_refresh = gui_refresh_event.is_set() or isinstance(self.duel, NetworkDuel)
+            if need_refresh:
                 gui_refresh_event.clear()
                 try:
                     self._render_info()
