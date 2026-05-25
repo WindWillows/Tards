@@ -937,30 +937,31 @@ class LobbyFrame(tk.Frame):
         self.after(500, lambda: self.app.start_battle(self.duel, local_player, opponent))
 
 
-class BluffDialog(tk.Toplevel):
-    def __init__(self, parent, card_name: str, on_choice: Callable[[bool], None]):
-        super().__init__(parent)
-        self.title("阴谋激活")
-        self.geometry("300x150")
-        self.on_choice = on_choice
-        self.resizable(False, False)
-        self.transient(parent)
-        self.grab_set()
-        self.protocol("WM_DELETE_WINDOW", lambda: self._choose(False))
-        tk.Label(self, text=f"[{card_name}]\n选择激活方式", font=("Microsoft YaHei", 12)).pack(pady=10)
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="真正激活", width=10, font=("Microsoft YaHei", 10, "bold"),
-                  bg="#e3f2fd", activebackground="#bbdefb",
-                  command=lambda: self._choose(True)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="虚张声势", width=10, font=("Microsoft YaHei", 10),
-                  bg="#ffebee", activebackground="#ffcdd2",
-                  command=lambda: self._choose(False)).pack(side=tk.LEFT, padx=5)
-
-    def _choose(self, is_true: bool):
-        self.on_choice(is_true)
-        self.grab_release()
-        self.destroy()
+# 虚张声势功能已注释（BluffDialog）
+# class BluffDialog(tk.Toplevel):
+#     def __init__(self, parent, card_name: str, on_choice: Callable[[bool], None]):
+#         super().__init__(parent)
+#         self.title("阴谋激活")
+#         self.geometry("300x150")
+#         self.on_choice = on_choice
+#         self.resizable(False, False)
+#         self.transient(parent)
+#         self.grab_set()
+#         self.protocol("WM_DELETE_WINDOW", lambda: self._choose(False))
+#         tk.Label(self, text=f"[{card_name}]\n选择激活方式", font=("Microsoft YaHei", 12)).pack(pady=10)
+#         btn_frame = tk.Frame(self)
+#         btn_frame.pack(pady=10)
+#         tk.Button(btn_frame, text="真正激活", width=10, font=("Microsoft YaHei", 10, "bold"),
+#                   bg="#e3f2fd", activebackground="#bbdefb",
+#                   command=lambda: self._choose(True)).pack(side=tk.LEFT, padx=5)
+#         tk.Button(btn_frame, text="虚张声势", width=10, font=("Microsoft YaHei", 10),
+#                   bg="#ffebee", activebackground="#ffcdd2",
+#                   command=lambda: self._choose(False)).pack(side=tk.LEFT, padx=5)
+#
+#     def _choose(self, is_true: bool):
+#         self.on_choice(is_true)
+#         self.grab_release()
+#         self.destroy()
 
 
 class SacrificeDialog(tk.Toplevel):
@@ -2651,27 +2652,20 @@ class BattleFrame(tk.Frame):
                 on_confirm(card)
             return
 
-        # Conspiracy：先选虚张声势，再选择主目标
+        # Conspiracy：直接暗中激活（虚张声势功能已注释）
         if isinstance(card, Conspiracy):
-            def on_bluff_choice(is_true: bool):
-                if is_true:
-                    valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
-                    # 非指向性阴谋（唯一目标是 None）直接打出
-                    if len(valid) == 1 and valid[0] is None:
-                        self._submit_play(serial, None, bluff=False)
-                    elif valid:
-                        self._enter_local_targeting(
-                            valid_targets=valid,
-                            on_confirm=lambda t: self._submit_play(serial, t, bluff=False),
-                            on_cancel=self._exit_targeting_mode,
-                            prompt=f"请选择 [{card.name}] 的目标",
-                        )
-                    else:
-                        self._submit_play(serial, None, bluff=False)
-                else:
-                    self._submit_play(serial, None, bluff=True)
-                    self.hint_label.config(text=f"[{card.name}] 虚张声势")
-            BluffDialog(self, card.name, on_bluff_choice)
+            valid = [t for t in active.get_valid_targets(card) if active.card_can_play(serial, t)[0]]
+            if len(valid) == 1 and valid[0] is None:
+                self._submit_play(serial, None)
+            elif valid:
+                self._enter_local_targeting(
+                    valid_targets=valid,
+                    on_confirm=lambda t: self._submit_play(serial, t),
+                    on_cancel=self._exit_targeting_mode,
+                    prompt=f"请选择 [{card.name}] 的目标",
+                )
+            else:
+                self._submit_play(serial, None)
             return
 
         # 随从卡：先处理献祭，再选择部署位置
@@ -2828,7 +2822,7 @@ class BattleFrame(tk.Frame):
         self.hint_label.config(text="点击的不是合法目标", fg="red")
         self.after(1000, self._reset_guide_hint)
 
-    def _submit_play(self, serial: int, target: Any, bluff: bool = False):
+    def _submit_play(self, serial: int, target: Any):
         active = self.duel.game.current_player if self.duel.game else None
         card_name = "未知卡牌"
         is_conspiracy = False
@@ -2841,7 +2835,7 @@ class BattleFrame(tk.Frame):
                     self._exit_targeting_mode()
                     return
         self._exit_targeting_mode()
-        action = {"type": "play", "serial": serial, "target": target, "bluff": bluff}
+        action = {"type": "play", "serial": serial, "target": target}
         sacrifices = getattr(self, "_pending_sacrifices", None)
         if sacrifices:
             action["sacrifices"] = sacrifices
@@ -2849,10 +2843,7 @@ class BattleFrame(tk.Frame):
         self._clear_selection()
         # 阴谋激活视觉反馈
         if is_conspiracy:
-            if bluff:
-                self._show_toast(f"虚张声势：假装激活 [{card_name}]", "#ffebee", 1500)
-            else:
-                self._show_toast(f"阴谋 [{card_name}] 已暗中激活", "#f3e5f5", 1500)
+            self._show_toast(f"阴谋 [{card_name}] 已暗中激活", "#f3e5f5", 1500)
         self.duel.submit_local_action(action)
         self._add_history(f"打出 [{card_name}]", is_play=True)
         self.hint_label.config(text="已出牌，等待结果...")
