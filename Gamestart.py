@@ -1703,12 +1703,6 @@ class BattleFrame(tk.Frame):
         self.hint_label = tk.Label(right, text="等待游戏开始...", fg="blue", wraplength=500)
         self.hint_label.pack(fill=tk.X, pady=5)
 
-        # 活跃阴谋
-        self.conspiracy_frame = tk.LabelFrame(right, text="活跃阴谋")
-        self.conspiracy_frame.pack(fill=tk.X, pady=5)
-        self.conspiracy_label = tk.Label(self.conspiracy_frame, text="无", anchor="w")
-        self.conspiracy_label.pack(fill=tk.X, padx=5)
-
         # 操作历史
         history_frame = tk.LabelFrame(right, text="操作历史")
         history_frame.pack(fill=tk.X, pady=5)
@@ -2265,10 +2259,9 @@ class BattleFrame(tk.Frame):
                 bottom_text = f"【随】{stats}"
             cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
+            # 已激活的阴谋：红色边框
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-                cvs.create_oval(cw - 18, 2, cw - 2, 18, fill="#4caf50", outline="white", width=1, tags="activated_mark")
-                cvs.create_text(cw - 10, 10, text="激", fill="white",
-                                font=("Microsoft YaHei", 7, "bold"), tags="activated_mark")
+                cvs.create_rectangle(2, 2, cw - 2, ch - 2, outline="#d32f2f", width=3, tags="activated_mark")
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
                 cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
@@ -3072,23 +3065,6 @@ class BattleFrame(tk.Frame):
             print(f"[_try_refresh] 外层异常: {e}")
             import traceback
             traceback.print_exc()
-        # 活跃阴谋显示（网络对战只显示自己的，本地测试显示当前回合玩家的）
-        conspiracies_player = self.local_player
-        if not isinstance(self.duel, NetworkDuel) and self.duel.game and self.duel.game.current_player:
-            conspiracies_player = self.duel.game.current_player
-        # 清空旧内容，重建彩色标签
-        for w in list(self.conspiracy_frame.winfo_children()):
-            w.destroy()
-        if conspiracies_player.active_conspiracies:
-            for c in conspiracies_player.active_conspiracies:
-                lbl = tk.Label(self.conspiracy_frame, text=c.name,
-                               font=("Microsoft YaHei", 9, "bold"),
-                               bg="#f3e5f5", fg="#4a148c", padx=6, pady=2,
-                               relief="ridge", bd=1)
-                lbl.pack(side=tk.LEFT, padx=2, pady=2)
-        else:
-            lbl = tk.Label(self.conspiracy_frame, text="无", anchor="w")
-            lbl.pack(fill=tk.X, padx=5)
         if self.duel.game and self.duel.game.current_turn > 0:
             phase_map = {
                 "draw": "抽牌阶段",
