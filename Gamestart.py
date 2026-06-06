@@ -1740,6 +1740,48 @@ class BattleFrame(tk.Frame):
             "conspiracy_label": con_label, "shown_label": shown_label,
         }
 
+    # ------------------------------------------------------------------
+    # 静态辅助：颜色与绘制
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+
+    @staticmethod
+    def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+        return '#{:02x}{:02x}{:02x}'.format(*rgb)
+
+    @classmethod
+    def _interpolate_color(cls, c1: str, c2: str, t: float) -> str:
+        r1, g1, b1 = cls._hex_to_rgb(c1)
+        r2, g2, b2 = cls._hex_to_rgb(c2)
+        return cls._rgb_to_hex((
+            int(r1 + (r2 - r1) * t),
+            int(g1 + (g2 - g1) * t),
+            int(b1 + (b2 - b1) * t),
+        ))
+
+    @staticmethod
+    def _rounded_rect(canvas: tk.Canvas, x1: int, y1: int, x2: int, y2: int,
+                      radius: int, **kwargs: Any) -> int:
+        """在 Canvas 上绘制圆角多边形（smooth=True 实现圆角）。"""
+        points = [
+            x1 + radius, y1,
+            x2 - radius, y1,
+            x2, y1,
+            x2, y1 + radius,
+            x2, y2 - radius,
+            x2, y2,
+            x2 - radius, y2,
+            x1 + radius, y2,
+            x1, y2,
+            x1, y2 - radius,
+            x1, y1 + radius,
+            x1, y1,
+        ]
+        return canvas.create_polygon(points, smooth=True, **kwargs)
+
     def _build_ui(self):
         # 左侧整体（垂直布局：对手信息 + 棋盘 + 本地玩家信息）
         left = tk.Frame(self)
@@ -2008,37 +2050,70 @@ class BattleFrame(tk.Frame):
             for c in range(5):
                 self.canvas.delete(f"cell_{r}_{c}")
         self._tile_image_refs = {}
+
+        # 半场渐变配色（从上到下）
+        GRADIENT_STEPS = 10
+        row_top_colors = {
+            0: "#eceff1",   # 敌方 - 冷灰顶
+            1: "#eceff1",
+            2: "#f5f5f5",   # 中立
+            3: "#fff8e1",   # 友方 - 暖黄顶
+            4: "#fff8e1",
+        }
+        row_bottom_colors = {
+            0: "#ffffff",
+            1: "#ffffff",
+            2: "#ffffff",
+            3: "#ffffff",
+            4: "#ffffff",
+        }
+
         for r in range(5):
             for c in range(5):
                 x1 = c * self.cell_size + self.board_offset_x
                 y1 = r * self.cell_size + self.board_offset_y
                 x2 = x1 + self.cell_size
                 y2 = y1 + self.cell_size
-                color = "#e0f7fa"
                 terrain_id = None
                 if r in (0, 1):
-                    color = "#ffebee"
                     terrain_id = "terrain_enemy"
                 elif r == 2:
-                    color = "#f5f5f5"
                     terrain_id = "terrain_neutral"
                 elif r in (3, 4):
-                    color = "#e8f5e9"
                     terrain_id = "terrain_friendly"
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black", tags=f"cell_{r}_{c}")
-                # 尝试加载地形纹理
+
+                # 绘制垂直渐变背景（用细条模拟）
+                top_c = row_top_colors[r]
+                bot_c = row_bottom_colors[r]
+                step_h = self.cell_size / GRADIENT_STEPS
+                for i in range(GRADIENT_STEPS):
+                    t = i / GRADIENT_STEPS
+                    color = self._interpolate_color(top_c, bot_c, t)
+                    sy1 = int(y1 + i * step_h)
+                    sy2 = int(y1 + (i + 1) * step_h)
+                    self.canvas.create_rectangle(x1, sy1, x2, sy2, fill=color, outline="", tags=f"cell_{r}_{c}")
+
+                # 尝试加载地形纹理（覆盖在渐变之上，半透明）
                 if terrain_id:
                     tile = am.get_board_tile(terrain_id, self.cell_size)
                     if tile:
                         self._tile_image_refs[(r, c)] = tile
                         self.canvas.create_image(x1 + self.cell_size // 2, y1 + self.cell_size // 2,
                                                  image=tile, tags=f"cell_{r}_{c}")
+
+                # 格子边框（内阴影感）
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline="#bdbdbd", width=1, tags=f"cell_{r}_{c}")
+
+        # 列名标签（带主题色底）
+        col_label_colors = ["#d7ccc8", "#e0e0e0", "#f5f5f5", "#e3f2fd", "#e1f5fe"]
         for c, name in enumerate(self.COL_NAMES):
             x1 = c * self.cell_size + self.board_offset_x
             x2 = x1 + self.cell_size
             label_y = 5 * self.cell_size + self.board_offset_y
-            self.canvas.create_rectangle(x1, label_y, x2, label_y + 20, fill="#cfd8dc", outline="black", tags="board_grid")
-            self.canvas.create_text(x1 + self.cell_size // 2, label_y + 2, text=name, anchor=tk.N, font=("Microsoft YaHei", 10, "bold"), tags="board_grid")
+            label_bg = col_label_colors[c % len(col_label_colors)]
+            self.canvas.create_rectangle(x1, label_y, x2, label_y + 22, fill=label_bg, outline="#9e9e9e", width=1, tags="board_grid")
+            self.canvas.create_text(x1 + self.cell_size // 2, label_y + 11, text=name, anchor=tk.CENTER,
+                                    font=("Microsoft YaHei", 10, "bold"), fill="#424242", tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
@@ -2493,24 +2568,36 @@ class BattleFrame(tk.Frame):
             frame.pack(side=tk.LEFT, padx=2)
             if flash:
                 self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
-            cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
-            cvs.pack(padx=2, pady=2)
+            # Canvas 略大于卡牌，给投影留空间
+            cvs = tk.Canvas(frame, width=cw + 6, height=ch + 6, bg=frame_bg, highlightthickness=0)
+            cvs.pack(padx=1, pady=1)
+
+            # 投影/光晕（可出牌时为绿色光晕，否则为黑色投影）
+            shadow_color = "#4caf50" if can_play_now else "#000000"
+            self._rounded_rect(cvs, 5, 5, cw + 3, ch + 3, radius=6,
+                               fill=shadow_color, outline="", stipple="gray50", tags="card_shadow")
+
+            # 卡牌本体背景（圆角矩形）
+            card_x1, card_y1 = 2, 2
+            card_x2, card_y2 = cw - 2, ch - 2
+            self._rounded_rect(cvs, card_x1, card_y1, card_x2, card_y2, radius=6,
+                               fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+
             img = None
             if getattr(card, "asset_id", None):
-                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+                img = am.get_card_face(card.asset_id, cw - 8, ch - 8)
             if img:
                 cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
                 cvs.image = img
-            else:
-                cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+
             name = card.name
             cost_str = str(card.cost)
             stats = ""
             if isinstance(card, MinionCard):
                 stats = f"{card.attack}/{card.health}"
-            cvs.create_text(cw // 2, 14, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 16, text=name, fill="#212121",
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-            cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
+            cvs.create_text(12, 12, text=cost_str, fill="#d32f2f",
                             font=("Microsoft YaHei", 8, "bold"), tags="card_text")
             bottom_text = stats
             if isinstance(card, Strategy):
@@ -2521,15 +2608,19 @@ class BattleFrame(tk.Frame):
                 bottom_text = "【矿】"
             elif isinstance(card, MinionCard):
                 bottom_text = f"【随】{stats}"
-            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
+            cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
-            # 已激活的阴谋：红色边框
+
+            # 已激活的阴谋：红色边框（圆角）
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-                cvs.create_rectangle(2, 2, cw - 2, ch - 2, outline="#d32f2f", width=3, tags="activated_mark")
+                self._rounded_rect(cvs, card_x1, card_y1, card_x2, card_y2, radius=6,
+                                   outline="#d32f2f", width=3, tags="activated_mark")
+
             # 已被对手见过的牌：左下角小缺角标记
             if getattr(card, "_shown_to_opponent", False):
-                cvs.create_polygon(2, ch - 2, 12, ch - 2, 2, ch - 12,
+                cvs.create_polygon(2, ch - 2, 14, ch - 2, 2, ch - 14,
                                    fill="#ff9800", outline="white", width=1, tags="shown_mark")
+
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
                 cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
