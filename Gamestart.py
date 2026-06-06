@@ -2230,11 +2230,11 @@ class BattleFrame(tk.Frame):
             cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             # 异象主色调：柔和 pastel，与半场背景协调且易辨识
             if m.owner.side == self.local_player.side:
-                color = "#5c8bd6"        # 友方 - 柔和蓝（暖黄背景上清新）
-                shadow_color = "#3b6cb0"
+                color = "#7a9cc6"        # 友方 - 莫兰迪灰蓝（暖黄背景上安静）
+                shadow_color = "#5a7ca6"
             else:
-                color = "#d87878"        # 敌方 - 柔和珊瑚（淡蓝背景上温暖）
-                shadow_color = "#b05555"
+                color = "#c07a7a"        # 敌方 - 莫兰迪灰粉（淡蓝背景上温柔）
+                shadow_color = "#a05a5a"
             tag = f"minion_{r}_{c}"
             # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
