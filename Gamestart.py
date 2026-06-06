@@ -2228,13 +2228,13 @@ class BattleFrame(tk.Frame):
         for (r, c), m in self.duel.game.board.minion_place.items():
             cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
             cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
-            # 异象主色调：与半场背景协调且对比鲜明
+            # 异象主色调：柔和 pastel，与半场背景协调且易辨识
             if m.owner.side == self.local_player.side:
-                color = "#1565c0"        # 友方 - 深蓝（在暖黄背景上突出）
-                shadow_color = "#0d47a1"
+                color = "#5c8bd6"        # 友方 - 柔和蓝（暖黄背景上清新）
+                shadow_color = "#3b6cb0"
             else:
-                color = "#c62828"        # 敌方 - 深红（在淡蓝背景上突出）
-                shadow_color = "#b71c1c"
+                color = "#d87878"        # 敌方 - 柔和珊瑚（淡蓝背景上温暖）
+                shadow_color = "#b05555"
             tag = f"minion_{r}_{c}"
             # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
