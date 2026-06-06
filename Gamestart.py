@@ -1672,48 +1672,59 @@ class BattleFrame(tk.Frame):
                               bg="#e3f2fd", fg="#1565c0", padx=8, pady=2)
         hand_label.pack(side=tk.RIGHT)
 
-        # 行1：HP 条（缩短）
+        # 行1：HP 条（变细，用默认样式）
         row1 = tk.Frame(frame, bg="white")
-        row1.pack(fill=tk.X, padx=8, pady=(1, 0))
+        row1.pack(fill=tk.X, padx=8, pady=(3, 0))
 
         hp_frame = tk.Frame(row1, bg="white")
         hp_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        hp_bar = ttk.Progressbar(hp_frame, length=120, mode="determinate", maximum=30)
+        # 自定义细进度条样式
+        style = ttk.Style()
+        style.configure("Thin.Horizontal.TProgressbar", thickness=8)
+        hp_bar = ttk.Progressbar(hp_frame, length=140, mode="determinate", maximum=30,
+                                  style="Thin.Horizontal.TProgressbar")
         hp_bar.pack(side=tk.LEFT)
 
         hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 11, "bold"),
-                            bg="white", fg="#d32f2f")
-        hp_label.pack(side=tk.LEFT, padx=(6, 0))
+                            bg="white", fg="#c62828")
+        hp_label.pack(side=tk.LEFT, padx=(8, 0))
 
-        # 行2：资源彩色小方块 + 牌库信息
+        # 行2：资源（彩色字母 + 灰数字，白底）
         row2 = tk.Frame(frame, bg="white")
-        row2.pack(fill=tk.X, padx=8, pady=(2, 0))
+        row2.pack(fill=tk.X, padx=8, pady=(4, 0))
 
-        def _res_badge(parent, text, bg_color, fg_color="white"):
-            return tk.Label(parent, text=text, font=("Microsoft YaHei", 10, "bold"),
-                            bg=bg_color, fg=fg_color, padx=6, pady=2)
+        def _res_label(parent, letter, color):
+            """返回一个 Frame，内含彩色字母 Label 和灰色数字 Label。"""
+            f = tk.Frame(parent, bg="white")
+            lbl_letter = tk.Label(f, text=letter, font=("Microsoft YaHei", 11, "bold"),
+                                  bg="white", fg=color)
+            lbl_letter.pack(side=tk.LEFT)
+            lbl_num = tk.Label(f, text=" -", font=("Microsoft YaHei", 11),
+                               bg="white", fg="#616161")
+            lbl_num.pack(side=tk.LEFT)
+            return f, lbl_num
 
-        t_label = _res_badge(row2, "T -", "#1976d2")
-        t_label.pack(side=tk.LEFT, padx=(0, 4))
-        c_label = _res_badge(row2, "C -", "#388e3c")
-        c_label.pack(side=tk.LEFT, padx=(0, 4))
-        b_label = _res_badge(row2, "B -", "#7b1fa2")
-        b_label.pack(side=tk.LEFT, padx=(0, 4))
-        s_label = _res_badge(row2, "S -", "#f57c00")
-        s_label.pack(side=tk.LEFT, padx=(0, 8))
+        t_frame, t_num = _res_label(row2, "T", "#1976d2")
+        t_frame.pack(side=tk.LEFT, padx=(0, 10))
+        c_frame, c_num = _res_label(row2, "C", "#388e3c")
+        c_frame.pack(side=tk.LEFT, padx=(0, 10))
+        b_frame, b_num = _res_label(row2, "B", "#7b1fa2")
+        b_frame.pack(side=tk.LEFT, padx=(0, 10))
+        s_frame, s_num = _res_label(row2, "S", "#f57c00")
+        s_frame.pack(side=tk.LEFT, padx=(0, 16))
 
         deck_label = tk.Label(row2, text="牌库 0", font=("Microsoft YaHei", 10),
-                              bg="white", fg="#616161")
-        deck_label.pack(side=tk.LEFT, padx=(0, 8))
+                              bg="white", fg="#9e9e9e")
+        deck_label.pack(side=tk.LEFT, padx=(0, 10))
 
         dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 10),
-                             bg="white", fg="#616161")
-        dis_label.pack(side=tk.LEFT, padx=(0, 8))
+                             bg="white", fg="#9e9e9e")
+        dis_label.pack(side=tk.LEFT, padx=(0, 10))
 
         con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 10),
-                             bg="white", fg="#616161")
-        con_label.pack(side=tk.LEFT, padx=(0, 8))
+                             bg="white", fg="#9e9e9e")
+        con_label.pack(side=tk.LEFT, padx=(0, 10))
 
         # 行3：已展示给对手的牌（缩小字号）
         row_shown = tk.Frame(frame, bg="white")
@@ -1725,7 +1736,7 @@ class BattleFrame(tk.Frame):
         # 点击绑定
         clickable = [frame, row0, row1, row2, row_shown, dot, name_label, hand_label,
                      hp_frame, hp_bar, hp_label,
-                     t_label, c_label, b_label, s_label,
+                     t_frame, c_frame, b_frame, s_frame,
                      deck_label, dis_label, con_label, shown_label]
         for w in clickable:
             w.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
@@ -1734,8 +1745,8 @@ class BattleFrame(tk.Frame):
             "frame": frame, "row0": row0, "row1": row1, "row2": row2, "row_shown": row_shown,
             "name_label": name_label, "hand_label": hand_label,
             "hp_frame": hp_frame, "hp_bar": hp_bar, "hp_label": hp_label,
-            "t_label": t_label, "c_label": c_label,
-            "b_label": b_label, "s_label": s_label,
+            "t_num": t_num, "c_num": c_num,
+            "b_num": b_num, "s_num": s_num,
             "deck_label": deck_label, "dis_label": dis_label,
             "conspiracy_label": con_label, "shown_label": shown_label,
         }
@@ -2992,20 +3003,13 @@ class BattleFrame(tk.Frame):
                 bg = "#fafafa"
 
             for key in ["frame", "row0", "row1", "row2", "row_shown", "dot", "name_label", "hp_frame", "hp_label",
+                        "t_num", "c_num", "b_num", "s_num",
                         "deck_label", "dis_label", "conspiracy_label", "shown_label"]:
                 if key in widgets:
                     widgets[key].config(bg=bg)
-            # 恢复 badge 背景色（不受面板状态色影响）
-            badge_bgs = {
-                "hand_label": "#e3f2fd",
-                "t_label": "#1976d2",
-                "c_label": "#388e3c",
-                "b_label": "#7b1fa2",
-                "s_label": "#f57c00",
-            }
-            for key, bbg in badge_bgs.items():
-                if key in widgets:
-                    widgets[key].config(bg=bbg)
+            # 恢复手牌 badge 背景色
+            if "hand_label" in widgets:
+                widgets["hand_label"].config(bg="#e3f2fd")
 
             # 回合标记 + 名字
             active_mark = "● " if is_current else ""
@@ -3017,10 +3021,10 @@ class BattleFrame(tk.Frame):
 
             # 资源（带闪烁提示）
             for key, val, lbl in [
-                ("t", player.t_point, widgets["t_label"]),
-                ("c", player.c_point, widgets["c_label"]),
-                ("b", player.b_point, widgets["b_label"]),
-                ("s", player.s_point, widgets["s_label"]),
+                ("t", player.t_point, widgets["t_num"]),
+                ("c", player.c_point, widgets["c_num"]),
+                ("b", player.b_point, widgets["b_num"]),
+                ("s", player.s_point, widgets["s_num"]),
             ]:
                 old_val = self._prev_res_values.get((pname, key))
                 if old_val is not None and val != old_val:
@@ -3028,10 +3032,10 @@ class BattleFrame(tk.Frame):
                     self._flash_label_fg(lbl, flash_color, times=2, interval=150)
                 self._prev_res_values[(pname, key)] = val
 
-            widgets["t_label"].config(text=f"T {player.t_point}/{player.t_point_max}")
-            widgets["c_label"].config(text=f"C {player.c_point}/{player.c_point_max}")
-            widgets["b_label"].config(text=f"B {player.b_point}")
-            widgets["s_label"].config(text=f"S {player.s_point}")
+            widgets["t_num"].config(text=f" {player.t_point}/{player.t_point_max}")
+            widgets["c_num"].config(text=f" {player.c_point}/{player.c_point_max}")
+            widgets["b_num"].config(text=f" {player.b_point}")
+            widgets["s_num"].config(text=f" {player.s_point}")
 
             # 牌组信息
             hand_count = len(player.card_hand)
