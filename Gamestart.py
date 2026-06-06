@@ -2451,23 +2451,109 @@ class BattleFrame(tk.Frame):
                                                  tags="target_hint")
 
     def _update_detail_text(self, card):
-        """在右侧文本栏中显示卡牌信息（悬停时触发）。"""
+        """在右侧文本栏中显示卡牌/异象信息（悬停时触发）。"""
         if not hasattr(self, "detail_text"):
             return
 
-        # 从 CardDefinition 获取描述（Card 对象本身没有 description）
+        from tards.cards import Minion, MinionCard
+        is_minion = isinstance(card, Minion)
+
+        # 获取描述：优先从 card 本身，其次从 source_card，最后从注册表
         desc = getattr(card, "description", "")
+        if not desc and is_minion and hasattr(card, "source_card") and card.source_card:
+            desc = getattr(card.source_card, "description", "")
         if not desc and DEFAULT_REGISTRY:
-            card_def = DEFAULT_REGISTRY.get(card.name)
+            lookup_name = card.name
+            if is_minion and hasattr(card, "source_card") and card.source_card:
+                lookup_name = card.source_card.name
+            card_def = DEFAULT_REGISTRY.get(lookup_name)
             if card_def:
                 desc = getattr(card_def, "description", "")
 
-        lines = [f"【{card.name}】  费用: {card.cost}"]
-        if isinstance(card, MinionCard):
-            lines.append(f"攻击/生命: {card.attack}/{card.health}")
-        if getattr(card, "keywords", None):
-            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in card.keywords.items())
+        lines = [f"【{card.name}】"]
+
+        if is_minion:
+            # 异象：显示当前攻防（含临时变化）和基础值
+            base_atk = card.base_attack
+            base_hp = card.base_health
+            cur_atk = card.current_attack
+            cur_hp = card.current_health
+            max_hp = card.current_max_health
+
+            atk_str = str(cur_atk)
+            if cur_atk != base_atk:
+                atk_str += f" (基础{base_atk})"
+
+            hp_str = str(cur_hp)
+            if max_hp != card.base_max_health:
+                hp_str += f"/{max_hp} (基础{base_hp})"
+            elif cur_hp != base_hp:
+                hp_str += f" (基础{base_hp})"
+
+            lines.append(f"攻击/生命: {atk_str} / {hp_str}")
+
+            # 费用（从 source_card 获取）
+            cost = getattr(card, "cost", None)
+            if cost is None and hasattr(card, "source_card") and card.source_card:
+                cost = card.source_card.cost
+            if cost is not None:
+                lines.append(f"费用: {cost}")
+
+            # 关键词
+            kw_dict = card.display_keywords
+        else:
+            # 手牌
+            lines.append(f"费用: {getattr(card, 'cost', '?')}")
+            if isinstance(card, MinionCard):
+                lines.append(f"攻击/生命: {card.attack}/{card.health}")
+            kw_dict = getattr(card, "keywords", None) or {}
+
+        if kw_dict:
+            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in kw_dict.items())
             lines.append(f"关键词: {kw}")
+
+        # 场上临时赋予的效果（不包括永久攻防增减）
+        if is_minion:
+            # 临时关键词
+            temp_kw = getattr(card, "temp_keywords", None)
+            if temp_kw:
+                kw_text = " ".join(f"{k}{v if v is not True else ''}" for k, v in temp_kw.items())
+                lines.append(f"临时效果: {kw_text}")
+
+            # 注入的回合回调（如被赋予的亡语等）
+            injected_start = getattr(card, "_injected_turn_start", [])
+            injected_end = getattr(card, "_injected_turn_end", [])
+            if injected_start or injected_end:
+                lines.append("被赋予的时序效果: 有")
+
+            # 指向状态
+            pending_atks = getattr(card, "_pending_attack_targets", None)
+            if pending_atks and isinstance(pending_atks, list) and len(pending_atks) > 0:
+                target_names = []
+                for t in pending_atks:
+                    if hasattr(t, "name"):
+                        target_names.append(t.name)
+                    elif isinstance(t, tuple) and len(t) == 2:
+                        target_names.append(f"({t[0]},{t[1]})")
+                    else:
+                        target_names.append(str(t))
+                lines.append(f"攻击指向: {' → '.join(target_names)}")
+
+            pending_effect = getattr(card, "_pending_effect_target", None)
+            if pending_effect is not None:
+                eff_name = getattr(pending_effect, "name", str(pending_effect))
+                lines.append(f"效果指向: {eff_name}")
+
+            locked_target = getattr(card, "_ankang_locked_target", None)
+            if locked_target is not None:
+                locked_name = getattr(locked_target, "name", str(locked_target))
+                lines.append(f"锁定目标: {locked_name}")
+
+            # 藤蔓覆盖
+            vine = getattr(card, "vine_overlay", None)
+            if vine:
+                lines.append(f"藤蔓覆盖: {vine.name} ({vine.current_health}/{vine.current_max_health})")
+
         if desc:
             lines.append(f"\n【效果】\n{desc}")
         else:
