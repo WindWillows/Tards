@@ -85,6 +85,52 @@ The tool library (`effect_utils.py`, `targeting.py`, etc.) is the correct place 
 - Test decks are only allowed in local play; the lobby blocks loading them.
 - GUI deck builder has a checkbox; the flag is persisted in JSON save/load.
 
+---
+
+## Local Test Framework (2026-06-01)
+
+项目已内置零依赖本地测试框架，位于 `tests/` 目录。排查 bug 时**优先写测试**，而非临时脚本。
+
+### 运行测试
+
+```bash
+python tests/run.py              # 全部
+python tests/run.py xuejian      # 按名称过滤
+```
+
+### 核心模块
+
+- `tests/harness.py` — `GameHarness` 一键搭建游戏状态
+- `tests/assertions.py` — 游戏专用断言（HP、关键字、手牌、事件计数等）
+- `tests/event_spy.py` — `EventSpy` 追踪事件发射顺序与参数
+- `tests/test_regression.py` — 已修复 bug 的回归测试
+
+### 典型用法
+
+```python
+from tests.harness import GameHarness
+from tests.assertions import assert_minion_exists, assert_minion_keyword
+from tests.event_spy import EventSpy
+from tards.constants import EVENT_PHASE_START
+
+h = GameHarness()
+p1, p2 = h.players
+
+# 部署 + 验证
+h.deploy("显影室", p1, (4, 2))
+assert_minion_exists(h.game, (4, 2), "显影室")
+
+# 发射事件 + 追踪
+with EventSpy(h.game) as spy:
+    h.resolve_phase(p1, p2)
+    spy.assert_fired(EVENT_PHASE_START, phase="resolve", first=p1)
+    assert_minion_exists(h.game, (3, 2), "溴化银")
+```
+
+### 新增回归测试
+
+发现 bug → 修复 → 在 `tests/test_regression.py` 中新增 `test_*` 函数 → 运行 `python tests/run.py` 验证通过。
+
 ## Agent skills
 
 ### Issue tracker

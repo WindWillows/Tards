@@ -144,8 +144,7 @@ class GameHistory:
 
     def advance_turn(self, turn: int) -> None:
         """推进新回合。将当前记录归档，创建新的 TurnRecord。"""
-        if self._current.turn > 0:
-            self._records.append(self._current)
+        self._records.append(self._current)
         self._current = TurnRecord(turn)
 
     # ------------------------------------------------------------------

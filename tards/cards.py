@@ -52,6 +52,9 @@ class Card:
         self._card_listeners: List[tuple] = []  # (event_type, listener_fn)
         self.owner: Optional["Player"] = None
 
+        # === 展示标记（被对手见过的牌）===
+        self._shown_to_opponent: bool = False
+
     def __repr__(self) -> str:
         return f"{self.name}({self.cost})"
 
@@ -63,13 +66,15 @@ class Card:
     def on(self, event_type: str, listener: Callable) -> None:
         """注册此卡实例专属的事件监听器。当卡已有 owner 和 game 时立即生效。"""
         self._card_listeners.append((event_type, listener))
-        game = getattr(self.owner, "board_ref", None)
+        board = getattr(self.owner, "board_ref", None)
+        game = getattr(board, "game_ref", None) if board else None
         if game and hasattr(game, "event_bus"):
             game.event_bus.register(event_type, listener)
 
     def off_all(self) -> None:
         """注销此卡实例的所有事件监听器。"""
-        game = getattr(self.owner, "board_ref", None)
+        board = getattr(self.owner, "board_ref", None)
+        game = getattr(board, "game_ref", None) if board else None
         if game and hasattr(game, "event_bus"):
             for event_type, listener in self._card_listeners:
                 game.event_bus.unregister(event_type, listener)
@@ -91,9 +96,19 @@ class Card:
                 removed = owner._cost_modifier_system.remove_by_source(self)
                 if removed:
                     print(f"  [{self.name}] 离开手牌，清理 {removed} 个费用修正")
+                removed_expire = owner._cost_modifier_system.expire("card_leave_hand")
+                if removed_expire:
+                    print(f"  [{self.name}] 离开手牌，清理 {removed_expire} 个临时费用修正")
             # 向后兼容：同时清理 _card_cost_modifiers
             if hasattr(self, "_card_cost_modifiers"):
                 self._card_cost_modifiers.clear()
+            # 恢复临时修改的攻防属性（如植物学家等手牌buff）
+            if hasattr(self, '_original_attack'):
+                self.attack = self._original_attack
+                del self._original_attack
+            if hasattr(self, '_original_health'):
+                self.health = self._original_health
+                del self._original_health
 
         # 卡牌离开战场/场上时，自动清理 Card.on() 等监听器
         if old_location in ("board", "hand") and new_location in ("graveyard", "discard", "exiled"):
@@ -206,7 +221,8 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
     board = game.board
     if not board.target_check(target):
         return False
-    if not board.is_valid_deploy(target, player, card):
+    sacrifices = getattr(card, '_preselected_sacrifices', None)
+    if not board.is_valid_deploy(target, player, card, ignored_minions=sacrifices):
         print("  无法在此位置部署异象。")
         return False
     existing = board.get_minion_at(target)
@@ -237,7 +253,9 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
             if getattr(m, '_sacrifice_remaining', 0) <= 0:
                 print(f"  {m.name} 献祭次数已耗尽，无法再献祭")
                 return False
-            m._sacrifice_remaining -= 1
+            # 免疫献祭消灭的异象不消耗献祭次数（如「猫」）
+            if not getattr(m, '_immune_to_sacrifice', False):
+                m._sacrifice_remaining -= 1
             blood = m.keywords.get("丰饶", 1)
             # 消灭异象并触发亡语（免疫献祭的异象除外）
             if getattr(m, '_immune_to_sacrifice', False):
@@ -491,14 +509,14 @@ class Minion:
         self._last_damage_type: str = ""
         self._last_damage_amount: int = 0
 
-        # 献祭次数限制（"献祭X"：可被献祭X次）
+        # 献祭次数限制（"献祭X"：可被献祭X次，默认1次）
         sacrifice_kw = self.base_keywords.get("献祭", False)
         if sacrifice_kw is True:
             self._sacrifice_remaining = 1
         elif isinstance(sacrifice_kw, int):
             self._sacrifice_remaining = sacrifice_kw
         else:
-            self._sacrifice_remaining = 0
+            self._sacrifice_remaining = 1
 
         # 战斗伤害回调
         self._on_take_combat_damage: List[Callable[[], None]] = []
@@ -983,8 +1001,8 @@ class Minion:
 
         # 执行攻击
         if isinstance(target, Minion):
-            # 串击/穿刺/穿透：对同列所有敌方异象造成伤害
-            if self.keywords.get("串击", False) or self.keywords.get("穿刺", False) or self.keywords.get("穿透", False):
+            # 串击/穿透：对同列所有敌方异象造成伤害
+            if self.keywords.get("串击", False) or self.keywords.get("穿透", False):
                 col = self.position[1]
                 enemies = [m for m in self.board.get_enemy_minions_in_column(col, self.owner) if m.is_alive()]
                 if enemies:
@@ -1015,6 +1033,11 @@ class Minion:
                     if spike > 0:
                         print(f"  {target.name} 的尖刺反弹 {spike} 点伤害")
                         self.take_damage(spike, source_type="combat", is_combat_damage=True)
+                # 穿刺：攻击目标异象的同时，也会攻击对手英雄
+                if self.keywords.get("穿刺", False):
+                    player_target = self.board.game_ref.p2 if self.owner == self.board.game_ref.p1 else self.board.game_ref.p1
+                    print(f"  {self.name} 穿刺攻击 {player_target.name}，造成 {self.current_attack} 点伤害")
+                    player_target.health_change(-self.current_attack, source=self)
         elif isinstance(target, Player):
             print(f"  {self.name} 直接攻击 {target.name}，造成 {self.current_attack} 点伤害")
             target.health_change(-self.current_attack, source=self)

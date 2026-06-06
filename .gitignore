@@ -57,3 +57,4 @@ assets/fonts/*.ttf
 assets/fonts/*.ttc
 assets/fonts/*.otf
 *_screenshot.png
+agent_team_config.json

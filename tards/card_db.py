@@ -170,6 +170,8 @@ class CardDefinition:
             card.asset_back_id = self.asset_back_id
             card.stack_limit = self.stack_limit
             card.description = self.description
+            if self.cost_modifier:
+                card._card_cost_modifiers.append(self.cost_modifier)
             echo_val = self.keywords.get("异放", 0) or self.keywords.get("回响", 0)
             if isinstance(echo_val, int):
                 card.echo_level = echo_val

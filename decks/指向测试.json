@@ -1,0 +1,15 @@
+{
+  "name": "指向测试",
+  "is_test_deck": true,
+  "immersion_points": {
+    "DISCRETE": 3,
+    "UNDERWORLD": 3
+  },
+  "cards": {
+    "鸮": 3,
+    "鹰": 2,
+    "血灵": 10,
+    "幻翼": 3,
+    "骷髅马骑士": 3
+  }
+}

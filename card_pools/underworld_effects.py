@@ -423,7 +423,8 @@ def _diao_special(minion, player, game, extras=None):
 # 鹏(铁) - 所有花费≤5的非飞禽异象部署时具有休眠2（不分敌我）；部署：使敌方花费≤4的异象返回手牌
 def _peng_special(minion, player, game, extras=None):
     # 部署时：使敌方场上花费≤4的异象返回手牌
-    enemies = [m for m in game.board.get_all_minions() if m.owner is not player and m.is_alive()]
+    from card_pools.effect_utils import get_all_minions
+    enemies = [m for m in get_all_minions(game) if m.owner is not player and m.is_alive()]
     for e in enemies:
         sc = getattr(e, 'source_card', None)
         if sc and sc.cost.t <= 4:
@@ -459,7 +460,9 @@ def _peng_special(minion, player, game, extras=None):
 
 # 松鼠球(铁) - 受到伤害后向相邻陆地移动一格，在原地留下松鼠
 def _songshuqiu_special(minion, player, game, extras=None):
-    from card_pools.effect_utils import get_adjacent_positions, move, summon_token
+    from card_pools.effect_utils import (
+        get_adjacent_positions, move, summon_minion_by_name, add_deathrattle
+    )
     import random
 
     def on_damage():
@@ -472,8 +475,16 @@ def _songshuqiu_special(minion, player, game, extras=None):
         old_pos = minion.position
         new_pos = random.choice(candidates)
         if move(minion, new_pos, game):
-            summon_token(game, "松鼠", player, old_pos, attack=1, health=1)
+            summon_minion_by_name(game, "松鼠", player, old_pos)
     minion._on_take_combat_damage.append(on_damage)
+
+    # 亡语：在原地留下一只松鼠
+    def _dr(m, p, b):
+        pos = m.position
+        g = b.game_ref if hasattr(b, 'game_ref') else None
+        if g:
+            summon_minion_by_name(g, "松鼠", p, pos)
+    add_deathrattle(minion, _dr)
 
 
 # 寄居蟹(铁) - 回合结束向相邻移动一格；记录被其伤害异象的回响，回合开始时加入手牌再弃掉
@@ -977,7 +988,10 @@ def _yexiao_special(minion, player, game, extras=None):
 
 @special
 def _lang_special(minion, player, game, extras=None):
-    """狼：无法选中HP不大于2的异象。回合开始：对本列除自身外的一个异象造成2点伤害。（内置指向）"""
+    """狼：攻击时跳过HP不大于2的异象。回合开始：对本列除自身外的一个异象造成2点伤害。（效果预设）"""
+    from card_pools.effect_utils import set_effect_target_scope, get_effect_target
+    from tards.cards import Minion
+
     # 攻击目标过滤：跳过HP <= 2的异象
     def _filter(target):
         return target.current_health > 2
@@ -985,23 +999,19 @@ def _lang_special(minion, player, game, extras=None):
     print("  狼：攻击时跳过HP不大于2的异象")
 
     # 回合开始：对本列除自身外的一个异象造成2点伤害
+    def _scope(p, board):
+        col = minion.position[1] if minion.position else -1
+        return [m for m in board.minion_place.values()
+                if m.is_alive() and m.position[1] == col and m is not minion]
+
+    set_effect_target_scope(minion, _scope)
+
     def on_turn_start_fn(event):
         if not minion.is_alive():
             return
-        col = minion.position[1]
-        from tards.targeting import TargetingRequest
-        def scope(p, board):
-            return [m for m in board.minion_place.values()
-                    if m.is_alive() and m.position[1] == col and m is not minion]
-        req = TargetingRequest()
-        req.source = minion
-        req.scope_fn = scope
-        req.prompt = f"狼：选择本列除自身外的一个异象，对其造成2点伤害"
-        req.deciding_player = player
-        target = game.targeting_system.request_target(req)
+        target = get_effect_target(minion, game=game)
         if target is None:
             return
-        from tards.cards import Minion
         if isinstance(target, Minion) and target.is_alive():
             target.take_damage(2, source_minion=minion, source_type="effect")
             print(f"  狼回合开始：对 {target.name} 造成 2 点伤害")
@@ -1130,30 +1140,28 @@ def _ying_special(minion, player, game, extras=None):
 @special
 def _que_special(minion, player, game, extras=None):
     """雀：部署时：将其复制加入战场。回合结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）"""
-    from card_pools.effect_utils import empty_positions, summon_minion_by_name
-    from tards.targeting import TargetingRequest
+    from card_pools.effect_utils import empty_positions, summon_minion_by_name, set_effect_target_scope, get_effect_target
 
-    def _summon_copy():
-        valid = empty_positions(player, game.board)
-        if not valid:
-            print("  雀：没有友方空位，无法召唤复制")
-            return
-        def scope(p, board):
-            return valid
-        req = TargetingRequest()
-        req.source = minion
-        req.scope_fn = scope
-        req.prompt = "雀：选择一个友方空位，将其复制加入战场"
-        req.deciding_player = player
-        target_pos = game.targeting_system.request_target(req)
+    def _summon_copy(target_pos):
         if target_pos is None:
             return
         summon_minion_by_name(game, "雀", player, target_pos)
 
-    # 部署时复制
-    _summon_copy()
+    # 部署时复制（部署时刻可以同步指向）
+    from tards.targeting import TargetingRequest
+    valid_deploy = empty_positions(player, game.board)
+    if valid_deploy:
+        req = TargetingRequest()
+        req.source = minion
+        req.scope_fn = lambda p, b: valid_deploy
+        req.prompt = "雀：选择一个友方空位，将其复制加入战场"
+        req.deciding_player = player
+        pos = game.targeting_system.request_target(req)
+        _summon_copy(pos)
 
-    # 回合结束复制（需本结算阶段开始时存在，且为拥有者回合）
+    # 回合结束复制：采用效果预设机制（出牌阶段预设空位）
+    set_effect_target_scope(minion, lambda p, board: empty_positions(p, board))
+
     def on_turn_start(g, event_data, m):
         m._existed_at_resolve_start = True
 
@@ -1166,7 +1174,10 @@ def _que_special(minion, player, game, extras=None):
         # 仅拥有者回合结束触发
         if event_data.get("first") is not player:
             return
-        _summon_copy()
+        target_pos = get_effect_target(m, game=g)
+        if target_pos is None:
+            return
+        _summon_copy(target_pos)
 
     minion.on_turn_start = on_turn_start
     minion.on_turn_end = on_turn_end
@@ -1786,10 +1797,10 @@ def _langwang_special(minion, player, game, extras=None):
 
 @special
 def _youniao_special(minion, player, game, extras=None):
-    """幼鸟：部署：指向一个友方飞禽异象，使其获得+3防御力和"友方幼鸟无法选中"。
+    """幼鸟：部署：指向一个友方飞禽异象，使其获得+3防御力和"友方幼鸟虚化"。
 
     防御力 = 最大生命值/当前生命值 +3。
-    "友方幼鸟无法选中" = 该飞禽异象成为光环源，使友方所有名为"幼鸟"的异象获得"无法被选中"。
+    "友方幼鸟虚化" = 该飞禽异象成为光环源，使友方所有名为"幼鸟"的异象获得"虚化"。
     """
     from tards.targeting import TargetingRequest
 
@@ -1817,14 +1828,14 @@ def _youniao_special(minion, player, game, extras=None):
     target.recalculate()
     print(f"  幼鸟：{target.name} 获得+3防御力")
 
-    # 3. 给该飞禽异象设置"友方幼鸟无法选中"光环
+    # 3. 给该飞禽异象设置"友方幼鸟虚化"光环
     def baby_bird_protection(baby):
         if not target.is_alive():
             return {}
         if baby.owner != target.owner:
             return {}
         if baby.name == "幼鸟":
-            return {"无法被选中": True}
+            return {"虚化": True}
         return {}
 
     # 给当前所有友方幼鸟提供光环
@@ -1836,10 +1847,10 @@ def _youniao_special(minion, player, game, extras=None):
     def deploy_hook(deployed):
         if deployed.owner == target.owner and deployed.name == "幼鸟":
             target.provide_aura_keywords(deployed, baby_bird_protection)
-            print(f"  {target.name} 的光环：新部署的幼鸟获得无法被选中")
+            print(f"  {target.name} 的光环：新部署的幼鸟获得虚化")
 
     target.register_deploy_hook(game, deploy_hook)
-    print(f"  幼鸟：{target.name} 获得'友方幼鸟无法选中'")
+    print(f"  幼鸟：{target.name} 获得'友方幼鸟虚化'")
 
     return True
 
@@ -1982,25 +1993,24 @@ def _qunyuan_special(minion, player, game, extras=None):
 
 @special
 def _he_special(minion, player, game, extras=None):
-    """鹤：回合开始：重置一个异象的攻击力与防御力，你获得+1HP。"""
+    """鹤：回合开始：重置一个异象的攻击力与防御力，你获得+1HP。
+
+    采用提前指向（预设目标）机制：出牌阶段通过 set_effect_target action
+    为鹤预设目标，结算阶段开始时自动执行效果。
+    """
+    from card_pools.effect_utils import set_effect_target_scope, get_effect_target
+
+    set_effect_target_scope(minion, lambda p, board: [
+        m for m in board.minion_place.values() if m.is_alive() and m is not minion
+    ])
+    # 标记：预输入箭头仅对所有者可见，完成指向后才对对手可见
+    minion._hidden_effect_pending = True
 
     def on_turn_start_fn(event):
         if not minion.is_alive():
             return
 
-        # 内置指向：选择一个异象（敌我均可）
-        from tards.targeting import TargetingRequest
-
-        def scope(p, board):
-            return [m for m in board.minion_place.values() if m.is_alive()]
-
-        req = TargetingRequest()
-        req.source = minion
-        req.scope_fn = scope
-        req.prompt = "鹤：选择一个异象，重置其攻击力与防御力"
-        req.deciding_player = player
-
-        target = game.targeting_system.request_target(req)
+        target = get_effect_target(minion, game=game)
         if target is None:
             return
 
@@ -2025,51 +2035,43 @@ def _he_special(minion, player, game, extras=None):
 
 @special
 def _ankang_special(minion, player, game, extras=None):
-    """鮟鱇：回合结束：指向一个异象。回合开始：消灭指向异象。"""
+    """鮟鱇：结算阶段结束：指向一个异象。下回合结算阶段开始：将其消灭。
+
+    采用延迟效果预设机制：
+    1. 出牌阶段：玩家预输入目标（存储在 _pending_effect_target）
+    2. 当前回合结算阶段结束：消耗预输入，锁定目标到 _ankang_locked_target
+    3. 下回合结算阶段开始：消灭锁定的目标
+    """
+    from card_pools.effect_utils import set_effect_target_scope, get_effect_target, destroy_minion, on_turn_start, on_turn_end
+
+    set_effect_target_scope(minion, lambda p, board: [
+        m for m in board.minion_place.values() if m.is_alive() and m is not minion
+    ])
 
     def on_turn_end_fn(event):
+        """结算阶段结束：执行指向，将预输入目标锁定。"""
         if not minion.is_alive():
             return
-
-        # 内置指向：选择一个异象（敌我均可）
-        from tards.targeting import TargetingRequest
-
-        def scope(p, board):
-            return [m for m in board.minion_place.values() if m.is_alive()]
-
-        req = TargetingRequest()
-        req.source = minion
-        req.scope_fn = scope
-        req.prompt = "鮟鱇：回合结束，选择一个异象作为下回合的消灭目标"
-        req.deciding_player = player
-
-        target = game.targeting_system.request_target(req)
+        target = get_effect_target(minion, game=game)
         if target is None:
-            # 取消则清空上回合的目标
-            minion._ankang_target = None
             return
-
-        minion._ankang_target = target
-        print(f"  鮟鱇：锁定 {target.name}，下回合开始时消灭")
+        minion._ankang_locked_target = target
+        print(f"  鮟鱇：锁定目标 {target.name}")
 
     def on_turn_start_fn(event):
+        """结算阶段开始：消灭已锁定的目标。"""
         if not minion.is_alive():
             return
-
-        target = getattr(minion, '_ankang_target', None)
-        if not target:
+        target = getattr(minion, '_ankang_locked_target', None)
+        if target is None:
             return
-
         if not target.is_alive():
-            minion._ankang_target = None
+            minion._ankang_locked_target = None
             return
-
-        from card_pools.effect_utils import destroy_minion
         destroy_minion(target, game)
         print(f"  鮟鱇：消灭锁定的 {target.name}")
-        minion._ankang_target = None
+        minion._ankang_locked_target = None
 
-    from card_pools.effect_utils import on_turn_end, on_turn_start
     on_turn_end(minion, game, on_turn_end_fn)
     on_turn_start(minion, game, on_turn_start_fn)
     return True
@@ -2168,17 +2170,20 @@ def _wujiu_special(minion, player, game, extras=None):
         defender = event.data.get("defender")
         if attacker is None or defender is None:
             return
-        if not hasattr(attacker, "owner") or attacker.owner != player:
+        if getattr(attacker, "owner", None) is not player:
             return
-        if not hasattr(defender, "current_health") or not hasattr(defender, "is_alive"):
-            return
-        if not defender.is_alive():
-            return
-        if defender.current_health >= 2:
-            defender.current_health -= 1
-            print(f"  兀鹫：{attacker.name} 攻击后，{defender.name} 失去1点HP（剩余 {defender.current_health}）")
-            if defender.current_health <= 0:
-                defender.minion_death()
+        from tards.cards import Minion
+        from tards.player import Player
+        if isinstance(defender, Minion):
+            if not defender.is_alive():
+                return
+            if defender.current_health >= 2:
+                defender.current_health -= 1
+                print(f"  兀鹫：{attacker.name} 攻击后，{defender.name} 失去1点HP（剩余 {defender.current_health}）")
+        elif isinstance(defender, Player):
+            if defender.health >= 2:
+                defender.lose_hp(1)
+                print(f"  兀鹫：{attacker.name} 攻击后，{defender.name} 失去1点HP（剩余 {defender.health}）")
 
     on("after_attack", on_after_attack_fn, game, minion=minion)
     return True
@@ -2637,15 +2642,16 @@ def _shudong_effect(player, target, game, extras=None):
     if not ok:
         return False
 
-    # 2. 给友方 B=0 冥刻异象添加"无法被选中"
+    # 2. 给友方 B=0 冥刻异象添加"虚化"
     affected = []
     for m in all_friendly_minions(game, player):
         source = getattr(m, "source_card", None)
         if source and getattr(source, "pack", None) == Pack.UNDERWORLD and source.cost.b == 0:
-            m.temp_keywords["无法被选中"] = True
+            m.temp_keywords["虚化"] = True
+            m.recalculate()
             affected.append(m.name)
     if affected:
-        print(f"  树洞：本回合 {', '.join(affected)} 无法被选中")
+        print(f"  树洞：本回合 {', '.join(affected)} 虚化")
 
     return True
 
@@ -4726,7 +4732,7 @@ def _lao_lu_apply(minion, player, game):
 
 @special
 def _lao_lu_special(minion, player, game, extras=None):
-    """老鹿：你的手牌花费+1T。无法选中（通过 keywords 实现）。"""
+    """老鹿：你的手牌花费+1T。具有虚化（通过 keywords 实现）。"""
     _lao_lu_apply(minion, player, game)
     return True
 

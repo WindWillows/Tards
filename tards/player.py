@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
-from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT
+from .constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_CARD_ADDED_TO_HAND, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT
 from .cost import Cost
 from .cost_modifier import CostModifier, CostModifierSystem
 from .cards import Card, Conspiracy, MineralCard, MinionCard, Strategy, Minion
@@ -76,7 +76,9 @@ class Player:
 
         # 通用状态标志（任何卡牌都可以通过 effect_fn / special_fn 设置）
         self._skip_next_draw = False
+        self._skip_next_action = False
         self._on_develop_callbacks: List[Callable[["Player", "Game"], None]] = []
+        self._double_s_gain: bool = False
 
     @property
     def minions_on_board(self) -> List["Minion"]:
@@ -203,21 +205,21 @@ class Player:
             return True
         return False
 
-    def _try_stack_to_hand(self, card: "Card") -> bool:
+    def _try_stack_to_hand(self, card: "Card") -> Optional["Card"]:
         """尝试将卡牌堆叠到手牌中已有的同名卡牌上（包括矿物手牌区）。
         
         仅当卡牌 stack_limit > 1 且手牌中有同名卡牌未达上限时成功。
-        成功时增加目标卡牌的 stack_count，返回 True。
-        失败时返回 False，调用方需要将卡牌 append 到手牌。
+        成功时增加目标卡牌的 stack_count，返回被堆叠的目标卡牌。
+        失败时返回 None，调用方需要将卡牌 append 到手牌。
         """
         if card.stack_limit <= 1:
-            return False
+            return None
         for existing in self.card_hand + self.extra_hand:
             if existing.name == card.name and existing.stack_count < existing.stack_limit:
                 existing.stack_count += 1
                 print(f"  {self.name} 的 [{card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
-                return True
-        return False
+                return existing
+        return None
 
     def _get_hand_card(self, serial: int) -> Optional[Card]:
         """根据 serial（1-based）获取手牌中的卡牌（涵盖 card_hand + extra_hand）。"""
@@ -251,17 +253,20 @@ class Player:
 
     def add_card_to_hand(self, card: Card, game: Optional["Game"] = None,
                          reason: str = "", emit_events: bool = True,
-                         mark_drawn: bool = False) -> bool:
+                         mark_drawn: bool = False) -> Optional[Card]:
         """将卡牌加入手牌（自动处理堆叠、矿物优先入 extra_hand、满牌弃置）。
         
-        返回 True 表示成功加入手牌，False 表示因满牌被弃置。
+        返回实际生效的 Card 对象（考虑堆叠时返回被堆叠的那张），None 表示因满牌被弃置。
         """
         can_add, target = self._hand_space_for(card)
+        
+        actual_card = card
         
         if target == "stack":
             for existing in self.card_hand + self.extra_hand:
                 if existing.name == card.name and existing.stack_count < existing.stack_limit:
                     existing.stack_count += 1
+                    actual_card = existing
                     print(f"  {self.name} 的 [{card.name}] 堆叠至 {existing.stack_count}/{existing.stack_limit}")
                     break
         elif target == "mineral":
@@ -278,17 +283,18 @@ class Player:
             if game and emit_events:
                 game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
                 game.emit_event(EVENT_MILLED, player=self, card=card)
-            return False
+            return None
         
         if mark_drawn:
-            card._acquired_by_draw = True
+            actual_card._acquired_by_draw = True
         if reason:
             print(f"  {self.name} {reason}：获得 [{card.name}]")
         else:
             print(f"  {self.name} 获得 [{card.name}]")
         if game and emit_events:
             game.emit_event(EVENT_DRAW, player=self, card=card)
-        return True
+            game.emit_event(EVENT_CARD_ADDED_TO_HAND, player=self, card=actual_card, by_draw=mark_drawn)
+        return actual_card
 
     def _compact_extra_hand(self):
         """当 extra_hand 有空位时，将 card_hand 中的矿物移动到 extra_hand。"""
@@ -304,22 +310,24 @@ class Player:
             if not moved:
                 break
 
-    def draw_card(self, amount: int, game: Optional["Game"] = None):
-        drawn_names = []
+    def draw_card(self, amount: int, game: Optional["Game"] = None, deck_owner: Optional["Player"] = None) -> List["Card"]:
+        drawn_cards: List["Card"] = []
+        deck = (deck_owner or self).card_deck
         while amount > 0:
             if game and game.game_over:
                 break
-            if len(self.card_deck) == 0:
+            if len(deck) == 0:
                 self.draw_fail += 1
                 print(f"  {self.name} 牌库已空，虚空侵蚀！失去 {self.draw_fail} 点生命")
                 self.lose_hp(self.draw_fail)
                 amount -= 1
                 continue
-            card = self.card_deck.pop()
-            if self._try_stack_to_hand(card):
+            card = deck.pop()
+            stacked = self._try_stack_to_hand(card)
+            if stacked is not None:
                 # 堆叠成功，不占用新手牌位
                 card._acquired_by_draw = True
-                drawn_names.append(card.name)
+                drawn_cards.append(stacked)
                 amount -= 1
                 if game:
                     game.emit_event(EVENT_DRAW, player=self, card=card)
@@ -333,11 +341,11 @@ class Player:
                 continue
             
             ok = self.add_card_to_hand(card, game=game, emit_events=True, mark_drawn=True)
-            if ok:
-                drawn_names.append(card.name)
+            if ok is not None:
+                drawn_cards.append(ok)
             else:
-                # 被弃置了（磨牌），add_card_to_hand 已处理事件
-                pass
+                # 手牌满被弃置（磨牌）：仍然返回该卡牌，便于调用方知晓被抽的牌
+                drawn_cards.append(card)
             amount -= 1
             # 触发"抽取"效果
             draw_trigger = getattr(card, "hidden_keywords", {}).get("抽取")
@@ -346,8 +354,24 @@ class Player:
                     draw_trigger(self, game, card)
                 except Exception as e:
                     print(f"  [抽取效果错误] {card.name}: {e}")
-        if drawn_names:
-            print(f"  {self.name} 抽取了: {', '.join(drawn_names)}")
+        if drawn_cards:
+            names = [c.name for c in drawn_cards]
+            print(f"  {self.name} 抽取了: {', '.join(names)}")
+        return drawn_cards
+
+    def mulligan(self, cards_to_replace: List[Any], game: Optional["Game"] = None):
+        """将选中的手牌洗回牌库，然后抽取等量牌。"""
+        count = 0
+        for card in list(cards_to_replace):
+            if card in self.card_hand:
+                self.card_hand.remove(card)
+                self.card_deck.append(card)
+                count += 1
+        if count > 0:
+            import random
+            random.shuffle(self.card_deck)
+            print(f"  {self.name} 调整手牌: 将 {count} 张牌洗回牌库并重新抽取")
+            self.draw_card(count, game=game)
 
     def t_point_change(self, delta: int):
         self.t_point += delta
@@ -357,6 +381,9 @@ class Player:
             self.t_changed_this_round = True
     
     def s_point_change(self, delta: int):
+        if delta > 0 and getattr(self, "_double_s_gain", False):
+            delta *= 2
+            print(f"  {self.name} 双倍血契触发，获得 {delta}S")
         self.s_point += delta
     
     def b_point_change(self, delta: int):
@@ -511,10 +538,10 @@ class Player:
             if target.owner and target.owner != self:
                 if getattr(target.owner, "_global_insulation_count", 0) > 0:
                     return False, f"{target.name} 受虎保护，无法被策略选中"
-        # 无法被选中：无法被任何指向性效果选为目标
+        # 虚化：无法被任何指向性效果选为目标
         if isinstance(target, Minion):
-            if target.keywords.get("无法被选中", False) or target.temp_keywords.get("无法被选中", False):
-                return False, f"{target.name} 无法被选中"
+            if target.keywords.get("虚化", False) or target.temp_keywords.get("虚化", False):
+                return False, f"{target.name} 处于虚化状态"
         valid_targets = self.get_valid_targets(card)
         if target not in valid_targets:
             return False, "目标位置无效"

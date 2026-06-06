@@ -64,13 +64,17 @@ class Tooltip:
                          background="#ffffe0", relief=tk.SOLID, borderwidth=1,
                          font=("Microsoft YaHei", 10))
         label.pack()
+        self.tw.bind("<Leave>", lambda e: self.destroy())
 
     def move(self, x: int, y: int):
         self.tw.wm_geometry(f"+{x + 15}+{y + 15}")
 
     def destroy(self):
-        if self.tw and self.tw.winfo_exists():
-            self.tw.destroy()
+        try:
+            if self.tw and self.tw.winfo_exists():
+                self.tw.destroy()
+        except tk.TclError:
+            pass
 
 
 class LocalDuel:
@@ -105,6 +109,11 @@ class LocalDuel:
         self._targeting_result: Optional[Any] = None
         self._targeting_event = threading.Event()
 
+        self.mulligan_request_callback: Optional[Callable[[Player], None]] = None
+        self._mulligan_player: Optional[Player] = None
+        self._mulligan_indices: Optional[List[int]] = None
+        self._mulligan_event = threading.Event()
+
     def run_game(self, opponent: Player):
         self.game = Game(
             self.local_player,
@@ -112,6 +121,7 @@ class LocalDuel:
             action_provider=self._make_action_provider(),
             discover_provider=self._make_discover_provider(),
             targeting_provider=self._make_targeting_provider(),
+            mulligan_provider=self._make_mulligan_provider(),
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -184,6 +194,11 @@ class LocalDuel:
         self._targeting_result = target
         self._targeting_event.set()
 
+    def submit_local_mulligan(self, indices: List[int]):
+        """GUI 调用：提交本地玩家的开局手牌调整选择。"""
+        self._mulligan_indices = indices
+        self._mulligan_event.set()
+
     def submit_local_choice(self, chosen: str):
         self._choice_result = chosen
         self._choice_event.set()
@@ -195,9 +210,25 @@ class LocalDuel:
     def is_local_turn(self) -> bool:
         return self._local_turn_event.is_set()
 
+    def _make_mulligan_provider(self):
+        def provider(game, players):
+            for player in players:
+                self._mulligan_player = player
+                self._mulligan_indices = None
+                self._mulligan_event.clear()
+                if self.mulligan_request_callback:
+                    self.mulligan_request_callback(player)
+                self._mulligan_event.wait()
+                indices = self._mulligan_indices or []
+                cards = [player.card_hand[i] for i in indices
+                         if 0 <= i < len(player.card_hand)]
+                player.mulligan(cards, game=game)
+        return provider
+
     def close(self):
         self._local_action_event.set()
         self._discover_event.set()
+        self._mulligan_event.set()
 
 
 
@@ -383,6 +414,7 @@ class DeckBuilderFrame(tk.Frame):
         self.name_entry.insert(0, self.deck.name)
         self.name_entry.pack(side=tk.LEFT, padx=5)
         tk.Button(top, text="保存卡组", command=self._save_deck).pack(side=tk.LEFT, padx=10)
+        tk.Button(top, text="删除卡组", fg="red", command=self._delete_deck).pack(side=tk.RIGHT, padx=10)
         self.is_test_var = tk.BooleanVar(value=self.deck.is_test_deck)
         self.test_check = tk.Checkbutton(top, text="测试卡组", variable=self.is_test_var, fg="orange", font=("Microsoft YaHei", 10, "bold"), command=self._on_test_mode_change)
         self.test_check.pack(side=tk.LEFT, padx=10)
@@ -800,6 +832,22 @@ class DeckBuilderFrame(tk.Frame):
             msg += "\n（测试卡组，仅可用于本地测试）"
         messagebox.showinfo("保存成功", msg)
 
+    def _delete_deck(self):
+        name = self.deck.name
+        if not name or name == "新卡组":
+            messagebox.showwarning("提示", "当前卡组尚未保存，无法删除")
+            return
+        if not messagebox.askyesno("删除确认", f"确定要删除卡组 [{name}] 吗？"):
+            return
+        from tards.deck_io import DECKS_DIR
+        path = os.path.join(DECKS_DIR, f"{name}.json")
+        if os.path.exists(path):
+            os.remove(path)
+            messagebox.showinfo("删除成功", f"卡组 [{name}] 已删除")
+            self.app.show_menu()
+        else:
+            messagebox.showwarning("提示", f"卡组文件不存在: {path}")
+
 
 # ========== 联机大厅 ==========
 class LobbyFrame(tk.Frame):
@@ -1082,6 +1130,53 @@ class ChoiceDialog(tk.Toplevel):
         self.destroy()
 
 
+class EffectTargetDialog(tk.Toplevel):
+    """效果预设目标选择弹窗（调试用，替代Canvas指向）。"""
+
+    def __init__(self, parent, minions: List[Any], on_choose: Callable[[Any], None],
+                 on_cancel: Optional[Callable[[], None]] = None, prompt: str = "请选择效果目标"):
+        super().__init__(parent)
+        self.title("效果目标选择")
+        self.geometry("360x400")
+        self.on_choose = on_choose
+        self.on_cancel = on_cancel
+        self.minions = minions
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        tk.Label(self, text=prompt, font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f").pack(pady=10)
+
+        list_frame = tk.Frame(self)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        for m in minions:
+            owner = "我方" if hasattr(m, 'owner') and m.owner and getattr(m.owner, 'player_id', None) == getattr(parent, 'local_player', None) and getattr(parent, 'local_player', None) is not None else "敌方"
+            pos = f" 位置{m.position}" if hasattr(m, 'position') and m.position else ""
+            text = f"{m.name} ({m.attack}/{m.health}) [{owner}]{pos}"
+            btn = tk.Button(list_frame, text=text, font=("Microsoft YaHei", 10),
+                            bg="#fff3e0", activebackground="#ffe0b2",
+                            command=lambda mm=m: self._choose(mm))
+            btn.pack(fill=tk.X, pady=3)
+
+        cancel_btn = tk.Button(self, text="取消", font=("Microsoft YaHei", 10),
+                               bg="#eeeeee", activebackground="#cccccc",
+                               command=self._on_close)
+        cancel_btn.pack(pady=10)
+
+    def _choose(self, minion):
+        self.grab_release()
+        self.destroy()
+        self.on_choose(minion)
+
+    def _on_close(self):
+        self.grab_release()
+        self.destroy()
+        if self.on_cancel:
+            self.on_cancel()
+
+
 class FeedbackDialog(tk.Toplevel):
     """反馈提交弹窗。
 
@@ -1227,9 +1322,11 @@ class BattleFrame(tk.Frame):
         self.selected_card: Optional[Any] = None
         self.valid_targets: List[Any] = []
         self._tooltip: Optional[Tooltip] = None
+        self._tooltip_source: Optional[Any] = None
         self._pending_play_data: Optional[Dict[str, Any]] = None
         self._game_thread: Optional[threading.Thread] = None
         self._targeting_source_minion: Optional[Minion] = None
+        self._current_targeting_mode: Optional[str] = None
         self._dragging_card = None
 
         # 指向模式状态（新版）
@@ -1237,6 +1334,16 @@ class BattleFrame(tk.Frame):
         self._targeting_valid_targets: List[Any] = []
         self._targeting_on_confirm: Optional[Callable[[Any], None]] = None
         self._targeting_on_cancel: Optional[Callable[[], None]] = None
+
+        # 献祭选择模式状态
+        self._in_sacrifice_mode: bool = False
+        self._sacrifice_candidates: List[Minion] = []
+        self._selected_sacrifices: List[Minion] = []
+        self._sacrifice_required: int = 0
+        self._sacrifice_serial: Optional[int] = None
+        self._sacrifice_card: Optional[Any] = None
+        self._sacrifice_active: Optional[Any] = None
+
         self._dragging_serial = None
         self._drag_start_x = 0
         self._drag_start_y = 0
@@ -1252,6 +1359,12 @@ class BattleFrame(tk.Frame):
         self._prev_res_values = {}
         self._history_phase = None
         self._history_action_counter = 0
+
+        # Mulligan（开局手牌调整）状态
+        self._mulligan_overlay: Optional[tk.Frame] = None
+        self._mulligan_player: Optional[Player] = None
+        self._mulligan_selected_indices: set = set()
+        self._mulligan_waiting_remote = False
 
         self._build_ui()
         self._draw_board_grid()
@@ -1276,12 +1389,19 @@ class BattleFrame(tk.Frame):
         if key.lower() == "b":
             self._on_brake()
             return
-        # space: 拍铃
+        # space: 拍铃（或确认 mulligan）
         if key == "space":
-            self._on_bell()
+            if self._mulligan_overlay and not self._mulligan_waiting_remote:
+                self._on_mulligan_confirm()
+            else:
+                self._on_bell()
             return
         # Return: 确认指向选择（如果处于指向模式且只有一个合法目标）
+        # 或确认献祭选择
         if key == "Return":
+            if self._in_sacrifice_mode:
+                self._confirm_sacrifice()
+                return
             if self._in_targeting_mode and len(self._targeting_valid_targets) == 1:
                 target = self._targeting_valid_targets[0]
                 self._in_targeting_mode = False
@@ -1296,6 +1416,10 @@ class BattleFrame(tk.Frame):
         # a: 自动填充所有攻击目标
         if key.lower() == "a":
             self._auto_fill_attack_targets()
+            return
+        # e: 自动填充所有效果目标
+        if key.lower() == "e":
+            self._auto_fill_effect_targets()
             return
         # s: 兑换松鼠
         if key.lower() == "s":
@@ -1360,6 +1484,43 @@ class BattleFrame(tk.Frame):
             self.after(1500, self._reset_guide_hint)
         else:
             self.hint_label.config(text="没有需要填充的攻击目标")
+            self.after(1000, self._reset_guide_hint)
+
+    def _auto_fill_effect_targets(self):
+        """一键自动为所有有效果预设能力的异象填充默认效果目标。"""
+        if not self.duel.game or self.duel.game.current_phase != "action":
+            return
+        active = self.duel.game.current_player
+        if not active:
+            return
+        if isinstance(self.duel, NetworkDuel) and active != self.local_player:
+            return
+        filled = 0
+        for (r, c), m in self.duel.game.board.minion_place.items():
+            if m.owner != active:
+                continue
+            scope_fn = getattr(m, '_effect_target_scope_fn', None)
+            if not scope_fn:
+                continue
+            # 已有预设则跳过
+            if getattr(m, '_pending_effect_target', None) is not None:
+                continue
+            candidates = scope_fn(active, self.duel.game.board)
+            if not candidates:
+                continue
+            import random
+            selected = random.choice(candidates)
+            self.duel.submit_local_action({
+                "type": "set_effect_target",
+                "pos": m.position,
+                "target": selected,
+            })
+            filled += 1
+        if filled > 0:
+            self.hint_label.config(text=f"已为 {filled} 个异象自动填充效果目标")
+            self.after(1500, self._reset_guide_hint)
+        else:
+            self.hint_label.config(text="没有需要填充的效果目标")
             self.after(1000, self._reset_guide_hint)
 
     # ===== 拖拽出牌 =====
@@ -1487,7 +1648,7 @@ class BattleFrame(tk.Frame):
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板，返回包含所有 widget 的字典。"""
-        frame = tk.Frame(parent, height=120, bg="#fafafa",
+        frame = tk.Frame(parent, height=140, bg="#fafafa",
                          highlightthickness=1, highlightbackground="#bdbdbd")
         frame.pack_propagate(False)
         frame.pack(fill=tk.X, pady=2)
@@ -1554,22 +1715,29 @@ class BattleFrame(tk.Frame):
                              bg="#fafafa")
         con_label.pack(side=tk.LEFT, padx=(0, 8))
 
+        # 行3：已展示给对手的牌
+        row_shown = tk.Frame(frame, bg="#fafafa")
+        row_shown.pack(fill=tk.X, padx=10, pady=(0, 3))
+        shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 8),
+                               bg="#fafafa", fg="#e65100", anchor="w")
+        shown_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
         # 点击绑定（将面板作为指向目标）
-        clickable = [frame, row0, row1, row2, name_label, hand_label,
+        clickable = [frame, row0, row1, row2, row_shown, name_label, hand_label,
                      hp_frame, hp_bar, hp_label,
                      sep, t_label, c_label, b_label, s_label,
-                     deck_label, dis_label, con_label]
+                     deck_label, dis_label, con_label, shown_label]
         for w in clickable:
             w.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
 
         return {
-            "frame": frame, "row0": row0, "row1": row1, "row2": row2,
+            "frame": frame, "row0": row0, "row1": row1, "row2": row2, "row_shown": row_shown,
             "name_label": name_label, "hand_label": hand_label,
             "hp_frame": hp_frame, "hp_bar": hp_bar, "hp_label": hp_label,
             "t_label": t_label, "c_label": c_label,
             "b_label": b_label, "s_label": s_label,
             "deck_label": deck_label, "dis_label": dis_label,
-            "conspiracy_label": con_label,
+            "conspiracy_label": con_label, "shown_label": shown_label,
         }
 
     def _build_ui(self):
@@ -1971,8 +2139,13 @@ class BattleFrame(tk.Frame):
                                     tags=(tag, "minion", "kw_icon"))
 
     def _render_board(self):
+        # 如果当前浮窗对应的异象已离开战场，自动隐藏浮窗
+        if self._tooltip_source and isinstance(self._tooltip_source, Minion):
+            if self._tooltip_source not in self.duel.game.board.minion_place.values():
+                self._hide_tooltip()
         self.canvas.delete("minion")
         self.canvas.delete("target_hint")
+        self.canvas.delete("deploy_preview")
         if not self.duel.game:
             return
         am = get_asset_manager()
@@ -1982,6 +2155,9 @@ class BattleFrame(tk.Frame):
             cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             color = "#42a5f5" if m.owner.side == self.local_player.side else "#ef5350"
             tag = f"minion_{r}_{c}"
+            # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
+            for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
+                self.canvas.tag_unbind(tag, seq)
             # 根据关键词决定边框颜色
             outline = "black"
             width = 2
@@ -2036,15 +2212,35 @@ class BattleFrame(tk.Frame):
             self.canvas.tag_bind(tag, "<Leave>", lambda e: self._hide_tooltip())
             self.canvas.tag_bind(tag, "<Motion>", lambda e: self._move_tooltip(e.x_root, e.y_root))
             self.canvas.tag_bind(tag, "<Button-1>", lambda e, mm=m: self._on_minion_click(mm))
+            self.canvas.tag_bind(tag, "<Double-Button-1>", lambda e, mm=m: self._on_minion_double_click(mm))
             # 如果当前在指向模式中且该异象是合法目标，高亮边框
-            if self._in_targeting_mode and m in self._targeting_valid_targets:
-                self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline="yellow", width=4, tags="target_hint")
-            # 黄色星号：行动阶段中仍需选择攻击目标的异象
+            if self._in_targeting_mode:
+                is_target = m in self._targeting_valid_targets
+                if is_target:
+                    self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline="yellow", width=4, tags="target_hint")
+            # 献祭选择模式：合法祭品黄框，已选祭品绿框，左上角显示丰饶等级
+            if self._in_sacrifice_mode and m in self._sacrifice_candidates:
+                is_selected = m in self._selected_sacrifices
+                color = "#76ff03" if is_selected else "yellow"
+                self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline=color, width=4, tags="target_hint")
+                # 左上角显示丰饶等级
+                fertility = m.keywords.get("丰饶", 1)
+                self.canvas.create_text(cx - 24, cy - 20, text=str(fertility), fill="white",
+                                        font=("Microsoft YaHei", 9, "bold"),
+                                        tags=(tag, "minion", "sacrifice_fertility"))
+                # 丰饶等级背景小圆
+                self.canvas.create_oval(cx - 30, cy - 26, cx - 18, cy - 14,
+                                        fill="#c62828", outline="white", width=1,
+                                        tags=(tag, "minion", "sacrifice_fertility"))
+                # 重新画文字在最上层
+                self.canvas.create_text(cx - 24, cy - 20, text=str(fertility), fill="white",
+                                        font=("Microsoft YaHei", 9, "bold"),
+                                        tags=(tag, "minion", "sacrifice_fertility"))
+            # 阿拉伯数字：行动阶段中仍需选择攻击目标的次数
             stars = self._get_minion_pending_stars(m)
             if stars > 0:
-                star_text = "★" * stars
-                self.canvas.create_text(cx + 22, cy - 18, text=star_text, fill="yellow",
-                                        font=("Microsoft YaHei", 10, "bold"), tags=(tag, "minion", "pending_star"))
+                self.canvas.create_text(cx + 22, cy - 18, text=str(stars), fill="yellow",
+                                        font=("Microsoft YaHei", 12, "bold"), tags=(tag, "minion", "pending_star"))
             # 关键词图标
             self._draw_keyword_icons(cx, cy, m, tag)
             # 清除攻击预设按钮（右下角小红叉）
@@ -2053,6 +2249,7 @@ class BattleFrame(tk.Frame):
                 clear_x = cx + 22
                 clear_y = cy + 18
                 clear_tag = f"clear_pending_{r}_{c}"
+                self.canvas.tag_unbind(clear_tag, "<Button-1>")
                 self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
                                              fill="#ff5252", outline="white", width=1,
                                              tags=(clear_tag, "minion"))
@@ -2061,6 +2258,21 @@ class BattleFrame(tk.Frame):
                                         tags=(clear_tag, "minion"))
                 self.canvas.tag_bind(clear_tag, "<Button-1>",
                                      lambda e, pos=m.position: self._clear_attack_targets(pos))
+            # 清除效果预设按钮（左下角小蓝叉）
+            effect_pending = getattr(m, "_pending_effect_target", None)
+            if effect_pending is not None:
+                clear_x = cx - 22
+                clear_y = cy + 18
+                clear_tag = f"clear_effect_{r}_{c}"
+                self.canvas.tag_unbind(clear_tag, "<Button-1>")
+                self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
+                                             fill="#448aff", outline="white", width=1,
+                                             tags=(clear_tag, "minion"))
+                self.canvas.create_text(clear_x, clear_y, text="×", fill="white",
+                                        font=("Microsoft YaHei", 8, "bold"),
+                                        tags=(clear_tag, "minion"))
+                self.canvas.tag_bind(clear_tag, "<Button-1>",
+                                     lambda e, pos=m.position: self._clear_effect_target(pos))
             # 可交互指示器（行动阶段中可设置攻击目标的异象）
             if (self.duel.game and self.duel.game.current_phase == "action"
                     and m.owner == self.duel.game.current_player
@@ -2071,26 +2283,78 @@ class BattleFrame(tk.Frame):
                     self.canvas.create_oval(cx + 18, cy - 22, cx + 26, cy - 14,
                                             fill="#76ff03", outline="white", width=1,
                                             tags=(tag, "minion", "interactive_dot"))
+            # 可交互指示器（行动阶段中可设置效果目标的异象）
+            if (self.duel.game and self.duel.game.current_phase == "action"
+                    and m.owner == self.duel.game.current_player):
+                scope_fn = getattr(m, '_effect_target_scope_fn', None)
+                if scope_fn and getattr(m, '_pending_effect_target', None) is None:
+                    self.canvas.create_oval(cx - 26, cy - 22, cx - 18, cy - 14,
+                                            fill="#00e5ff", outline="white", width=1,
+                                            tags=(tag, "minion", "interactive_dot"))
         # 绘制攻击预设连线
         for (r, c), m in self.duel.game.board.minion_place.items():
             pending = getattr(m, "_pending_attack_targets", None)
             if not pending or not isinstance(pending, list):
                 continue
-            x1 = c * self.cell_size + self.cell_size // 2
-            y1 = r * self.cell_size + self.cell_size // 2
+            x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             for target in pending:
                 if hasattr(target, "position") and target.position:
                     tr, tc = target.position
-                    x2 = tc * self.cell_size + self.cell_size // 2
-                    y2 = tr * self.cell_size + self.cell_size // 2
+                    x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                    y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_line(x1, y1, x2, y2,
                                             fill="#ffeb3b", dash=(4, 4), width=2,
                                             arrow=tk.LAST, tags=("target_arrow", "minion"))
+        # 绘制效果预设连线（预输入阶段）
+        for (r, c), m in self.duel.game.board.minion_place.items():
+            pending = getattr(m, "_pending_effect_target", None)
+            if pending is None:
+                continue
+            # 隐藏预输入：只有所有者可见（如鮟鱇）
+            hidden = getattr(m, '_hidden_effect_pending', False)
+            if hidden and m.owner != self.local_player:
+                continue
+            x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            target = pending
+            if hasattr(target, "position") and target.position:
+                tr, tc = target.position
+                x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                self.canvas.create_line(x1, y1, x2, y2,
+                                        fill="#00e5ff", dash=(4, 4), width=2,
+                                        arrow=tk.LAST, tags=("target_arrow", "minion"))
+        # 绘制已完成指向的锁定连线（所有人可见，如鮟鱇）
+        for (r, c), m in self.duel.game.board.minion_place.items():
+            locked = getattr(m, "_ankang_locked_target", None)
+            if locked is None:
+                continue
+            x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            target = locked
+            if hasattr(target, "position") and target.position:
+                tr, tc = target.position
+                x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                self.canvas.create_line(x1, y1, x2, y2,
+                                        fill="#00e5ff", dash=(4, 4), width=2,
+                                        arrow=tk.LAST, tags=("target_arrow", "minion"))
+        # 献祭模式：实时预览部署合法范围（与部署模式统一黄框样式）
+        if self._in_sacrifice_mode and self._sacrifice_card and self._sacrifice_active:
+            preview = self._calc_deploy_range(self._sacrifice_card, self._sacrifice_active, self._selected_sacrifices)
+            for (pr, pc) in preview:
+                vcx = pc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+                vcy = pr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
+                                             outline="#ffd600", width=4,
+                                             fill="#fff59d", stipple="gray50",
+                                             tags="deploy_preview")
         # 高亮指向来源异象（金色发光边框）
         if self._targeting_source_minion and self._targeting_source_minion.position:
             sr, sc = self._targeting_source_minion.position
-            scx = sc * self.cell_size + self.cell_size // 2
-            scy = sr * self.cell_size + self.cell_size // 2
+            scx = sc * self.cell_size + self.cell_size // 2 + self.board_offset_x
+            scy = sr * self.cell_size + self.cell_size // 2 + self.board_offset_y
             self.canvas.create_rectangle(scx - 34, scy - 29, scx + 34, scy + 29,
                                          outline="gold", width=4, tags="target_hint")
         # 高亮合法目标（位置）——黄色方框
@@ -2262,6 +2526,10 @@ class BattleFrame(tk.Frame):
             # 已激活的阴谋：红色边框
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
                 cvs.create_rectangle(2, 2, cw - 2, ch - 2, outline="#d32f2f", width=3, tags="activated_mark")
+            # 已被对手见过的牌：左下角小缺角标记
+            if getattr(card, "_shown_to_opponent", False):
+                cvs.create_polygon(2, ch - 2, 12, ch - 2, 2, ch - 12,
+                                   fill="#ff9800", outline="white", width=1, tags="shown_mark")
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
                 cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
@@ -2322,6 +2590,145 @@ class BattleFrame(tk.Frame):
 
         self._prev_hand_card_ids = current_card_ids
 
+    # ========== Mulligan（开局手牌调整）UI ==========
+    def _show_mulligan(self, player: Player):
+        """显示开局手牌调整界面。"""
+        if self._mulligan_overlay:
+            self._hide_mulligan()
+        self._mulligan_player = player
+        self._mulligan_selected_indices = set()
+        self._mulligan_waiting_remote = False
+
+        # 覆盖层
+        overlay = tk.Frame(self, bg="#555555")
+        overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self._mulligan_overlay = overlay
+
+        # 中央面板
+        panel = tk.Frame(overlay, bg="white", bd=2, relief=tk.RIDGE)
+        panel.place(relx=0.5, rely=0.5, anchor="center", width=700, height=400)
+
+        # 标题
+        title_text = f"调整初始手牌 - {player.name}"
+        tk.Label(panel, text=title_text, font=("Microsoft YaHei", 16, "bold"), bg="white").pack(pady=(15, 5))
+        tk.Label(panel, text="点击卡牌选择要替换的牌，确认后洗回牌库并重新抽取", font=("Microsoft YaHei", 10), bg="white", fg="gray").pack(pady=(0, 10))
+
+        # 手牌区
+        hand_frame = tk.Frame(panel, bg="white")
+        hand_frame.pack(pady=10)
+        self._mulligan_hand_frame = hand_frame
+
+        self._refresh_mulligan_cards()
+
+        # 提示与按钮区
+        self._mulligan_bottom_frame = tk.Frame(panel, bg="white")
+        self._mulligan_bottom_frame.pack(pady=10)
+
+        self._mulligan_hint_label = tk.Label(self._mulligan_bottom_frame, text="", font=("Microsoft YaHei", 10), bg="white", fg="blue")
+        self._mulligan_hint_label.pack(pady=(0, 5))
+
+        self._mulligan_confirm_btn = tk.Button(
+            self._mulligan_bottom_frame, text="确认替换",
+            font=("Microsoft YaHei", 12), width=12,
+            command=self._on_mulligan_confirm,
+        )
+        self._mulligan_confirm_btn.pack(pady=5)
+
+    def _refresh_mulligan_cards(self):
+        """刷新 mulligan 手牌显示。"""
+        if not self._mulligan_overlay or not self._mulligan_player:
+            return
+        frame = self._mulligan_hand_frame
+        for w in list(frame.winfo_children()):
+            w.destroy()
+
+        from tards.cards import MinionCard as MC, Strategy as ST, Conspiracy as CO, MineralCard as MI
+        card_type_colors = {MC: "#e3f2fd", ST: "#e8f5e9", CO: "#f3e5f5", MI: "#fffde7"}
+        am = get_asset_manager()
+        cw = self.HAND_CARD_WIDTH
+        ch = self.HAND_CARD_HEIGHT
+
+        for i, card in enumerate(self._mulligan_player.card_hand):
+            selected = i in self._mulligan_selected_indices
+            self._render_mulligan_card(frame, card, i, selected, card_type_colors, am, cw, ch)
+
+    def _render_mulligan_card(self, parent, card, idx, selected, card_type_colors, am, cw, ch):
+        """渲染单张 mulligan 卡牌。"""
+        try:
+            base_bg = card_type_colors.get(type(card), "white")
+            bg = "#c8e6c9" if selected else base_bg
+            frame_bd = 3 if selected else 0
+            frame_bg = "#4caf50" if selected else "white"
+            frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
+            frame.pack(side=tk.LEFT, padx=4)
+            cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
+            cvs.pack(padx=2, pady=2)
+            img = None
+            if getattr(card, "asset_id", None):
+                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+            if img:
+                cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                cvs.image = img
+            else:
+                cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+            name = card.name
+            cost_str = str(card.cost)
+            stats = ""
+            from tards.cards import MinionCard as MC, Strategy as ST, Conspiracy as CO, MineralCard as MI
+            if isinstance(card, MC):
+                stats = f"{card.attack}/{card.health}"
+            bottom_text = stats
+            if isinstance(card, ST):
+                bottom_text = "【策】"
+            elif isinstance(card, CO):
+                bottom_text = "【谋】"
+            elif isinstance(card, MI):
+                bottom_text = "【矿】"
+            elif isinstance(card, MC):
+                bottom_text = f"【随】{stats}"
+            cvs.create_text(cw // 2, 14, text=name, fill="#212121",
+                            font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+            cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
+                            font=("Microsoft YaHei", 8), tags="card_text")
+            cvs.bind("<Button-1>", lambda e, i=idx: self._on_mulligan_card_click(i))
+        except Exception as e:
+            print(f"[_render_mulligan_card] 渲染卡牌异常 [{getattr(card, 'name', 'unknown')}]: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _on_mulligan_card_click(self, idx: int):
+        """切换 mulligan 卡牌选中状态。"""
+        if idx in self._mulligan_selected_indices:
+            self._mulligan_selected_indices.remove(idx)
+        else:
+            self._mulligan_selected_indices.add(idx)
+        self._refresh_mulligan_cards()
+
+    def _on_mulligan_confirm(self):
+        """确认 mulligan 选择。"""
+        if not self._mulligan_overlay:
+            return
+        indices = sorted(self._mulligan_selected_indices)
+        if isinstance(self.duel, NetworkDuel):
+            self._mulligan_waiting_remote = True
+            self._mulligan_confirm_btn.config(state=tk.DISABLED, text="等待对手调整...")
+            self._mulligan_hint_label.config(text="已提交选择，等待对手完成调整...")
+            self.duel.submit_local_mulligan(indices)
+        else:
+            self.duel.submit_local_mulligan(indices)
+            self._hide_mulligan()
+
+    def _hide_mulligan(self):
+        """隐藏 mulligan 界面。"""
+        if self._mulligan_overlay:
+            self._mulligan_overlay.destroy()
+            self._mulligan_overlay = None
+        self._mulligan_player = None
+        self._mulligan_selected_indices = set()
+        self._mulligan_waiting_remote = False
+
     def _card_display_text(self, card) -> str:
         name = card.name
         cost = str(card.cost)
@@ -2364,9 +2771,9 @@ class BattleFrame(tk.Frame):
             else:
                 bg = "#fafafa"
 
-            for key in ["frame", "row0", "row1", "row2", "name_label", "hp_frame", "hp_label",
+            for key in ["frame", "row0", "row1", "row2", "row_shown", "name_label", "hp_frame", "hp_label",
                         "t_label", "c_label", "b_label", "s_label",
-                        "hand_label", "deck_label", "dis_label", "conspiracy_label"]:
+                        "hand_label", "deck_label", "dis_label", "conspiracy_label", "shown_label"]:
                 if key in widgets:
                     widgets[key].config(bg=bg)
 
@@ -2408,6 +2815,13 @@ class BattleFrame(tk.Frame):
             widgets["dis_label"].config(text=f"弃牌堆:{len(player.card_dis)}")
             widgets["conspiracy_label"].config(text=f"阴谋序列:{len(player.active_conspiracies)}")
 
+            # 已展示给对手的牌
+            shown_names = [c.name for c in player.card_hand if getattr(c, "_shown_to_opponent", False)]
+            if shown_names:
+                widgets["shown_label"].config(text=f"已展示: {', '.join(shown_names)}")
+            else:
+                widgets["shown_label"].config(text="")
+
         # 更新右侧"当前资源"面板（网络对局显示本地玩家，本地对局显示当前回合玩家）
         game = self.duel.game
         active = game.current_player if game else None
@@ -2428,7 +2842,13 @@ class BattleFrame(tk.Frame):
 
             self.res_t_label.config(text=f"T:{display_player.t_point}/{display_player.t_point_max}")
             self.res_c_label.config(text=f"C:{display_player.c_point}/{display_player.c_point_max}")
-            self.res_b_label.config(text=f"B:{display_player.b_point}")
+            # B点显示：献祭模式下显示 x/y（当前可用/所需），否则显示 x
+            if self._in_sacrifice_mode and self._sacrifice_active == display_player:
+                selected_blood = sum(m.keywords.get("丰饶", 1) for m in self._selected_sacrifices)
+                total_blood = display_player.b_point + selected_blood
+                self.res_b_label.config(text=f"B:{total_blood}/{self._sacrifice_required}")
+            else:
+                self.res_b_label.config(text=f"B:{display_player.b_point}")
             has_underworld = display_player.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
             if has_underworld:
                 self.res_sacrifice_label.config(text=f"可献祭:{self._get_available_blood(display_player)}")
@@ -2456,21 +2876,108 @@ class BattleFrame(tk.Frame):
             self.squirrel_draw_cb.pack_forget()
 
     def _on_minion_click(self, minion: Minion):
-        if not self._in_targeting_mode:
-            # 没有指向模式时，尝试触发视野/高频设置
-            self._handle_board_unit_click(minion.position)
+        # 1. 献祭选择模式：选择/取消祭品
+        if self._in_sacrifice_mode:
+            if minion in self._sacrifice_candidates:
+                if minion in self._selected_sacrifices:
+                    self._selected_sacrifices.remove(minion)
+                else:
+                    self._selected_sacrifices.append(minion)
+                self._render_board()
+                self._render_info()
+                total = sum(m.keywords.get("丰饶", 1) for m in self._selected_sacrifices)
+                if total >= self._sacrifice_required:
+                    self._confirm_sacrifice()
+                return "break"
             return
-        if minion in self._targeting_valid_targets:
-            self._in_targeting_mode = False
-            on_confirm = self._targeting_on_confirm
-            self._targeting_on_confirm = None
-            self._targeting_on_cancel = None
-            self._targeting_valid_targets = []
-            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
-            self._render_board()
-            self._render_info()
-            if on_confirm:
-                on_confirm(minion)
+
+        # 2. 指向模式：确认合法目标
+        if self._in_targeting_mode:
+            if minion in self._targeting_valid_targets:
+                self._in_targeting_mode = False
+                on_confirm = self._targeting_on_confirm
+                self._targeting_on_confirm = None
+                self._targeting_on_cancel = None
+                self._targeting_valid_targets = []
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                self._render_board()
+                self._render_info()
+                if on_confirm:
+                    on_confirm(minion)
+                return "break"
+            # 非法目标，不阻止传播，让 _on_canvas_click 处理错误提示
+            return
+
+        # 3. 非指向模式：检查是否进入预设
+        if not self.duel.game:
+            return
+        if self.duel.game.current_phase != "action":
+            return
+        active = self.duel.game.current_player
+        if not active:
+            return
+        # 网络对战中，只能操作本地玩家；本地测试中，当前回合玩家均可操作
+        if isinstance(self.duel, NetworkDuel) and minion.owner != self.local_player:
+            return
+        if minion.owner != active:
+            return
+        # 若正在选手牌目标，不干扰
+        if self.selected_card is not None:
+            return
+
+        has_attack = minion.keywords.get("视野", 0) > 0
+        has_effect = getattr(minion, '_effect_target_scope_fn', None) is not None
+
+        entered = False
+        if has_attack and has_effect:
+            # 两者都有，优先攻击模式
+            self._handle_board_unit_click(minion.position, mode="attack")
+            entered = True
+        elif has_attack:
+            self._handle_board_unit_click(minion.position, mode="attack")
+            entered = True
+        elif has_effect:
+            self._handle_board_unit_click(minion.position, mode="effect")
+            entered = True
+
+        if entered:
+            return "break"
+
+    def _on_minion_double_click(self, minion: Minion):
+        """双击异象：
+        - 若已在攻击指向模式且来源是该异象 → 切换到效果预设模式
+        - 否则同单击逻辑（进入预设）
+        """
+        if not self.duel.game:
+            return "break"
+        active = self.duel.game.current_player
+        if not active:
+            return "break"
+        # 网络对战中，只能操作本地玩家；本地测试中，当前回合玩家均可操作
+        if isinstance(self.duel, NetworkDuel) and minion.owner != self.local_player:
+            return "break"
+        if minion.owner != active:
+            return "break"
+        if self.duel.game.current_phase != "action":
+            return "break"
+
+        # 已在攻击指向模式且来源是该异象 → 切换到效果
+        if (self._in_targeting_mode
+                and getattr(self, '_current_targeting_mode', None) == "attack"
+                and self._targeting_source_minion is minion):
+            has_effect = getattr(minion, '_effect_target_scope_fn', None) is not None
+            if has_effect:
+                self._exit_targeting_mode()
+                self._handle_board_unit_click(minion.position, mode="effect")
+            return "break"
+
+        # 已在其它指向模式，忽略
+        if self._in_targeting_mode:
+            return "break"
+
+        # 非指向模式，双击同单击
+        self._on_minion_click(minion)
+        return "break"
 
     def _on_player_label_click(self, player: Optional[Player]):
         if not self._in_targeting_mode or not player:
@@ -2530,7 +3037,54 @@ class BattleFrame(tk.Frame):
             prompt=request.prompt,
         )
 
-    def _exit_targeting_mode(self):
+    def _enter_sacrifice_mode(self, serial: int, card, active, required_blood: int):
+        """进入献祭选择模式：玩家点击场上友方异象作为祭品。"""
+        self._in_sacrifice_mode = True
+        self._sacrifice_serial = serial
+        self._sacrifice_card = card
+        self._sacrifice_active = active
+        self._sacrifice_required = required_blood
+        self._sacrifice_candidates = list(self.duel.game.board.get_minions_of_player(active)) if self.duel.game else []
+        self._selected_sacrifices = []
+        self._pending_sacrifices = []
+        self.hint_label.config(
+            text=f"请选择献祭异象（需要{required_blood}点鲜血）| 点击选择/取消 | Enter确认 | ESC取消",
+            font=("Microsoft YaHei", 11, "bold"), fg="#c62828"
+        )
+        self._render_board()
+        self._render_info()
+        self._render_hand()
+
+    def _exit_sacrifice_mode(self):
+        """退出献祭选择模式。"""
+        self._in_sacrifice_mode = False
+        self._sacrifice_candidates = []
+        self._selected_sacrifices = []
+        self._sacrifice_required = 0
+        self._sacrifice_serial = None
+        self._sacrifice_card = None
+        self._sacrifice_active = None
+        # 注意：_pending_sacrifices 不在这里清除，因为 _confirm_sacrifice 需要保留它传递给 _enter_deploy_targeting
+        self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+        self._render_board()
+        self._render_info()
+        self._render_hand()
+
+    def _confirm_sacrifice(self):
+        """确认当前选择的献祭，进入部署位置选择。"""
+        total = sum(m.keywords.get("丰饶", 1) for m in self._selected_sacrifices)
+        if total < self._sacrifice_required:
+            self.hint_label.config(text=f"献祭不足，已选{total}点，还需{self._sacrifice_required - total}点", fg="red")
+            self.after(1000, lambda: self.hint_label.config(fg="#c62828"))
+            return
+        self._pending_sacrifices = list(self._selected_sacrifices)
+        serial = self._sacrifice_serial
+        card = self._sacrifice_card
+        active = self._sacrifice_active
+        self._exit_sacrifice_mode()
+        self._enter_deploy_targeting(serial, card, active)
+
+    def _exit_targeting_mode(self, preserve_pending=False):
         self._in_targeting_mode = False
         self._targeting_valid_targets = []
         self._targeting_on_confirm = None
@@ -2540,6 +3094,9 @@ class BattleFrame(tk.Frame):
         self.selected_card = None
         self.selected_card_idx = None
         self._targeting_source_minion = None
+        self._current_targeting_mode = None
+        if not preserve_pending:
+            self._pending_sacrifices = []
         self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
         self._render_hand()
         self._render_board()
@@ -2563,8 +3120,26 @@ class BattleFrame(tk.Frame):
             "targets": [],
         })
 
-    def _handle_board_unit_click(self, target):
-        """处理玩家点击场上自己的异象。"""
+    def _clear_effect_target(self, pos):
+        """清除指定异象的预设效果目标。"""
+        if not self.duel.game:
+            return
+        active = self.duel.game.current_player
+        if not active:
+            return
+        if isinstance(self.duel, NetworkDuel) and active != self.local_player:
+            return
+        m = self.duel.game.board.get_minion_at(pos)
+        if not m or m.owner != active:
+            return
+        self.duel.submit_local_action({
+            "type": "set_effect_target",
+            "pos": pos,
+            "target": None,
+        })
+
+    def _handle_board_unit_click(self, target, mode="attack"):
+        """处理玩家点击场上自己的异象（攻击预设或效果预设）。"""
         if not self.duel.game:
             return
         active = self.duel.game.current_player
@@ -2578,37 +3153,70 @@ class BattleFrame(tk.Frame):
             return
         if m.owner != active:
             return
-        vision = m.keywords.get("视野", 0)
-        can_attack = m.can_attack_this_turn(self.duel.game.current_turn)
-        if vision <= 0 and not can_attack:
-            return
-        multi_attack = m.keywords.get("高频", 0) or m.keywords.get("连击", 0) or m.keywords.get("多重打击", 0)
-        atk_candidates = get_attack_target_candidates(m, self.duel.game)
-        if not atk_candidates:
-            return
 
-        # 攻击目标预设：多目标简化为单目标多次提交（保持向后兼容）
-        count = multi_attack if isinstance(multi_attack, int) else 1
-        selected_atks: List[Any] = []
-
-        def pick_next():
-            if len(selected_atks) >= count:
-                self.duel.submit_local_action({
-                    "type": "set_attack_targets",
-                    "pos": m.position,
-                    "targets": selected_atks,
-                })
-                self._exit_targeting_mode()
+        if mode == "attack":
+            vision = m.keywords.get("视野", 0)
+            if vision <= 0:
                 return
-            self._enter_local_targeting(
-                valid_targets=atk_candidates,
-                on_confirm=lambda t: (selected_atks.append(t), pick_next()),
-                on_cancel=self._exit_targeting_mode,
-                prompt=f"请选择 {m.name} 的攻击目标 ({len(selected_atks)+1}/{count})",
-            )
+            multi_attack = m.keywords.get("高频", 0) or m.keywords.get("连击", 0) or m.keywords.get("多重打击", 0)
+            atk_candidates = get_attack_target_candidates(m, self.duel.game)
+            if not atk_candidates:
+                return
 
-        self._targeting_source_minion = m
-        pick_next()
+            # 攻击目标预设：多目标简化为单目标多次提交（保持向后兼容）
+            count = multi_attack if isinstance(multi_attack, int) and multi_attack > 0 else 1
+            selected_atks: List[Any] = []
+
+            def pick_next():
+                if len(selected_atks) >= count:
+                    self.duel.submit_local_action({
+                        "type": "set_attack_targets",
+                        "pos": m.position,
+                        "targets": selected_atks,
+                    })
+                    self._exit_targeting_mode()
+                    return
+                self._enter_local_targeting(
+                    valid_targets=atk_candidates,
+                    on_confirm=lambda t: (selected_atks.append(t), pick_next()),
+                    on_cancel=self._exit_targeting_mode,
+                    prompt=f"请选择 {m.name} 的攻击目标 ({len(selected_atks)+1}/{count})",
+                )
+
+            self._targeting_source_minion = m
+            self._current_targeting_mode = "attack"
+            pick_next()
+
+        elif mode == "effect":
+            scope_fn = getattr(m, '_effect_target_scope_fn', None)
+            if not scope_fn:
+                return
+            candidates = scope_fn(active, self.duel.game.board)
+            if not candidates:
+                return
+
+            count = 1
+            selected_effect: List[Any] = []
+
+            def pick_next_effect():
+                if len(selected_effect) >= count:
+                    self.duel.submit_local_action({
+                        "type": "set_effect_target",
+                        "pos": m.position,
+                        "target": selected_effect[0],
+                    })
+                    self._exit_targeting_mode()
+                    return
+                self._enter_local_targeting(
+                    valid_targets=candidates,
+                    on_confirm=lambda t: (selected_effect.append(t), pick_next_effect()),
+                    on_cancel=self._exit_targeting_mode,
+                    prompt=f"请选择 {m.name} 的效果目标",
+                )
+
+            self._targeting_source_minion = m
+            self._current_targeting_mode = "effect"
+            pick_next_effect()
 
     def _on_hand_card_click(self, idx: int):
         # 防重复点击/按键：出牌流程进行中时忽略新输入
@@ -2674,14 +3282,7 @@ class BattleFrame(tk.Frame):
                 if not minions:
                     self.hint_label.config(text="B点不足，且场上没有可献祭的友方异象")
                     return
-                def on_sacrifice_confirm(selected: List[Minion]):
-                    total = sum(m.keywords.get("丰饶", 1) for m in selected)
-                    if total < need:
-                        self.hint_label.config(text=f"献祭不足，还需{need}点鲜血")
-                        return
-                    self._pending_sacrifices = selected
-                    self._enter_deploy_targeting(serial, card, active)
-                SacrificeDialog(self, minions, need, on_sacrifice_confirm)
+                self._enter_sacrifice_mode(serial, card, active, need)
                 return
             self._enter_deploy_targeting(serial, card, active)
             return
@@ -2689,17 +3290,29 @@ class BattleFrame(tk.Frame):
         # 策略/矿物卡：选择效果主目标
         self._enter_effect_targeting(serial, card, active)
 
-    def _enter_deploy_targeting(self, serial: int, card, active):
-        """进入随从卡部署位置选择。"""
+    def _calc_deploy_range(self, card, active, sacrifices):
+        """计算考虑祭品移除后的部署合法范围。返回合法位置列表。"""
+        if not self.duel.game:
+            return []
         valid = []
         for t in active.get_valid_targets(card):
-            if isinstance(t, tuple) and self.duel.game and self.duel.game.board.is_valid_deploy(t, active, card):
+            if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card, ignored_minions=sacrifices):
                 existing = self.duel.game.board.get_minion_at(t)
                 if existing is None or (
                     ("漂浮物" in existing.keywords and existing.owner == active) or
                     ("藤蔓" in card.keywords and existing.owner == active)
                 ):
                     valid.append(t)
+        # 祭品自身所在格不能作为部署目标
+        for m in sacrifices:
+            if m.position and m.position in valid:
+                valid.remove(m.position)
+        return valid
+
+    def _enter_deploy_targeting(self, serial: int, card, active):
+        """进入随从卡部署位置选择。"""
+        sacrifices = getattr(self, "_pending_sacrifices", [])
+        valid = self._calc_deploy_range(card, active, sacrifices)
         if not valid:
             self._submit_play(serial, None)
             return
@@ -2745,8 +3358,8 @@ class BattleFrame(tk.Frame):
             r, c = target.position
         else:
             return
-        cx = c * self.cell_size + self.cell_size // 2
-        cy = r * self.cell_size + self.cell_size // 2
+        cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
+        cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
         flash = self.canvas.create_rectangle(cx - 40, cy - 40, cx + 40, cy + 40,
                                              outline="#ff1744", width=4,
                                              tags="flash_hint")
@@ -2762,6 +3375,13 @@ class BattleFrame(tk.Frame):
         c = (event.x - self.board_offset_x) // self.cell_size
         r = (event.y - self.board_offset_y) // self.cell_size
         target = (r, c)
+
+        # 0. 献祭选择模式：点击空白格子非法，点击异象由 _on_minion_click 处理
+        if self._in_sacrifice_mode:
+            self._flash_invalid_at(target)
+            self.hint_label.config(text="请点击友方异象作为祭品", fg="red")
+            self.after(500, lambda: self.hint_label.config(fg="#c62828") if self.hint_label else None)
+            return
 
         # 1. 如果处于指向模式，优先处理目标选择
         if self._in_targeting_mode:
@@ -2790,12 +3410,7 @@ class BattleFrame(tk.Frame):
                 self.after(500, lambda: self.hint_label.config(fg="blue") if self.hint_label else None)
             return
 
-        # 2. 如果没有选中的手牌，检查是否点击了场上的可交互异象（视野/高频）
-        if not self.selected_card or not self.valid_targets:
-            self._handle_board_unit_click(target)
-            return
-
-        # 3. 手牌选择中的原有逻辑
+        # 2. 手牌选择中的原有逻辑
         if isinstance(self.selected_card, MinionCard):
             if target in self.valid_targets:
                 self._submit_play(self.selected_card_idx + 1, target)
@@ -2825,11 +3440,13 @@ class BattleFrame(tk.Frame):
             is_conspiracy = isinstance(card, Conspiracy)
             if card.cost.b >= 3:
                 if not messagebox.askyesno("确认出牌", f"确定要打出 [{card.name}] 吗？\n费用: {card.cost}"):
-                    self._exit_targeting_mode()
+                    # 取消时不应清除 _pending_sacrifices，保留供重新选择
+                    self._exit_targeting_mode(preserve_pending=True)
                     return
+        # 在 _exit_targeting_mode 之前读取 sacrifices，否则会被清空
+        sacrifices = getattr(self, "_pending_sacrifices", None)
         self._exit_targeting_mode()
         action = {"type": "play", "serial": serial, "target": target}
-        sacrifices = getattr(self, "_pending_sacrifices", None)
         if sacrifices:
             action["sacrifices"] = sacrifices
             self._pending_sacrifices = []
@@ -2894,6 +3511,10 @@ class BattleFrame(tk.Frame):
         self.after(1500, self._reset_guide_hint)
 
     def _on_cancel(self):
+        if self._in_sacrifice_mode:
+            self._exit_sacrifice_mode()
+            self._clear_selection()
+            return
         if self._in_targeting_mode:
             on_cancel = self._targeting_on_cancel
             self._exit_targeting_mode()
@@ -3065,6 +3686,10 @@ class BattleFrame(tk.Frame):
             print(f"[_try_refresh] 外层异常: {e}")
             import traceback
             traceback.print_exc()
+        # Mulligan 结束后自动隐藏覆盖层
+        if self._mulligan_overlay and self.duel.game and self.duel.game.current_turn > 0:
+            self._hide_mulligan()
+
         if self.duel.game and self.duel.game.current_turn > 0:
             phase_map = {
                 "draw": "抽牌阶段",
@@ -3127,6 +3752,7 @@ class BattleFrame(tk.Frame):
         self.duel.discover_request_callback = lambda names: self.after(0, lambda: self._show_discover(names))
         self.duel.choice_request_callback = lambda options, title: self.after(0, lambda: self._show_choice(options, title))
         self.duel.targeting_request_callback = lambda req, vt: self.after(0, lambda: self._show_targeting(req, vt))
+        self.duel.mulligan_request_callback = lambda player: self.after(0, lambda: self._show_mulligan(player))
         self.local_player.sacrifice_chooser = self._make_sacrifice_chooser()
         self.opponent.sacrifice_chooser = self._make_sacrifice_chooser()
 
@@ -3191,16 +3817,23 @@ class BattleFrame(tk.Frame):
             self.duel.submit_local_choice(o)
         ChoiceDialog(self, title, options, on_choose)
 
-    def _fmt_keywords(self, keywords: dict) -> str:
+    def _fmt_keywords(self, keywords: dict, minion_name: str = "") -> str:
         parts = []
         for k, v in keywords.items():
             if v is True:
                 parts.append(k)
-            else:
+            elif callable(v):
+                # callable 值（如亡语函数）：只显示关键词名
+                parts.append(k)
+            elif isinstance(v, (int, float, str)):
                 parts.append(f"{k}{v}")
+            else:
+                # 跳过其他非基本类型（如对象引用）
+                continue
         return " ".join(parts)
 
     def _show_card_tooltip(self, event, card):
+        self._hide_tooltip()
         lines = [card.name, f"费用: {card.cost}"]
         if isinstance(card, MinionCard):
             lines.append(f"攻击/生命: {card.attack}/{card.health}")
@@ -3208,6 +3841,7 @@ class BattleFrame(tk.Frame):
             lines.append(f"关键词: {self._fmt_keywords(card.keywords)}")
         text = "\n".join(lines)
         self._tooltip = Tooltip(self.hand_inner, text, event.x_root, event.y_root)
+        self._tooltip_source = card
 
     def _show_minion_tooltip(self, event, minion):
         lines = [minion.name]
@@ -3221,6 +3855,10 @@ class BattleFrame(tk.Frame):
         display_kw = minion.display_keywords
         if display_kw:
             lines.append(f"关键词: {self._fmt_keywords(display_kw)}")
+        # 亡语来源标注
+        dr_fn = display_kw.get("亡语")
+        if callable(dr_fn):
+            lines.append(f"亡语来源: {minion.name}")
         # 指向关系
         pending = getattr(minion, "_pending_attack_targets", None)
         if pending and isinstance(pending, list) and len(pending) > 0:
@@ -3231,6 +3869,12 @@ class BattleFrame(tk.Frame):
                 else:
                     target_names.append(str(t))
             lines.append(f"攻击目标: {' → '.join(target_names)}")
+        effect_pending = getattr(minion, "_pending_effect_target", None)
+        if effect_pending is not None:
+            if hasattr(effect_pending, "name"):
+                lines.append(f"效果目标: {effect_pending.name}")
+            else:
+                lines.append(f"效果目标: {effect_pending}")
         # 被哪些异象指向（攻击目标 + 特殊效果目标）
         pointed_by = []
         if self.duel.game and self.duel.game.board:
@@ -3239,6 +3883,10 @@ class BattleFrame(tk.Frame):
                     continue
                 m_pending = getattr(m, "_pending_attack_targets", None)
                 if m_pending and isinstance(m_pending, list) and minion in m_pending:
+                    pointed_by.append(m.name)
+                    continue
+                m_effect = getattr(m, "_pending_effect_target", None)
+                if m_effect is minion:
                     pointed_by.append(m.name)
                     continue
                 # 通用反向查找：检查其他异象的实例属性是否引用本异象
@@ -3262,6 +3910,7 @@ class BattleFrame(tk.Frame):
                 lines.append(f"   关键词: {self._fmt_keywords(host.keywords)}")
         text = "\n".join(lines)
         self._tooltip = Tooltip(self.canvas, text, event.x_root, event.y_root)
+        self._tooltip_source = minion
 
     def _move_tooltip(self, x, y):
         if self._tooltip:
@@ -3271,6 +3920,7 @@ class BattleFrame(tk.Frame):
         if self._tooltip:
             self._tooltip.destroy()
             self._tooltip = None
+        self._tooltip_source = None
 
     def _on_terminate_game(self):
         """终止当前对局并返回主菜单。日志已由 BattleLogWriter 自动保存。"""

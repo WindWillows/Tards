@@ -38,6 +38,7 @@ class Game:
         action_provider: Optional[Callable[["Game", Player, Player], Optional[Dict[str, Any]]]] = None,
         discover_provider: Optional[Callable[["Game", Player, List[Any], int], Optional[Any]]] = None,
         targeting_provider: Optional[Callable[["Game", TargetingRequest, List[Any]], Optional[Any]]] = None,
+        mulligan_provider: Optional[Callable[["Game", List[Player]], None]] = None,
     ):
         self.p1 = player1
         self.p2 = player2
@@ -52,6 +53,7 @@ class Game:
         self.action_provider = action_provider
         self.discover_provider = discover_provider
         self.targeting_provider = targeting_provider
+        self.mulligan_provider = mulligan_provider
         self.choice_provider: Optional[Callable[["Game", "Player", List[str], str], Optional[str]]] = None
         self.effect_queue = EffectQueue(self)
         self.event_bus = EventBus(self)
@@ -512,6 +514,11 @@ class Game:
             except Exception as e:
                 print(f"  [对局开始时效果错误] {card.name}: {e}")
 
+        # === 开局手牌调整（Mulligan）===
+        if self.mulligan_provider:
+            print("\n[开局手牌调整]")
+            self.mulligan_provider(self, self.players)
+
         self.current_turn = 1
         while not self.game_over:
             self.run_turn()
@@ -621,6 +628,14 @@ class Game:
             p.b_point = 0
             for m in self.board.get_minions_of_player(p):
                 m.clear_temp_effects()
+                # 重置献祭次数
+                sacrifice_kw = m.base_keywords.get("献祭", False)
+                if sacrifice_kw is True:
+                    m._sacrifice_remaining = 1
+                elif isinstance(sacrifice_kw, int):
+                    m._sacrifice_remaining = sacrifice_kw
+                else:
+                    m._sacrifice_remaining = 1
 
         active = first
         opponent = second
@@ -765,6 +780,15 @@ class Game:
                     print(f"  {active.name} 设置 {m.name} 的攻击目标")
                 else:
                     print(f"  非法的攻击目标设置")
+            elif act_type == "set_effect_target":
+                pos = action.get("pos")
+                target = action.get("target")
+                m = self.board.get_minion_at(pos)
+                if m and m.owner == active and m.is_alive():
+                    m._pending_effect_target = target
+                    print(f"  {active.name} 设置 {m.name} 的效果目标")
+                else:
+                    print(f"  非法的效果目标设置")
             else:
                 print(f"  未知的行动类型: {act_type}")
 
@@ -911,9 +935,10 @@ class Game:
                             enemy.keywords.get("防空", False)
                             for enemy in self.board.get_enemy_minions_in_column(base_col, m.owner)
                         )
-                        can_pierce = not has_enemy_anti_air and (
-                            m.keywords.get("串击", False) or m.keywords.get("穿刺", False) or m.keywords.get("穿透", False)
+                        can_chain = not has_enemy_anti_air and (
+                            m.keywords.get("串击", False) or m.keywords.get("穿透", False)
                         )
+                        has_pierce = not has_enemy_anti_air and m.keywords.get("穿刺", False)
 
                         sweep = m.keywords.get("横扫", 0)
                         if not isinstance(sweep, int):
@@ -992,8 +1017,8 @@ class Game:
                                 # 预设目标耗尽，攻击英雄
                                 enemy = self.p2 if m.owner == self.p1 else self.p1
                                 m.attack_target(enemy)
-                        elif can_pierce:
-                            # 串击/穿刺/穿透：攻击同列所有敌方异象
+                        elif can_chain:
+                            # 串击/穿透：攻击同列所有敌方异象
                             enemies = [e for e in self.board.get_enemy_minions_in_column(base_col, m.owner) if e.is_alive()]
                             # 潜水/潜行始终不可见
                             enemies = [e for e in enemies if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)]
@@ -1005,7 +1030,7 @@ class Game:
                                 enemy = self.p2 if m.owner == self.p1 else self.p1
                                 m.attack_target(enemy)
                         else:
-                            # 普通攻击（含视野偏移）
+                            # 普通攻击（含视野偏移、穿刺）
                             target = self.board.get_front_minion(base_col, m.owner, attacker=m)
                             if target and target.is_alive():
                                 m.attack_target(target)
@@ -1305,10 +1330,10 @@ class Game:
 
         if result:
             card = result.to_game_card(player)
-            if modify_fn:
-                modify_fn(card)
-            ok = player.add_card_to_hand(card, game=self, reason="开发：获得")
-            if not ok:
+            actual = player.add_card_to_hand(card, game=self, reason="开发：获得")
+            if actual and modify_fn:
+                modify_fn(actual)
+            if not actual:
                 if overflow_to_discard:
                     print(f"  {player.name} 开发但手牌已满：{card.name} 被弃置")
                 else:

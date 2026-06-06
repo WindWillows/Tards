@@ -1,0 +1,20 @@
+{
+  "name": "预设测试",
+  "is_test_deck": true,
+  "immersion_points": {
+    "UNDERWORLD": 3,
+    "DISCRETE": 3,
+    "BLOOD": 3
+  },
+  "cards": {
+    "鮟鱇": 1,
+    "鹤": 1,
+    "狼": 1,
+    "鸮": 1,
+    "松鼠瓶": 1,
+    "猫": 1,
+    "弱狼": 1,
+    "嘲鸫": 1,
+    "金羊皮": 1
+  }
+}

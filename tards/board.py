@@ -31,7 +31,13 @@ class Board:
             return False
         return pos[1] == 4
 
-    def is_valid_deploy(self, pos: Tuple[int, int], player: "Player", card: "MinionCard") -> bool:
+    def is_valid_deploy(
+        self,
+        pos: Tuple[int, int],
+        player: "Player",
+        card: "MinionCard",
+        ignored_minions: Optional[List["Minion"]] = None,
+    ) -> bool:
         r, c = pos
         if r not in player.get_friendly_rows():
             return False
@@ -63,11 +69,16 @@ class Board:
             return False
         if "河岸" in card.keywords and c != 3 and terrain != "河岸":
             return False
+
+        # 独行 / 协同：忽略即将被献祭的异象
+        ignored_set = set(ignored_minions) if ignored_minions else set()
         if "独行" in card.keywords:
             friendlies = self.get_minions_in_column(c, friendly_to=player)
+            friendlies = [m for m in friendlies if m not in ignored_set]
             if friendlies:
                 return False
         friendlies = self.get_minions_in_column(c, friendly_to=player)
+        friendlies = [m for m in friendlies if m not in ignored_set]
         if friendlies:
             has_synergy = any("协同" in m.keywords for m in friendlies)
             if not has_synergy and "协同" not in card.keywords:
@@ -359,8 +370,8 @@ class Board:
         if attacker:
             enemies = [m for m in enemies if not getattr(m, '_fear_active', False)]
 
-        # 无法被选中：无法被任何指向性效果选为目标
-        enemies = [m for m in enemies if not (m.keywords.get("无法被选中", False) or m.temp_keywords.get("无法被选中", False))]
+        # 虚化：无法被任何指向性效果选为目标，也无法被攻击
+        enemies = [m for m in enemies if not (m.keywords.get("虚化", False) or m.temp_keywords.get("虚化", False))]
 
         # 通用攻击目标过滤（如活塞城槌跳过低攻异象）
         if attacker and hasattr(attacker, '_attack_target_filter'):

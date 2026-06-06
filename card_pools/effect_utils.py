@@ -144,41 +144,70 @@ def summon_token(
     name: str,
     owner: "Player",
     position: Tuple[int, int],
-    attack: int = 1,
-    health: int = 1,
+    attack: Optional[int] = None,
+    health: Optional[int] = None,
     keywords: Optional[dict] = None,
     summon_turn: Optional[int] = None,
 ) -> Optional["Minion"]:
     """在指定位置召唤一个 token 异象。
 
+    若该名称存在于卡牌注册表，会自动使用注册表中的面板与关键词；
+    调用者传入的参数可覆盖注册表默认值。
     位置被占用时返回 None。召唤出的 token 会自动加入棋盘。
     若未指定 summon_turn，默认使用当前回合数。
     """
     from tards.cards import MinionCard, Minion
     from tards.cost import Cost
+    from tards.card_db import DEFAULT_REGISTRY, CardType
+
+    # 尝试从注册表获取定义作为默认值
+    actual_attack = attack
+    actual_health = health
+    actual_keywords = (keywords or {}).copy()
+
+    card_def = DEFAULT_REGISTRY.get(name)
+    if card_def and card_def.card_type == CardType.MINION:
+        if actual_attack is None:
+            actual_attack = card_def.attack
+        if actual_health is None:
+            actual_health = card_def.health
+        if not actual_keywords:
+            actual_keywords = dict(card_def.keywords)
+
+    if actual_attack is None:
+        actual_attack = 1
+    if actual_health is None:
+        actual_health = 1
 
     if position in game.board.minion_place:
         print(f"  无法召唤 {name}：位置 {position} 已被占用")
         return None
+
+    # 从注册表获取 tags（如果有）
+    actual_tags = []
+    if card_def and card_def.card_type == CardType.MINION:
+        actual_tags = list(card_def.tags) if hasattr(card_def, 'tags') and card_def.tags else []
 
     card = MinionCard(
         name=name,
         owner=owner,
         cost=Cost(),
         targets=lambda p, b: [],
-        attack=attack,
-        health=health,
-        keywords=keywords or {},
+        attack=actual_attack,
+        health=actual_health,
+        keywords=actual_keywords,
+        tags=actual_tags,
     )
     token = Minion(
         name=name,
         owner=owner,
         position=position,
-        attack=attack,
-        health=health,
+        attack=actual_attack,
+        health=actual_health,
         source_card=card,
         board=game.board,
-        keywords=keywords or {},
+        keywords=actual_keywords,
+        tags=actual_tags,
     )
     game.board.place_minion(token, position)
     token.summon_turn = summon_turn if summon_turn is not None else game.current_turn
@@ -241,6 +270,11 @@ def summon_minion_by_name(
                 card.special(new_minion, owner, game, [])
             else:
                 card.special(new_minion, owner, game)
+        # 触发全局部署光环钩子（与 _default_minion_effect 保持一致）
+        for hook in getattr(game, "deploy_hooks", []):
+            hook(new_minion)
+        from tards.constants import EVENT_DEPLOYED
+        game.emit_event(EVENT_DEPLOYED, minion=new_minion, player=owner, card=card)
         print(f"  {owner.name} 在 {position} 召唤了 {name}")
         return new_minion
     return None
@@ -2182,9 +2216,9 @@ def draw_cards_of_type(
                 break
             # 移除这张牌
             player.card_deck.pop(i)
-            ok = player.add_card_to_hand(card, game=game)
-            if ok:
-                drawn.append(card)
+            actual = player.add_card_to_hand(card, game=game)
+            if actual:
+                drawn.append(actual)
             amount -= 1
             # 不移 i，因为 pop 后下一个元素前移
         else:
@@ -2329,8 +2363,12 @@ def register_terrain_enforcement(
 # =============================================================================
 
 def is_untargetable_by_minions(minion: "Minion") -> bool:
-    """检查异象是否设置了"无法被异象选中"。"""
-    return getattr(minion, "_untargetable_by_minions", False)
+    """检查异象是否无法被异象选中（_untargetable_by_minions 或 虚化）。"""
+    return (
+        getattr(minion, "_untargetable_by_minions", False)
+        or minion.keywords.get("虚化", False)
+        or minion.temp_keywords.get("虚化", False)
+    )
 
 
 # =============================================================================
@@ -2345,6 +2383,9 @@ def clear_attack_restrictions(game: "Game") -> None:
 
 def can_minion_attack(minion: "Minion", game: "Game") -> bool:
     """检查异象是否被全局攻击限制禁止攻击。"""
+    # 冰冻/眩晕状态下无法攻击
+    if minion.keywords.get("冰冻", 0) or minion.keywords.get("眩晕", 0):
+        return False
     restrictions = getattr(game, "_attack_restrictions", [])
     for fn in restrictions:
         if fn(minion):
@@ -2920,7 +2961,10 @@ def was_minion_deployed_this_turn(game: "Game", minion: "Minion") -> bool:
     if not h:
         return False
     from tards.constants import EVENT_DEPLOYED
-    return any(e.get("minion") is minion for e in h.query_events(event_type=EVENT_DEPLOYED))
+    return any(
+        e.get("minion") is minion
+        for e in h.query_events(turn=game.current_turn, event_type=EVENT_DEPLOYED)
+    )
 
 
 def player_deployed_any_minion_this_turn(game: "Game", player: "Player") -> bool:
@@ -3109,3 +3153,62 @@ def perform_attack_action(minion: "Minion", game: "Game") -> None:
     if minion.is_alive() and original_first_strike != minion.keywords.get("先攻", 0):
         minion.keywords["先攻"] = original_first_strike
 
+
+
+# =============================================================================
+# 效果预设目标机制（提前指向）
+# =============================================================================
+#
+# 适用场景：异象的效果在事件回调（on_turn_start / on_turn_end / on_phase_start 等）
+# 中触发，且需要玩家指向目标。由于事件回调中不能同步阻塞请求目标，目标必须在
+# 出牌阶段通过 set_effect_target action 提前预设。
+#
+# 使用契约：
+#   1. special_fn 中调用 set_effect_target_scope(minion, scope_fn) 声明合法目标范围
+#   2. 注册事件回调，在回调中用 get_effect_target(minion, game) 读取预设目标
+#   3. 回调执行后，get_effect_target 会自动清空预设（consume=True）
+#   4. 若效果未触发（异象提前死亡等），残留目标不会自动消失，但会被下次预设覆盖
+# =============================================================================
+
+def set_effect_target_scope(minion: "Minion", scope_fn: Callable[["Player", "Board"], List[Any]]) -> None:
+    """为异象设置效果预设目标的合法范围函数，供 GUI/引擎使用。
+
+    scope_fn 签名: (player, board) -> List[Any]
+    返回值可以是 Minion 对象、Player 对象、位置元组 (r,c) 等。
+    """
+    minion._effect_target_scope_fn = scope_fn
+
+
+def get_effect_target(minion: "Minion", game: Optional["Game"] = None, consume: bool = True) -> Optional[Any]:
+    """读取异象的预设效果目标。
+
+    若 game 提供，会自动将位置元组解析为当前该位置的 Minion。
+    若 consume=True（默认），读取后自动清空预设。
+    返回目标对象，或 None（目标不存在 / 已死亡 / 被清空）。
+    """
+    target = getattr(minion, '_pending_effect_target', None)
+    if target is None:
+        return None
+
+    # 位置元组 → 重新解析为当前异象
+    if game is not None and isinstance(target, tuple) and len(target) == 2:
+        target = game.board.get_minion_at(target)
+
+    # 检查存活
+    if target is not None and hasattr(target, 'is_alive') and not target.is_alive():
+        target = None
+
+    if consume:
+        minion._pending_effect_target = None
+
+    return target
+
+
+def has_effect_target(minion: "Minion") -> bool:
+    """检查异象是否有未消费的效果预设目标。"""
+    return getattr(minion, '_pending_effect_target', None) is not None
+
+
+def peek_effect_target(minion: "Minion", game: Optional["Game"] = None) -> Optional[Any]:
+    """预览预设效果目标，不消费。用于 UI 显示或条件判断。"""
+    return get_effect_target(minion, game=game, consume=False)

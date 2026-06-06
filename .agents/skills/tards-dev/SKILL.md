@@ -223,7 +223,61 @@ def _my_special(minion, player, game, extras=None):
 
 > **规则**：所有部署后的额外指向都必须写成内置指向（`special_fn` 内部调用 `request_target`），不再使用 `extra_targeting_stages` 旧模式。
 
+### 效果预设机制（提前指向，2026-06-05 新增）
+
+**适用场景**：异象的效果在**事件回调**（`on_turn_start` / `on_turn_end` / `on_phase_start` 等）中触发，且需要玩家指向目标。由于事件回调在结算阶段/回合结束等时机同步执行，此时**不能**发起 `request_target()` 同步阻塞请求。目标必须在**出牌阶段**提前预设。
+
+**强制规则**：任何事件回调中的指向需求，都必须使用效果预设机制，**禁止**在 `on_turn_start`、`on_turn_end` 等回调内部调用 `request_target()`。
+
+**实现模板**：
+```python
+from card_pools.effect_utils import set_effect_target_scope, get_effect_target
+
+@special
+def _my_special(minion, player, game, extras=None):
+    # 1. 声明预设目标的合法范围（出牌阶段 GUI 据此高亮可选目标）
+    def _scope(p, board):
+        return [m for m in board.minion_place.values()
+                if m.is_alive() and m.owner != p]
+    set_effect_target_scope(minion, _scope)
+
+    # 2. 在事件回调中消费预设目标
+    def on_turn_start_fn(event):
+        if not minion.is_alive():
+            return
+        t = get_effect_target(minion, game=game)  # 自动清空
+        if t is None:
+            return
+        # ... 执行效果 ...
+        deal_damage_to_minion(t, 2, source=minion, game=game)
+
+    from card_pools.effect_utils import on_turn_start
+    on_turn_start(minion, game, on_turn_start_fn)
+    return True
+```
+
+**API 速查**：
+
+| 函数 | 作用 | 清空预设？ |
+|------|------|---------|
+| `set_effect_target_scope(minion, scope_fn)` | 声明合法目标范围 | — |
+| `get_effect_target(minion, game=None, consume=True)` | 读取预设目标 | 默认清空 |
+| `peek_effect_target(minion, game=None)` | 预览目标（不消费） | 不清空 |
+| `has_effect_target(minion)` | 检查是否有未消费预设 | 不清空 |
+
+**与攻击预设的区别**：
+- 攻击预设：`_pending_attack_targets`（多目标），`set_attack_targets` action
+- 效果预设：`_pending_effect_target`（单目标），`set_effect_target` action
+- 两者结构相同但字段分离，互不干扰。
+
+**GUI 行为**：
+- 双点击带有 `_effect_target_scope_fn` 的异象 → 进入效果指向模式
+- 合法目标显示青色高亮
+- 按 `e` 键自动填充所有效果预设目标（同攻击预设的 `a` 键）
+- 异象上显示青色虚线箭头指示预设目标，蓝色 × 按钮可清除
+
 **关键规则**：
+
 - `effect_fn`/`special_fn` 返回 `False` → 自动回滚（费用退还/异象移除）
 - 返回 `None` 或其他值 → **不回滚**，效果被视为成功执行
 - 内部指向仍走 `game.targeting_provider`，网络对战中无需额外修改
@@ -295,6 +349,42 @@ register_card(
 - **棋盘异象**：肖像图占格子 70%（56×56），居中显示。边框/阴影/文字覆盖在图像之上。
 - **坐标偏移**：棋盘整体有 `BOARD_OFFSET_X/Y` 偏移。所有绘制和点击坐标计算必须考虑偏移。
 - **图像引用防 GC**：Tkinter 的 `PhotoImage` 必须保存在 Python 对象属性中（如 `self._minion_image_refs`、`cvs.image`），否则会被垃圾回收导致图像消失。
+
+## 工具库使用守则（避免引用无效函数）
+
+**历史教训**：多次出现引用 `Board` 上不存在的 `get_all_minions()`、误用硬编码的 `summon_token` 等问题。
+
+### 1. 调用前必须先验证
+任何对 `effect_utils.py`、`board.py`、`player.py` 等工具函数的引用，**必须先用 `grep` 确认函数/属性真实存在**：
+```bash
+grep -n "def get_all_minions" tards/board.py       # 不存在！grep 为空 = 错误
+grep -n "def get_front_minion" tards/board.py      # 存在，继续用
+grep -n "def summon_token" card_pools/effect_utils.py  # 存在，但要看实现
+```
+
+### 2. 读函数体，不看签名
+`summon_token` 的签名 `attack=1, health=1` 很容易让人以为是"缺省值"，但它的实现**完全不从注册表查定义**（除非已修复）。
+- 需要注册表完整定义 → 用 **`summon_minion_by_name(game, name, owner, position)`**
+- 需要自定义面板/token → 用 **`summon_token(game, name, owner, pos)`**（修复后已查注册表，但仍无 special/on_turn_start 等）
+
+### 3. 编辑后强制做导入测试
+```bash
+python -c "from card_pools.discrete_effects import _qianxingzhe_special"
+python -c "from card_pools.effect_utils import summon_token, get_all_minions"
+python -c "from card_pools import discrete_effects, blood_effects, underworld_effects, general"
+```
+运行无报错才算通过。`AttributeError`、`NameError`、`ImportError` 必须当场修复。
+
+### 4. 常见陷阱速查表
+
+| 错误写法 | 正确写法 | 说明 |
+|---------|---------|------|
+| `game.board.get_all_minions()` | `get_all_minions(game)`（`effect_utils` 提供） | `Board` 无此方法 |
+| `b.get_all_minions()` | `b.minion_place.values()` | `Board` 无此方法 |
+| `summon_token(..., attack=1, health=1)` 硬编码 | 不传 attack/health，让函数查注册表 | 硬编码面板与注册表冲突 |
+| `card.cost = Cost(...)` 后 `return_to_hand` | 先 `return_to_hand`，再改手牌中新卡的 cost | `return_minion_to_hand` 会创建新 `MinionCard` |
+
+---
 
 ## 易混淆用语速查（禁止望文生义）
 

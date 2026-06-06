@@ -19,7 +19,10 @@ def _pack_to_str(pack: Pack) -> str:
 
 
 def _str_to_pack(s: str) -> Pack:
-    return Pack[s]
+    try:
+        return Pack[s]
+    except KeyError:
+        return Pack(s)
 
 
 def save_deck(deck: Deck, filename: Optional[str] = None) -> str:

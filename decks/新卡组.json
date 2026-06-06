@@ -1,0 +1,10 @@
+{
+  "name": "新卡组",
+  "is_test_deck": true,
+  "immersion_points": {
+    "BLOOD": 3
+  },
+  "cards": {
+    "宣辰": 9
+  }
+}

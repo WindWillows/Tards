@@ -126,6 +126,11 @@ def msg_targeting(source_name: str, target: Any) -> Dict[str, Any]:
     return {"type": "TARGETING", "source_name": source_name, "target": _serialize_target(target)}
 
 
+def msg_mulligan(indices: list) -> Dict[str, Any]:
+    """开局手牌调整结果消息。indices 为要替换的牌在手牌中的索引列表。"""
+    return {"type": "MULLIGAN", "indices": indices}
+
+
 # ========== Action 序列化/反序列化 ==========
 def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     """将本地 action 转换为可网络传输的 dict。"""
@@ -144,6 +149,9 @@ def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     elif atype == "set_attack_targets":
         out["pos"] = list(action["pos"])
         out["targets"] = [_serialize_target(t) for t in action.get("targets", [])]
+    elif atype == "set_effect_target":
+        out["pos"] = list(action["pos"])
+        out["target"] = _serialize_target(action.get("target"))
     elif atype in ("exchange", "exchange_squirrel"):
         out["card_name"] = action.get("card_name", "")
     return out
@@ -182,6 +190,9 @@ def deserialize_action(msg: Dict[str, Any], board) -> Optional[Dict[str, Any]]:
     elif atype == "set_attack_targets":
         out["pos"] = tuple(action["pos"])
         out["targets"] = [_deserialize_target(t, board) for t in action.get("targets", [])]
+    elif atype == "set_effect_target":
+        out["pos"] = tuple(action["pos"])
+        out["target"] = _deserialize_target(action.get("target"), board)
     elif atype in ("exchange", "exchange_squirrel"):
         out["card_name"] = action.get("card_name", "")
     return out

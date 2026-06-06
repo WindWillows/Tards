@@ -1,0 +1,15 @@
+{
+  "name": "兀鹫测试",
+  "is_test_deck": true,
+  "immersion_points": {
+    "UNDERWORLD": 3
+  },
+  "cards": {
+    "兀鹫": 2,
+    "猫": 1,
+    "鹤": 2,
+    "地鼠": 1,
+    "松鼠瓶": 3,
+    "胶水": 1
+  }
+}

@@ -273,7 +273,8 @@ def _liuqinghuajia_special(minion, player, game, extras=None):
 def _zhuxin_special(minion, player, game, extras=None):
     """竹心：亡语：随机消灭1个处于协同的敌方异象。"""
     def _dr(m, p, b):
-        enemies = [x for x in game.board.get_all_minions() if x.owner != p and x.is_alive() and x.keywords.get("协同", False)]
+        from card_pools.effect_utils import get_all_minions
+        enemies = [x for x in get_all_minions(game) if x.owner != p and x.is_alive() and x.keywords.get("协同", False)]
         if not enemies:
             print(f"  竹心亡语：没有处于协同的敌方异象")
             return
@@ -314,7 +315,8 @@ def _bishop_special(minion, player, game, extras=None):
     def on_turn_end(g, event_data, source=minion):
         if not source.is_alive():
             return
-        count = sum(1 for m in g.board.get_all_minions() if m.is_alive() and m.keywords.get("恐惧", False))
+        from card_pools.effect_utils import get_all_minions
+        count = sum(1 for m in get_all_minions(g) if m.is_alive() and m.keywords.get("恐惧", False))
         if count > 0:
             heal_player(player, count)
             print(f"  Bishop 触发：场上 {count} 个恐惧异象，{player.name} 恢复 {count} HP")
@@ -415,6 +417,7 @@ def _zhanzheng_heping_effect(player, target, game, extras=None):
     print(f"  战争即和平：{opponent.name} 抽2张牌")
 
     if len(opponent.card_hand) >= 5:
+        player.health_max_change(6)
         player.health_change(6)
         print(f"  战争即和平：{opponent.name} 手牌≥5，{player.name} 获得+6HP")
     else:
@@ -941,14 +944,14 @@ def _xuejian_bailian_effect(player, target, game, extras=None, card=None):
         freeze_minion(m, layers=1)
 
     # 通过日志模块查询本回合双方合计策略使用数
-    # 血溅白练自身已被计入（由 Game.emit_event EVENT_CARD_PLAYED 自动记录）
-    strategy_count = total_strategies_played_this_turn(game)
-    print(f"  血溅白练：本回合双方已使用 {strategy_count} 张策略卡")
+    # 注意：EVENT_CARD_PLAYED 在 effect 执行后才发射，因此查询结果不含自身，需 +1
+    strategy_count = total_strategies_played_this_turn(game) + 1
+    print(f"  血溅白练：本回合双方已使用 {strategy_count} 张策略卡（含自身）")
 
     if strategy_count == 3:
         for m in enemies:
             if m.is_alive():
-                deal_damage_to_minion(m, 3, source=card, game=game)
+                deal_damage_to_minion(m, 3, source=None, game=game)
         print("  血溅白练：第3张策略触发，对所有敌方异象造成3点伤害")
 
     return True
@@ -1108,7 +1111,7 @@ def _hangou_chilun_effect(player, target, game, extras=None, card=None):
     player.health_change(-3)
     print(f"  含垢齿轮：{player.name} 受到3点伤害")
 
-    setattr(player, "_double_blood_gain", True)
+    player._double_s_gain = True
     print(f"  含垢齿轮：{player.name} 获得双倍血契")
     return True
 
@@ -1309,6 +1312,7 @@ def _qinchen_effect(player, target, game, extras=None, card=None):
 
 def _yuzhong_effect(player, target, game, extras=None, card=None):
     """隅中：你获得+4HP。抽1张牌。"""
+    player.health_max_change(4)
     player.health_change(4)
     print(f"  隅中：{player.name} 获得4点HP")
     player.draw_card(1, game=game)
@@ -1747,12 +1751,12 @@ def _xianyingshi_special(minion, player, game, extras=None):
 def _dujiaodadao_special(minion, player, game, extras=None):
     """独脚大盗：部署：抽取对方卡组顶的1张牌。"""
     opponent = game.p1 if player == game.p1 else game.p2
-    if opponent.card_deck:
-        card = opponent.card_deck.pop()
-        player.add_card_to_hand(card, game=game, emit_events=False)
-        card.owner = player
+    drawn = player.draw_card(1, game=game, deck_owner=opponent)
+    if drawn:
+        drawn[0].owner = player
     else:
-        print(f"  独脚大盗：{opponent.name} 的牌库已空")
+        if not opponent.card_deck:
+            print(f"  独脚大盗：{opponent.name} 的牌库已空")
     return True
 
 
@@ -1981,6 +1985,7 @@ def _shuixieshi_draw_effect(player, game, card):
 
     # 获得等同于此牌折算花费的HP
     cost_t = convert_cost_to_t(chosen.cost)
+    player.health_max_change(cost_t)
     player.health_change(cost_t)
     print(f"  水漫缮写室：获得 {cost_t} 点HP")
 
@@ -2128,15 +2133,15 @@ def _sanfuhualu_special(minion, player, game, extras=None):
     """三氟化氯：场上有异象具有恐惧时，无法被异象指向。回合开始：随机使1个敌方异象具有恐惧。"""
     from tards.constants import EVENT_PHASE_START
 
-    # 1. 动态"无法被选中"：通过 _aura_keyword_fns 实现
-    def untargetable_aura(m):
+    # 1. 动态"虚化"：通过 _aura_keyword_fns 实现
+    def xuhua_aura(m):
         # 检查场上是否有任何存活异象具有恐惧（含友方和敌方）
         for other in game.board.minion_place.values():
             if other is not m and other.is_alive() and other.keywords.get("恐惧", False):
-                return {"无法被选中": True}
+                return {"虚化": True}
         return {}
 
-    minion._aura_keyword_fns.append(untargetable_aura)
+    minion._aura_keyword_fns.append(xuhua_aura)
 
     # 2. 通过 gamehistory 实时追踪场上恐惧异象数量变化
     # 初始化计数器
@@ -2158,9 +2163,9 @@ def _sanfuhualu_special(minion, player, game, extras=None):
             if m.name == "三氟化氯" and m.is_alive():
                 m.recalculate()
                 if new_count == 0:
-                    print(f"  {m.name}：场上无恐惧异象，取消无法被选中")
+                    print(f"  {m.name}：场上无恐惧异象，取消虚化")
                 else:
-                    print(f"  {m.name}：场上恐惧异象数量变化为 {new_count}，更新状态")
+                    print(f"  {m.name}：场上恐惧异象数量变化为 {new_count}，更新虚化状态")
 
     # 监听任意事件，确保任何状态变化后都检查恐惧计数
     game.history.listen("*", track_fear_change, owner=minion)
@@ -2234,7 +2239,7 @@ def _xuanchen_special(minion, player, game, extras=None):
     # 计算折算花费，若不大于5则获得等量血契
     cost_t = convert_cost_to_t(chosen.cost)
     if cost_t <= 5:
-        player.b_point_change(cost_t)
+        player.s_point_change(cost_t)
         print(f"  宣辰：{chosen.name} 折算花费 {cost_t} ≤ 5，获得 {cost_t} 血契")
     else:
         print(f"  宣辰：{chosen.name} 折算花费 {cost_t} > 5，不获得血契")

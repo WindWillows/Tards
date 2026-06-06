@@ -11,6 +11,7 @@ EVENT_BELL = "bell"
 EVENT_BRAKE = "brake"
 EVENT_CARD_PLAYED = "card_played"
 EVENT_DRAW = "draw"
+EVENT_CARD_ADDED_TO_HAND = "card_added_to_hand"
 EVENT_SACRIFICE = "sacrifice"
 
 # 微观操作事件 — Before（可取消/修改）

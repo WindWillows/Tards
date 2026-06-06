@@ -57,6 +57,11 @@ class NetworkDuel:
         self.discover_request_callback: Optional[Callable[[list], None]] = None
         self.choice_request_callback: Optional[Callable[[list, str], None]] = None
         self.targeting_request_callback: Optional[Callable[[Any, list], None]] = None
+        self.mulligan_request_callback: Optional[Callable[[Player], None]] = None
+
+        # Mulligan 同步
+        self._mulligan_result: Optional[List[int]] = None
+        self._mulligan_event = threading.Event()
 
         # 本地玩家行动同步
         self._local_action: Optional[Dict[str, Any]] = None
@@ -153,6 +158,7 @@ class NetworkDuel:
             action_provider=action_provider or self._make_action_provider(),
             discover_provider=self._make_discover_provider(),
             targeting_provider=self._make_targeting_provider(),
+            mulligan_provider=self._make_mulligan_provider(),
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -346,6 +352,11 @@ class NetworkDuel:
         self._targeting_result = target
         self._targeting_event.set()
 
+    def submit_local_mulligan(self, indices: List[int]):
+        """GUI 调用：提交本地玩家的开局手牌调整选择。"""
+        self._mulligan_result = indices
+        self._mulligan_event.set()
+
     def submit_local_action(self, action: Dict[str, Any]):
         """GUI 调用：提交本地玩家的行动。"""
         self._local_action = action
@@ -353,6 +364,47 @@ class NetworkDuel:
 
     def is_local_turn(self) -> bool:
         return self._local_turn_event.is_set()
+
+    def _make_mulligan_provider(self):
+        def provider(game, players):
+            # 1. 本地玩家选择要替换的牌
+            self._mulligan_result = None
+            self._mulligan_event.clear()
+            if self.mulligan_request_callback:
+                self.mulligan_request_callback(self.local_player)
+            self._mulligan_event.wait()
+            local_indices = self._mulligan_result or []
+
+            # 2. 发送本地结果给对方
+            if self.conn:
+                from .net_protocol import msg_mulligan
+                self.conn.send(msg_mulligan(local_indices))
+
+            # 3. 等待对方 mulligan 结果
+            remote_indices = []
+            while True:
+                try:
+                    msg = self.conn.msg_queue.get(timeout=0.2)
+                except queue.Empty:
+                    if game.game_over:
+                        break
+                    continue
+                if msg.get("type") == "MULLIGAN":
+                    remote_indices = msg.get("indices", [])
+                    break
+                if msg.get("type") in ("GAMEOVER", "DISCONNECT"):
+                    break
+
+            # 4. 按 players 列表顺序执行 mulligan（保证双方 random 状态一致）
+            for player in players:
+                if player == self.local_player:
+                    indices = local_indices
+                else:
+                    indices = remote_indices
+                cards = [player.card_hand[i] for i in indices
+                         if 0 <= i < len(player.card_hand)]
+                player.mulligan(cards, game=game)
+        return provider
 
     # ========== 结束 ==========
     def notify_gameover(self, winner_name: str):
@@ -366,4 +418,5 @@ class NetworkDuel:
         self._local_action_event.set()
         self._discover_event.set()
         self._choice_event.set()
+        self._mulligan_event.set()
         self._targeting_event.set()
