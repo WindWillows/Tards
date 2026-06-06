@@ -1913,12 +1913,6 @@ class BattleFrame(tk.Frame):
         self.hint_label = tk.Label(right, text="等待游戏开始...", fg="blue", wraplength=500)
         self.hint_label.pack(fill=tk.X, pady=5)
 
-        # 操作历史
-        history_frame = tk.LabelFrame(right, text="操作历史")
-        history_frame.pack(fill=tk.X, pady=5)
-        self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9))
-        self.history_list.pack(fill=tk.X, padx=5, pady=2)
-
         # 卡牌详情文本栏（悬停时显示）
         detail_frame = tk.LabelFrame(right, text="卡牌详情")
         detail_frame.pack(fill=tk.X, pady=5)
@@ -1929,6 +1923,12 @@ class BattleFrame(tk.Frame):
         self.detail_text.config(state=tk.NORMAL)
         self.detail_text.insert(tk.END, "悬停卡牌查看详情")
         self.detail_text.config(state=tk.DISABLED)
+
+        # 操作历史
+        history_frame = tk.LabelFrame(right, text="操作历史")
+        history_frame.pack(fill=tk.X, pady=5)
+        self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9))
+        self.history_list.pack(fill=tk.X, padx=5, pady=2)
 
         # 日志
         log_frame = tk.LabelFrame(right, text="日志")
