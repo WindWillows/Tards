@@ -2562,26 +2562,32 @@ class BattleFrame(tk.Frame):
             can_play_now = (cost_ok and not self._in_targeting_mode
                             and self.duel.game
                             and self.duel.game.current_phase == "action")
-            frame_bg = "#4caf50" if can_play_now else "white"
-            frame_bd = 2 if can_play_now else 0
-            frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
-            frame.pack(side=tk.LEFT, padx=2)
+            # 统一白色外框，不再用 Frame 背景做状态指示（太粗）
+            frame = tk.Frame(parent, bg="white", bd=0)
+            frame.pack(side=tk.LEFT, padx=3, pady=2)
             if flash:
                 self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
-            # Canvas 略大于卡牌，给投影留空间
-            cvs = tk.Canvas(frame, width=cw + 6, height=ch + 6, bg=frame_bg, highlightthickness=0)
-            cvs.pack(padx=1, pady=1)
 
-            # 投影/光晕（可出牌时为绿色光晕，否则为黑色投影）
-            shadow_color = "#4caf50" if can_play_now else "#000000"
-            self._rounded_rect(cvs, 5, 5, cw + 3, ch + 3, radius=6,
-                               fill=shadow_color, outline="", stipple="gray50", tags="card_shadow")
+            # Canvas 尺寸 = 卡牌 + 预留边框空间
+            cvs = tk.Canvas(frame, width=cw + 4, height=ch + 4, bg="white", highlightthickness=0)
+            cvs.pack()
 
-            # 卡牌本体背景（圆角矩形）
+            # 卡牌本体（圆角矩形）
             card_x1, card_y1 = 2, 2
             card_x2, card_y2 = cw - 2, ch - 2
-            self._rounded_rect(cvs, card_x1, card_y1, card_x2, card_y2, radius=6,
-                               fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+            # 可出牌：绿色边框 + 微抬升（Y 轴 0）
+            # 不可出牌：浅灰边框 + 下沉（Y 轴 2）
+            if can_play_now:
+                border_color = "#4caf50"
+                border_width = 2
+                offset_y = 0
+            else:
+                border_color = "#cfd8dc"
+                border_width = 1
+                offset_y = 1
+
+            self._rounded_rect(cvs, card_x1, card_y1 + offset_y, card_x2, card_y2 + offset_y,
+                               radius=6, fill=bg, outline=border_color, width=border_width, tags="card_bg")
 
             img = None
             if getattr(card, "asset_id", None):
@@ -2611,20 +2617,21 @@ class BattleFrame(tk.Frame):
             cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
 
-            # 已激活的阴谋：红色边框（圆角）
+            # 已激活的阴谋：红色边框（圆角，跟随卡牌 offset_y）
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-                self._rounded_rect(cvs, card_x1, card_y1, card_x2, card_y2, radius=6,
-                                   outline="#d32f2f", width=3, tags="activated_mark")
+                self._rounded_rect(cvs, card_x1, card_y1 + offset_y, card_x2, card_y2 + offset_y,
+                                   radius=6, outline="#d32f2f", width=3, tags="activated_mark")
 
             # 已被对手见过的牌：左下角小缺角标记
             if getattr(card, "_shown_to_opponent", False):
-                cvs.create_polygon(2, ch - 2, 14, ch - 2, 2, ch - 14,
+                cvs.create_polygon(2, ch - 2 + offset_y, 14, ch - 2 + offset_y, 2, ch - 14 + offset_y,
                                    fill="#ff9800", outline="white", width=1, tags="shown_mark")
 
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
-                cvs.create_oval(cw - 22, ch - 22, cw - 2, ch - 2, fill="#d32f2f", outline="white", width=2, tags="stack_count")
-                cvs.create_text(cw - 12, ch - 12, text=str(stack_count), fill="white",
+                cvs.create_oval(cw - 22, ch - 22 + offset_y, cw - 2, ch - 2 + offset_y,
+                                fill="#d32f2f", outline="white", width=2, tags="stack_count")
+                cvs.create_text(cw - 12, ch - 12 + offset_y, text=str(stack_count), fill="white",
                                 font=("Microsoft YaHei", 9, "bold"), tags="stack_count")
             cvs.bind("<Button-1>", lambda e, idx=idx: self._on_hand_card_click(idx))
             cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self._on_drag_start(e, c, s))
