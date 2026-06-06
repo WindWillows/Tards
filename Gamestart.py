@@ -1648,8 +1648,8 @@ class BattleFrame(tk.Frame):
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板（紧凑卡片式），返回包含所有 widget 的字典。"""
-        # 高度从 140 压缩到 105，去掉分隔线，资源改彩色小方块
-        frame = tk.Frame(parent, height=105, bg="white",
+        # 紧凑卡片式面板（高度 125，去掉分隔线，资源改彩色小方块）
+        frame = tk.Frame(parent, height=125, bg="white",
                          highlightthickness=1, highlightbackground="#e0e0e0")
         frame.pack_propagate(False)
         frame.pack(fill=tk.X, pady=2)
