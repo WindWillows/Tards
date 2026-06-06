@@ -1648,8 +1648,8 @@ class BattleFrame(tk.Frame):
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板（紧凑卡片式），返回包含所有 widget 的字典。"""
-        # 紧凑卡片式面板（高度 125，去掉分隔线，资源改彩色小方块）
-        frame = tk.Frame(parent, height=125, bg="white",
+        # 紧凑卡片式面板（高度 150，去掉分隔线，资源改彩色小方块）
+        frame = tk.Frame(parent, height=150, bg="white",
                          highlightthickness=1, highlightbackground="#e0e0e0")
         frame.pack_propagate(False)
         frame.pack(fill=tk.X, pady=2)
@@ -1664,12 +1664,12 @@ class BattleFrame(tk.Frame):
                        bg="white", fg=dot_color)
         dot.pack(side=tk.LEFT)
 
-        name_label = tk.Label(row0, text=player.name, font=("Microsoft YaHei", 11, "bold"),
+        name_label = tk.Label(row0, text=player.name, font=("Microsoft YaHei", 13, "bold"),
                               bg="white", anchor="w")
         name_label.pack(side=tk.LEFT, padx=(2, 0))
 
-        hand_label = tk.Label(row0, text="手牌 0", font=("Microsoft YaHei", 10, "bold"),
-                              bg="#e3f2fd", fg="#1565c0", padx=6, pady=1)
+        hand_label = tk.Label(row0, text="手牌 0", font=("Microsoft YaHei", 12, "bold"),
+                              bg="#e3f2fd", fg="#1565c0", padx=8, pady=2)
         hand_label.pack(side=tk.RIGHT)
 
         # 行1：HP 条（缩短）
@@ -1682,17 +1682,17 @@ class BattleFrame(tk.Frame):
         hp_bar = ttk.Progressbar(hp_frame, length=120, mode="determinate", maximum=30)
         hp_bar.pack(side=tk.LEFT)
 
-        hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 9, "bold"),
+        hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 11, "bold"),
                             bg="white", fg="#d32f2f")
-        hp_label.pack(side=tk.LEFT, padx=(4, 0))
+        hp_label.pack(side=tk.LEFT, padx=(6, 0))
 
         # 行2：资源彩色小方块 + 牌库信息
         row2 = tk.Frame(frame, bg="white")
         row2.pack(fill=tk.X, padx=8, pady=(2, 0))
 
         def _res_badge(parent, text, bg_color, fg_color="white"):
-            return tk.Label(parent, text=text, font=("Microsoft YaHei", 8, "bold"),
-                            bg=bg_color, fg=fg_color, padx=4, pady=1)
+            return tk.Label(parent, text=text, font=("Microsoft YaHei", 10, "bold"),
+                            bg=bg_color, fg=fg_color, padx=6, pady=2)
 
         t_label = _res_badge(row2, "T -", "#1976d2")
         t_label.pack(side=tk.LEFT, padx=(0, 4))
@@ -1703,22 +1703,22 @@ class BattleFrame(tk.Frame):
         s_label = _res_badge(row2, "S -", "#f57c00")
         s_label.pack(side=tk.LEFT, padx=(0, 8))
 
-        deck_label = tk.Label(row2, text="牌库 0", font=("Microsoft YaHei", 8),
+        deck_label = tk.Label(row2, text="牌库 0", font=("Microsoft YaHei", 10),
                               bg="white", fg="#616161")
-        deck_label.pack(side=tk.LEFT, padx=(0, 6))
+        deck_label.pack(side=tk.LEFT, padx=(0, 8))
 
-        dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 8),
+        dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 10),
                              bg="white", fg="#616161")
-        dis_label.pack(side=tk.LEFT, padx=(0, 6))
+        dis_label.pack(side=tk.LEFT, padx=(0, 8))
 
-        con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 8),
+        con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 10),
                              bg="white", fg="#616161")
-        con_label.pack(side=tk.LEFT, padx=(0, 6))
+        con_label.pack(side=tk.LEFT, padx=(0, 8))
 
         # 行3：已展示给对手的牌（缩小字号）
         row_shown = tk.Frame(frame, bg="white")
         row_shown.pack(fill=tk.X, padx=8, pady=(1, 2))
-        shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 7),
+        shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 9),
                                bg="white", fg="#e65100", anchor="w")
         shown_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
