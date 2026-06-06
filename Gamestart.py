@@ -2228,7 +2228,13 @@ class BattleFrame(tk.Frame):
         for (r, c), m in self.duel.game.board.minion_place.items():
             cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
             cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
-            color = "#42a5f5" if m.owner.side == self.local_player.side else "#ef5350"
+            # 异象主色调：与半场背景协调且对比鲜明
+            if m.owner.side == self.local_player.side:
+                color = "#1565c0"        # 友方 - 深蓝（在暖黄背景上突出）
+                shadow_color = "#0d47a1"
+            else:
+                color = "#c62828"        # 敌方 - 深红（在淡蓝背景上突出）
+                shadow_color = "#b71c1c"
             tag = f"minion_{r}_{c}"
             # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
@@ -2255,8 +2261,8 @@ class BattleFrame(tk.Frame):
             elif getattr(m, "vine_host", None):
                 outline = "#9c27b0"  # 紫色
                 width = 4
-            # 阴影
-            self.canvas.create_rectangle(cx - 28, cy - 23, cx + 32, cy + 27, fill="#757575", outline="", tags=(tag, "minion"))
+            # 阴影（与异象色调一致，更深）
+            self.canvas.create_rectangle(cx - 28, cy - 23, cx + 32, cy + 27, fill=shadow_color, outline="", tags=(tag, "minion"))
             # 尝试加载肖像缩略图
             portrait = None
             if getattr(m, "asset_id", None):
