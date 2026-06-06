@@ -2051,12 +2051,12 @@ class BattleFrame(tk.Frame):
                 self.canvas.delete(f"cell_{r}_{c}")
         self._tile_image_refs = {}
 
-        # 半场渐变配色（从上到下）
+        # 半场渐变配色（从上到下）：敌方淡蓝、中立纯白、友方暖黄
         GRADIENT_STEPS = 10
         row_top_colors = {
-            0: "#eceff1",   # 敌方 - 冷灰顶
-            1: "#eceff1",
-            2: "#f5f5f5",   # 中立
+            0: "#e3f2fd",   # 敌方 - 淡蓝顶
+            1: "#e3f2fd",
+            2: "#ffffff",   # 中立 - 纯白（无渐变）
             3: "#fff8e1",   # 友方 - 暖黄顶
             4: "#fff8e1",
         }
