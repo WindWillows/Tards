@@ -11,7 +11,7 @@ import os
 # ------------------------------------------------------------------
 def _ensure_dependencies():
     """检查核心依赖，缺失时自动调用 pip 安装。"""
-    import importlib
+    import importlib.util
     import subprocess
 
     deps = [
