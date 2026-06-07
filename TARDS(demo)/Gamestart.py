@@ -5,6 +5,39 @@ Tards 可视化客户端 (Tkinter) + 联机对战
 """
 
 import os
+
+# ------------------------------------------------------------------
+# 自动依赖检查与安装（首次运行时）
+# ------------------------------------------------------------------
+def _ensure_dependencies():
+    """检查核心依赖，缺失时自动调用 pip 安装。"""
+    import importlib
+    import subprocess
+
+    deps = [
+        ("PIL", "Pillow"),          # 卡牌图像渲染
+    ]
+    missing = []
+    for module, package in deps:
+        if importlib.util.find_spec(module) is None:
+            missing.append(package)
+    if missing:
+        print(f"[首次启动] 检测到缺失依赖: {', '.join(missing)}")
+        print("正在自动安装，请稍候...")
+        try:
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", *missing],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
+            )
+            print("依赖安装完成，正在启动...\n")
+        except Exception as e:
+            print(f"自动安装失败: {e}")
+            print("请手动运行: pip install " + " ".join(missing))
+            input("按回车键退出...")
+            sys.exit(1)
+
+_ensure_dependencies()
 import random
 import socket
 import sys

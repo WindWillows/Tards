@@ -1,0 +1,15 @@
+# Tards 核心依赖
+# 安装命令: pip install -r requirements.txt
+
+# 卡牌图像渲染（必须，提供渐变、圆角等视觉效果）
+Pillow>=10.0
+
+# pygame 客户端（可选，未安装时不影响主程序）
+pygame-ce>=2.5
+
+# 网络对战/反馈服务器（可选）
+Flask>=3.0
+
+# 数据分析/工具（可选）
+numpy>=1.24
+matplotlib>=3.7
