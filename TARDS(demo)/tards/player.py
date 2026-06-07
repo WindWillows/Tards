@@ -370,6 +370,8 @@ class Player:
         if count > 0:
             import random
             random.shuffle(self.card_deck)
+            from card_pools.effect_utils import clear_shown_in_deck
+            clear_shown_in_deck(self)
             print(f"  {self.name} 调整手牌: 将 {count} 张牌洗回牌库并重新抽取")
             self.draw_card(count, game=game)
 

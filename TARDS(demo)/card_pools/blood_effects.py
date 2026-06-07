@@ -498,6 +498,8 @@ def _wuzhi_effect(player, target, game, extras=None):
 
     player.card_deck.append(copy_card)
     random.shuffle(player.card_deck)
+    from card_pools.effect_utils import clear_shown_in_deck
+    clear_shown_in_deck(player)
     print(f"  无知即力量：{copy_card.name} 的复制洗入卡组")
     return True
 
@@ -756,6 +758,8 @@ def _chahuo_shuji_effect(player, target, game, extras=None):
         opponent.card_hand.remove(card)
         opponent.card_deck.append(card)
         random.shuffle(opponent.card_deck)
+        from card_pools.effect_utils import clear_shown_in_deck
+        clear_shown_in_deck(opponent)
         print(f"  查获书籍：{opponent.name} 的 [{card.name}] 被洗入卡组")
     else:
         print(f"  查获书籍：{opponent.name} 手牌为空")
@@ -1074,6 +1078,8 @@ def _xuezhi_huaibiao_effect(player, target, game, extras=None, card=None):
         player.card_deck.append(new_card)
         new_card.move_to("deck", game)
         random.shuffle(player.card_deck)
+        from card_pools.effect_utils import clear_shown_in_deck
+        clear_shown_in_deck(player)
         print(f"  血渍怀表：1张钝锈指针洗入卡组")
     else:
         print(f"  血渍怀表：钝锈指针定义未找到")
@@ -1100,6 +1106,8 @@ def _dunxiu_zhizhen_effect(player, target, game, extras=None, card=None):
         player.card_deck.append(new_card)
         new_card.move_to("deck", game)
         random.shuffle(player.card_deck)
+        from card_pools.effect_utils import clear_shown_in_deck
+        clear_shown_in_deck(player)
         print(f"  钝锈指针：1张含垢齿轮洗入卡组")
     else:
         print(f"  钝锈指针：含垢齿轮定义未找到")
@@ -1280,6 +1288,8 @@ def _zhanweifu4_effect(player, target, game, extras=None, card=None):
         player.card_deck.append(c)
         c.move_to("deck", game)
     random.shuffle(player.card_deck)
+    from card_pools.effect_utils import clear_shown_in_deck
+    clear_shown_in_deck(player)
     print(f"  占位符4：{count}张手牌洗入卡组")
 
     # 抽取等量的牌
@@ -1981,6 +1991,8 @@ def _shuixieshi_draw_effect(player, game, card):
     player.card_deck.append(chosen)
     import random
     random.shuffle(player.card_deck)
+    from card_pools.effect_utils import clear_shown_in_deck
+    clear_shown_in_deck(player)
     print(f"  水漫缮写室：{chosen.name} 被洗入卡组")
 
     # 获得等同于此牌折算花费的HP

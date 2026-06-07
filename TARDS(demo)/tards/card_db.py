@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
 from .cost import Cost
+
+if TYPE_CHECKING:
+    from .cards import Card
 
 
 class Pack(Enum):

@@ -29,7 +29,7 @@ from tards import (
     target_none,
 )
 from tards.assets import get_asset_manager
-from tards.card_db import DEFAULT_REGISTRY, Pack, CardType
+from tards.card_db import DEFAULT_REGISTRY, Pack, CardType, Rarity
 from tards.deck import Deck
 from tards.deck_io import list_saved_decks, load_deck, save_deck
 from tards.feedback import (
@@ -39,6 +39,12 @@ from tards.feedback import (
     load_feedback_config,
     save_feedback_config,
 )
+try:
+    from PIL import Image, ImageDraw, ImageTk
+    _PIL_AVAILABLE = True
+except Exception:
+    _PIL_AVAILABLE = False
+
 from tards.game_logger import BattleLogWriter
 from tards.net_game import NetworkDuel
 from tards.targeting import (
@@ -555,7 +561,7 @@ class DeckBuilderFrame(tk.Frame):
         if card.attack is not None:
             lines.append(f"攻击/生命: {card.attack}/{card.health}")
         if card.keywords:
-            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in card.keywords.items())
+            kw = self._fmt_keywords(card.keywords, card.name)
             lines.append(f"关键词: {kw}")
         if card.evolve_to:
             lines.append(f"成长为: {card.evolve_to}")
@@ -612,7 +618,7 @@ class DeckBuilderFrame(tk.Frame):
             kw_dict = getattr(card, "keywords", None) or {}
 
         if kw_dict:
-            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in kw_dict.items())
+            kw = self._fmt_keywords(kw_dict, getattr(card, 'name', ''))
             lines.append(f"关键词: {kw}")
         if desc:
             lines.append(f"\n【效果】\n{desc}")
@@ -1016,40 +1022,157 @@ class SacrificeDialog(tk.Toplevel):
     def __init__(self, parent, minions: List[Minion], required_blood: int, on_confirm: Callable[[List[Minion]], None]):
         super().__init__(parent)
         self.title("献祭")
-        self.geometry("300x300")
+        self.geometry("500x380")
+        self._parent = parent
         self.on_confirm = on_confirm
         self.transient(parent)
         self.grab_set()
         self.minions = minions
         self.required_blood = required_blood
-        self.vars = []
+        self.selected = set()
+        self.card_frames = []
+        self.card_canvases = []
+
         tk.Label(self, text=f"需要献祭 {required_blood} 点鲜血", font=("Microsoft YaHei", 12, "bold"), fg="#c62828").pack(pady=5)
         self.status_label = tk.Label(self, text="已选: 0 / 0", fg="red")
         self.status_label.pack(pady=5)
-        list_frame = tk.Frame(self)
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=10)
-        for m in minions:
-            var = tk.BooleanVar(value=False)
+
+        card_frame = tk.Frame(self)
+        card_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        cw, ch = 90, 144
+        am = get_asset_manager()
+
+        for i, m in enumerate(minions):
+            defn = DEFAULT_REGISTRY.get(m.name)
+            cost_str = defn.cost_str if defn else "?"
+            TAB_W = parent._calc_tab_width(cost_str)
+            TAB_H = 16
+            TAB_SLANT = max(5, TAB_W // 6)
+            frame = tk.Frame(card_frame, bd=0)
+            frame.pack(side=tk.LEFT, padx=5, pady=5)
+            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
+            cvs.pack()
+
+            card_x1, card_y1 = 0, 0
+            card_x2, card_y2 = cw, ch
+
+            # 稀有度渐变背景
+            rarity = defn.rarity if defn else None
+            is_token = defn.is_token if defn else False
+            bg_colors = None
+            if rarity and not is_token:
+                bg_colors = parent._RARITY_GRADIENTS.get(rarity)
+            if not bg_colors:
+                bg_colors = ("#FFFFFF", "#FFFFFF")
+
+            if _PIL_AVAILABLE:
+                photo = parent._create_tab_gradient_photo(
+                    cw, ch,
+                    bg_colors[0], bg_colors[1],
+                    tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                )
+                if photo:
+                    cvs.create_image(
+                        cw // 2,
+                        ch // 2,
+                        image=photo, tags="rarity_bg"
+                    )
+                    cvs.rarity_bg_image = photo
+
+            # 标签区域填充（始终深灰，选中后变绿由边框表示）
+            label_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
+                card_x1, card_y1 + TAB_H,
+            ]
+            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+
+            # 卡面图（在费用文字之前绘制，避免覆盖）
+            asset_id = defn.asset_id if defn else None
+            if asset_id:
+                img = am.get_card_face(asset_id, cw - 4, ch - 4)
+                if img:
+                    cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                    cvs.image = img
+
+            # 费用文字
+            cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
+            cost_cy = card_y1 + TAB_H // 2
+            cvs.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+
+            # 卡名
+            cvs.create_text(cw // 2, 20 + TAB_H, text=m.name, fill="#212121",
+                            font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+
+            # 攻防 + 丰饶 + 位置
+            feng_rang = m.keywords.get("丰饶", 1)
             pos_str = f"{m.position}" if getattr(m, "position", None) else ""
-            text = f"{m.name} ({m.attack}/{m.health}) [丰饶{m.keywords.get('丰饶',1)}] {pos_str}"
-            cb = tk.Checkbutton(list_frame, text=text, variable=var, command=self._update)
-            cb.pack(anchor="w")
-            self.vars.append(var)
+            bottom = f"{m.attack}/{m.health} 丰饶{feng_rang} {pos_str}".strip()
+            cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+                            font=("Microsoft YaHei", 8), tags="card_text")
+
+            self.card_frames.append(frame)
+            self.card_canvases.append(cvs)
+
+            # 点击事件
+            cvs.bind("<Button-1>", lambda e, idx=i: self._toggle(idx))
+            cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
+            cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
+
         self.confirm_btn = tk.Button(self, text="确认献祭", font=("Microsoft YaHei", 10, "bold"),
                                       bg="#ffcdd2", activebackground="#ef9a9a",
                                       command=self._confirm, state=tk.DISABLED)
         self.confirm_btn.pack(pady=5)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+    def _toggle(self, idx: int):
+        if idx in self.selected:
+            self.selected.remove(idx)
+        else:
+            self.selected.add(idx)
+        self._refresh_borders()
+        self._update()
+
+    def _refresh_borders(self):
+        cw, ch = 90, 144
+        card_x1, card_y1 = 0, 0
+        card_x2, card_y2 = cw, ch
+        r = 2
+        for i, cvs in enumerate(self.card_canvases):
+            defn = DEFAULT_REGISTRY.get(self.minions[i].name)
+            cost_str = defn.cost_str if defn else "?"
+            TAB_W = self._parent._calc_tab_width(cost_str)
+            TAB_SLANT = max(5, TAB_W // 6)
+            body_y1 = card_y1 + 16
+            shape_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, body_y1,
+                card_x2 - r, body_y1,
+                card_x2, body_y1 + r,
+                card_x2, card_y2 - r,
+                card_x2 - r, card_y2,
+                card_x1 + r, card_y2,
+                card_x1, card_y2 - r,
+                card_x1, body_y1,
+            ]
+            border_color = "#4caf50" if i in self.selected else "#cfd8dc"
+            border_width = 2 if i in self.selected else 1
+            cvs.delete("card_border")
+            cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
+                               tags="card_border")
+
     def _update(self):
-        total = sum(m.keywords.get("丰饶", 1) for var, m in zip(self.vars, self.minions) if var.get())
+        total = sum(self.minions[i].keywords.get("丰饶", 1) for i in self.selected)
         enough = total >= self.required_blood
         self.status_label.config(text=f"已选: {total} / {self.required_blood}", fg="green" if enough else "red")
         self.confirm_btn.config(state=tk.NORMAL if enough else tk.DISABLED)
 
     def _confirm(self):
-        selected = [m for var, m in zip(self.vars, self.minions) if var.get()]
-        # 危险操作二次确认：献祭具有亡语的异象
+        selected = [self.minions[i] for i in self.selected]
         deathrattle_minions = [m for m in selected if m.keywords.get("亡语")]
         if deathrattle_minions:
             names = ", ".join(m.name for m in deathrattle_minions)
@@ -1069,7 +1192,6 @@ class DiscoverDialog(tk.Toplevel):
     def __init__(self, parent, names: List[str], on_choose: Callable[[str], None]):
         super().__init__(parent)
         self.title("开发")
-        self.geometry("400x220")
         self.names = names
         self.on_choose = on_choose
         self.resizable(False, False)
@@ -1077,13 +1199,116 @@ class DiscoverDialog(tk.Toplevel):
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         tk.Label(self, text="选择一张卡牌加入手牌:", font=("Microsoft YaHei", 12)).pack(pady=10)
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
+
+        card_frame = tk.Frame(self)
+        card_frame.pack(pady=10)
+
+        cw, ch = 90, 144
+        am = get_asset_manager()
+
         for name in names:
-            btn = tk.Button(btn_frame, text=name, width=12, height=2, font=("Microsoft YaHei", 10),
-                            bg="#e8f5e9", activebackground="#c8e6c9",
-                            command=lambda n=name: self._choose(n))
-            btn.pack(side=tk.LEFT, padx=5)
+            defn = DEFAULT_REGISTRY.get(name)
+            cost_str = defn.cost_str if defn else "?"
+            TAB_W = parent._calc_tab_width(cost_str)
+            TAB_H = 16
+            TAB_SLANT = max(5, TAB_W // 6)
+            frame = tk.Frame(card_frame, bd=0)
+            frame.pack(side=tk.LEFT, padx=5)
+            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
+            cvs.pack()
+
+            card_x1, card_y1 = 0, 0
+            card_x2, card_y2 = cw, ch
+
+            # 稀有度渐变背景
+            rarity = defn.rarity if defn else None
+            is_token = defn.is_token if defn else False
+            bg_colors = None
+            if rarity and not is_token:
+                bg_colors = parent._RARITY_GRADIENTS.get(rarity)
+            if not bg_colors:
+                bg_colors = ("#FFFFFF", "#FFFFFF")
+
+            if _PIL_AVAILABLE:
+                photo = parent._create_tab_gradient_photo(
+                    cw, ch,
+                    bg_colors[0], bg_colors[1],
+                    tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                )
+                if photo:
+                    cvs.create_image(
+                        cw // 2,
+                        ch // 2,
+                        image=photo, tags="rarity_bg"
+                    )
+                    cvs.rarity_bg_image = photo
+
+            # 标签区域填充
+            label_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
+                card_x1, card_y1 + TAB_H,
+            ]
+            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+
+            # 整体外形边框
+            r = 2
+            body_y1 = card_y1 + TAB_H
+            shape_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, body_y1,
+                card_x2 - r, body_y1,
+                card_x2, body_y1 + r,
+                card_x2, card_y2 - r,
+                card_x2 - r, card_y2,
+                card_x1 + r, card_y2,
+                card_x1, card_y2 - r,
+                card_x1, body_y1,
+            ]
+            cvs.create_polygon(shape_points, fill="", outline="#cfd8dc", width=1, tags="card_border")
+
+            # 费用文字（标签内，白色）
+            cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
+            cost_cy = card_y1 + TAB_H // 2
+            cvs.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+
+            # 卡面图
+            asset_id = defn.asset_id if defn else None
+            if asset_id:
+                img = am.get_card_face(asset_id, cw - 4, ch - 4)
+                if img:
+                    cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                    cvs.image = img
+
+            # 卡名
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
+                            font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+
+            # 类型/攻防
+            type_str = ""
+            stats = ""
+            if defn:
+                from tards.card_db import CardType
+                if defn.card_type == CardType.MINION:
+                    type_str = "【异象】"
+                    stats = f"{defn.attack or 0}/{defn.health or 1}"
+                elif defn.card_type == CardType.STRATEGY:
+                    type_str = "【策略】"
+                elif defn.card_type == CardType.CONSPIRACY:
+                    type_str = "【阴谋】"
+                elif defn.card_type == CardType.MINERAL:
+                    type_str = "【矿物】"
+            bottom = f"{type_str}{stats}"
+            cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+                            font=("Microsoft YaHei", 8), tags="card_text")
+
+            # 点击事件
+            cvs.bind("<Button-1>", lambda e, n=name: self._choose(n))
+            cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
+            cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
 
     def _choose(self, name: str):
         self.on_choose(name)
@@ -1098,7 +1323,8 @@ class DiscoverDialog(tk.Toplevel):
 
 
 class ChoiceDialog(tk.Toplevel):
-    """通用抉择弹窗，支持自定义标题和选项文案。"""
+    """通用抉择弹窗，支持自定义标题和选项文案。
+    若选项全部为卡牌名，则以卡牌形式展示；否则保持文本按钮。"""
 
     def __init__(self, parent, title: str, options: List[str], on_choose: Callable[[str], None]):
         super().__init__(parent)
@@ -1109,14 +1335,123 @@ class ChoiceDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        tk.Label(self, text="请选择一项：", font=("Microsoft YaHei", 12)).pack(pady=10)
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
-        for opt in options:
-            btn = tk.Button(btn_frame, text=opt, width=14, height=2, font=("Microsoft YaHei", 10),
-                            bg="#fff3e0", activebackground="#ffe0b2",
-                            command=lambda o=opt: self._choose(o))
-            btn.pack(side=tk.LEFT, padx=5)
+
+        # 判断选项是否全部为卡牌名
+        card_defs = [DEFAULT_REGISTRY.get(opt) for opt in options]
+        all_cards = all(d is not None for d in card_defs)
+
+        if all_cards:
+            self.geometry("600x280")
+            tk.Label(self, text=title, font=("Microsoft YaHei", 12)).pack(pady=10)
+            card_frame = tk.Frame(self)
+            card_frame.pack(pady=10)
+
+            cw, ch = 90, 144
+            am = get_asset_manager()
+
+            for opt, defn in zip(options, card_defs):
+                cost_str = defn.cost_str if defn else "?"
+                TAB_W = parent._calc_tab_width(cost_str)
+                TAB_H = 16
+                TAB_SLANT = max(5, TAB_W // 6)
+                frame = tk.Frame(card_frame, bd=0)
+                frame.pack(side=tk.LEFT, padx=5)
+                cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
+                cvs.pack()
+
+                card_x1, card_y1 = 0, 0
+                card_x2, card_y2 = cw, ch
+
+                rarity = defn.rarity if defn else None
+                is_token = defn.is_token if defn else False
+                bg_colors = None
+                if rarity and not is_token:
+                    bg_colors = parent._RARITY_GRADIENTS.get(rarity)
+                if not bg_colors:
+                    bg_colors = ("#FFFFFF", "#FFFFFF")
+
+                if _PIL_AVAILABLE:
+                    photo = parent._create_tab_gradient_photo(
+                        cw, ch,
+                        bg_colors[0], bg_colors[1],
+                        tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                    )
+                    if photo:
+                        cvs.create_image(
+                            cw // 2,
+                            ch // 2,
+                            image=photo, tags="rarity_bg"
+                        )
+                        cvs.rarity_bg_image = photo
+
+                label_points = [
+                    card_x1, card_y1,
+                    card_x1 + TAB_W, card_y1,
+                    card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
+                    card_x1, card_y1 + TAB_H,
+                ]
+                cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+
+                r = 2
+                body_y1 = card_y1 + TAB_H
+                shape_points = [
+                    card_x1, card_y1,
+                    card_x1 + TAB_W, card_y1,
+                    card_x1 + TAB_W + TAB_SLANT, body_y1,
+                    card_x2 - r, body_y1,
+                    card_x2, body_y1 + r,
+                    card_x2, card_y2 - r,
+                    card_x2 - r, card_y2,
+                    card_x1 + r, card_y2,
+                    card_x1, card_y2 - r,
+                    card_x1, body_y1,
+                ]
+                cvs.create_polygon(shape_points, fill="", outline="#cfd8dc", width=1, tags="card_border")
+
+                cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
+                cost_cy = card_y1 + TAB_H // 2
+                cvs.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                                font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+
+                asset_id = defn.asset_id if defn else None
+                if asset_id:
+                    img = am.get_card_face(asset_id, cw - 4, ch - 4)
+                    if img:
+                        cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                        cvs.image = img
+
+                cvs.create_text(cw // 2, 20 + TAB_H, text=opt, fill="#212121",
+                                font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+
+                type_str = ""
+                stats = ""
+                if defn:
+                    from tards.card_db import CardType
+                    if defn.card_type == CardType.MINION:
+                        type_str = "【异象】"
+                        stats = f"{defn.attack or 0}/{defn.health or 1}"
+                    elif defn.card_type == CardType.STRATEGY:
+                        type_str = "【策略】"
+                    elif defn.card_type == CardType.CONSPIRACY:
+                        type_str = "【阴谋】"
+                    elif defn.card_type == CardType.MINERAL:
+                        type_str = "【矿物】"
+                bottom = f"{type_str}{stats}"
+                cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+                                font=("Microsoft YaHei", 8), tags="card_text")
+
+                cvs.bind("<Button-1>", lambda e, o=opt: self._choose(o))
+                cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
+                cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
+        else:
+            tk.Label(self, text="请选择一项：", font=("Microsoft YaHei", 12)).pack(pady=10)
+            btn_frame = tk.Frame(self)
+            btn_frame.pack(pady=10)
+            for opt in options:
+                btn = tk.Button(btn_frame, text=opt, width=14, height=2, font=("Microsoft YaHei", 10),
+                                bg="#fff3e0", activebackground="#ffe0b2",
+                                command=lambda o=opt: self._choose(o))
+                btn.pack(side=tk.LEFT, padx=5)
 
     def _choose(self, option: str):
         self.on_choose(option)
@@ -1305,7 +1640,7 @@ class BattleFrame(tk.Frame):
     CELL_SIZE = 80
     COL_NAMES = ["高地", "山脊", "中路", "河岸", "水路"]
     HAND_CARD_WIDTH = 90
-    HAND_CARD_HEIGHT = 120
+    HAND_CARD_HEIGHT = 144
     BOARD_COLS = 5
     BOARD_ROWS = 5
     BOARD_OFFSET_X = 50
@@ -1696,7 +2031,7 @@ class BattleFrame(tk.Frame):
         def _res_badge(parent, color, width=56):
             """返回一个 Canvas，内含圆角矩形背景 + 文字占位。"""
             h = 26
-            cvs = tk.Canvas(parent, width=width, height=h, bg="white", highlightthickness=0)
+            cvs = tk.Canvas(parent, width=width, height=h, bg="white", highlightthickness=0, bd=0)
             BattleFrame._rounded_rect(cvs, 1, 1, width - 1, h - 1, radius=5,
                                        fill=color, outline="", tags="bg")
             text_id = cvs.create_text(width // 2, h // 2, text="-", fill="white",
@@ -2764,13 +3099,143 @@ class BattleFrame(tk.Frame):
         minions = self.duel.game.board.get_minions_of_player(player)
         return sum(m.keywords.get("丰饶", 1) for m in minions if m.is_alive())
 
+    # ===== 稀有度渐变背景 =====
+    _RARITY_GRADIENTS = {
+        Rarity.GOLD:   ("#FFF8E1", "#FFD54F"),   # 金：象牙白→柔和金黄（更明亮，减少塑料感）
+        Rarity.SILVER: ("#F5F5F5", "#BDBDBD"),   # 银（偏亮白，与铁区分）
+        Rarity.BRONZE: ("#E6B89C", "#B87333"),   # 铜
+        Rarity.IRON:   ("#B0BEC5", "#78909C"),   # 铁：浅蓝灰→中蓝灰（整体提亮，不再发黑）
+    }
+
+    # 折痕颜色（背面, 正面, 折痕线）— 与稀有度主色调协调
+    _FOLD_COLORS = {
+        Rarity.GOLD:   ("#f9a825", "#fff9c4", "#f57f17"),   # 深金黄 / 浅金黄 / 深橙黄
+        Rarity.SILVER: ("#757575", "#eeeeee", "#424242"),   # 中灰 / 浅灰 / 深灰
+        Rarity.BRONZE: ("#8d6e63", "#efebe9", "#5d4037"),   # 深棕 / 浅米 / 深棕
+        Rarity.IRON:   ("#546e7a", "#eceff1", "#37474f"),   # 深蓝灰 / 浅灰 / 更深蓝灰
+        None:          ("#bdbdbd", "#f5f5f5", "#757575"),   # 中灰 / 浅灰 / 深灰（无稀有度）
+    }
+
+    def _get_card_rarity_gradient_colors(self, card):
+        """返回卡牌稀有度渐变颜色 (c1, c2)，无稀有度返回 None。"""
+        # 矿物卡无稀有度
+        if isinstance(card, MineralCard):
+            return None
+
+        rarity = getattr(card, "rarity", None)
+        is_token = getattr(card, "is_token", None)
+
+        # 回查注册表
+        if (rarity is None or is_token is None) and card.name and DEFAULT_REGISTRY:
+            defn = DEFAULT_REGISTRY.get(card.name)
+            if defn:
+                if rarity is None:
+                    rarity = defn.rarity
+                if is_token is None:
+                    is_token = defn.is_token
+
+        if is_token:
+            return None
+        if rarity is None:
+            return None
+        return self._RARITY_GRADIENTS.get(rarity)
+
+    @staticmethod
+    def _calc_tab_width(cost_str: str, base: int = 28, char_px: int = 6, padding: int = 10) -> int:
+        """根据费用字符串长度计算左上角标签宽度。"""
+        return max(base, len(cost_str) * char_px + padding)
+
+    def _create_gradient_photo(self, width, height, color1, color2, radius=6):
+        """生成圆角斜向渐变 PIL Image，返回 tk.PhotoImage。"""
+        if not _PIL_AVAILABLE or width <= 0 or height <= 0:
+            return None
+
+        def _hex_to_rgb(h):
+            h = h.lstrip("#")
+            return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+        c1 = _hex_to_rgb(color1)
+        c2 = _hex_to_rgb(color2)
+
+        # 1. 创建渐变
+        grad = Image.new("RGB", (width, height))
+        pixels = grad.load()
+        max_sum = width + height - 2
+        for y in range(height):
+            for x in range(width):
+                t = (x + y) / max_sum if max_sum > 0 else 0
+                r = int(c1[0] + (c2[0] - c1[0]) * t)
+                g = int(c1[1] + (c2[1] - c1[1]) * t)
+                b = int(c1[2] + (c2[2] - c1[2]) * t)
+                pixels[x, y] = (r, g, b)
+
+        # 2. 遮罩改为完整矩形（覆盖整个 Canvas，无透明区域）
+        mask = Image.new("L", (width, height), 255)
+        r_band, g_band, b_band = grad.split()
+        img = Image.merge("RGBA", (r_band, g_band, b_band, mask))
+        return ImageTk.PhotoImage(img)
+
+    def _create_tab_gradient_photo(self, width, height, color1, color2, tab_w=28, tab_h=16, slant=5, radius=2):
+        """生成带左上角标签的圆角斜向渐变 PIL Image，返回 tk.PhotoImage。
+        radius 为微圆角偏移量（极小，仅对直角做略微修正）。"""
+        if not _PIL_AVAILABLE or width <= 0 or height <= 0:
+            return None
+
+        def _hex_to_rgb(h):
+            h = h.lstrip("#")
+            return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+        c1 = _hex_to_rgb(color1)
+        c2 = _hex_to_rgb(color2)
+
+        # 1. 创建渐变
+        grad = Image.new("RGB", (width, height))
+        pixels = grad.load()
+        max_sum = width + height - 2
+        for y in range(height):
+            for x in range(width):
+                t = (x + y) / max_sum if max_sum > 0 else 0
+                r = int(c1[0] + (c2[0] - c1[0]) * t)
+                g = int(c1[1] + (c2[1] - c1[1]) * t)
+                b = int(c1[2] + (c2[2] - c1[2]) * t)
+                pixels[x, y] = (r, g, b)
+
+        # 2. 创建带标签形状的遮罩（透明区域仅限标签凹口和微圆角角落）
+        mask = Image.new("L", (width, height), 0)
+        draw = ImageDraw.Draw(mask)
+        x1, y1 = 0, 0
+        x2, y2 = width - 1, height - 1
+        body_y1 = y1 + tab_h
+        r = radius
+
+        # 主体微圆角矩形（左上被标签替代）
+        body_points = [
+            (x1 + tab_w + slant, body_y1),
+            (x2 - r, body_y1),
+            (x2, body_y1 + r),
+            (x2, y2 - r),
+            (x2 - r, y2),
+            (x1 + r, y2),
+            (x1, y2 - r),
+            (x1, body_y1),
+        ]
+        draw.polygon(body_points, fill=255)
+
+        # 标签梯形
+        draw.polygon([
+            (x1, y1),
+            (x1 + tab_w, y1),
+            (x1 + tab_w + slant, body_y1),
+            (x1, body_y1),
+        ], fill=255)
+
+        r_band, g_band, b_band = grad.split()
+        img = Image.merge("RGBA", (r_band, g_band, b_band, mask))
+        return ImageTk.PhotoImage(img)
+
     def _render_hand_card(self, parent, card, idx, serial, active, card_type_colors, am, cw, ch, flash=False):
         """渲染单张手牌卡牌。"""
         try:
-            base_bg = card_type_colors.get(type(card), "white")
-            bg = "#fff9c4" if self.selected_card_idx == idx else base_bg
-            if self._in_targeting_mode and card in self._targeting_valid_targets:
-                bg = "#ffeb3b"
             # 计算可用B点（含场上可献祭异象）
             available_blood = self._get_available_blood(active)
             from tards.player import Player as PlayerCls
@@ -2782,48 +3247,110 @@ class BattleFrame(tk.Frame):
                             and self.duel.game
                             and self.duel.game.current_phase == "action")
             # 统一白色外框，不再用 Frame 背景做状态指示（太粗）
-            frame = tk.Frame(parent, bg="white", bd=0)
-            frame.pack(side=tk.LEFT, padx=3, pady=2)
+            frame = tk.Frame(parent, bd=0)
+            frame.pack(side=tk.LEFT, padx=6, pady=2)
             if flash:
                 self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
 
-            # Canvas 尺寸 = 卡牌 + 预留边框空间
-            cvs = tk.Canvas(frame, width=cw + 4, height=ch + 4, bg="white", highlightthickness=0)
+            # Canvas 尺寸精确贴合卡牌外接矩形，不留空白
+            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
             cvs.pack()
 
-            # 卡牌本体（圆角矩形）
-            card_x1, card_y1 = 2, 2
-            card_x2, card_y2 = cw - 2, ch - 2
-            # 可出牌：绿色边框 + 微抬升（Y 轴 0）
-            # 不可出牌：浅灰边框 + 下沉（Y 轴 2）
-            if can_play_now:
-                border_color = "#4caf50"
-                border_width = 2
+            # 卡牌本体（从 Canvas 左上角开始）
+            card_x1, card_y1 = 0, 0
+            card_x2, card_y2 = cw, ch
+
+            # 费用与标签参数（动态宽度，防止长费用被截断）
+            cost_str = str(card.cost)
+            TAB_W = self._calc_tab_width(cost_str)
+            TAB_H = 16
+            TAB_SLANT = max(5, TAB_W // 6)
+
+            # 状态判断 → 边框样式（取消可出牌绿框）
+            is_selected = (self.selected_card_idx == idx)
+            is_valid_target = (self._in_targeting_mode and card in self._targeting_valid_targets)
+            if is_selected:
+                border_color = "#2196F3"
+                border_width = 3
+                offset_y = 0
+            elif is_valid_target:
+                border_color = "#FFEB3B"
+                border_width = 3
+                offset_y = 0
+            elif can_play_now:
+                border_color = "#cfd8dc"
+                border_width = 1
                 offset_y = 0
             else:
                 border_color = "#cfd8dc"
                 border_width = 1
                 offset_y = 1
 
-            self._rounded_rect(cvs, card_x1, card_y1 + offset_y, card_x2, card_y2 + offset_y,
-                               radius=6, fill=bg, outline=border_color, width=border_width, tags="card_bg")
+            # 带标签形状的稀有度渐变背景
+            rarity_colors = self._get_card_rarity_gradient_colors(card)
+            bg_colors = rarity_colors if rarity_colors else ("#FFFFFF", "#FFFFFF")
+            if _PIL_AVAILABLE:
+                photo = self._create_tab_gradient_photo(
+                    cw, ch,
+                    bg_colors[0], bg_colors[1],
+                    tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                )
+                if photo:
+                    cvs.create_image(
+                        cw // 2,
+                        ch // 2 + offset_y,
+                        image=photo, tags="rarity_bg"
+                    )
+                    cvs.rarity_bg_image = photo
+
+            # 标签区域填充（可打出提示器：绿色 / 默认深灰）
+            label_points = [
+                card_x1, card_y1 + offset_y,
+                card_x1 + TAB_W, card_y1 + offset_y,
+                card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H + offset_y,
+                card_x1, card_y1 + TAB_H + offset_y,
+            ]
+            tab_fill = "#4caf50" if can_play_now else "#455a64"
+            cvs.create_polygon(label_points, fill=tab_fill, outline="", tags="cost_tab")
+
+            # 整体外形边框（带标签的圆角矩形，微圆角：仅用斜切做略微修正）
+            r = 2
+            body_y1 = card_y1 + TAB_H + offset_y
+            y2o = card_y2 + offset_y
+            shape_points = [
+                card_x1, card_y1 + offset_y,
+                card_x1 + TAB_W, card_y1 + offset_y,
+                card_x1 + TAB_W + TAB_SLANT, body_y1,
+                card_x2 - r, body_y1,
+                card_x2, body_y1 + r,
+                card_x2, y2o - r,
+                card_x2 - r, y2o,
+                card_x1 + r, y2o,
+                card_x1, y2o - r,
+                card_x1, body_y1,
+            ]
+            cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
+                               tags="card_border")
 
             img = None
             if getattr(card, "asset_id", None):
-                img = am.get_card_face(card.asset_id, cw - 8, ch - 8)
+                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
             if img:
                 cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
                 cvs.image = img
 
+            # 费用文字（标签内，白色）
+            cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
+            cost_cy = card_y1 + TAB_H // 2 + offset_y
+            cvs.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+
             name = card.name
-            cost_str = str(card.cost)
             stats = ""
             if isinstance(card, MinionCard):
                 stats = f"{card.attack}/{card.health}"
-            cvs.create_text(cw // 2, 16, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-            cvs.create_text(12, 12, text=cost_str, fill="#d32f2f",
-                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
             bottom_text = stats
             if isinstance(card, Strategy):
                 bottom_text = "【策略】"
@@ -2836,15 +3363,32 @@ class BattleFrame(tk.Frame):
             cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
 
-            # 已激活的阴谋：红色边框（圆角，跟随卡牌 offset_y）
+            # 已激活的阴谋：红色边框（带标签形状，跟随卡牌 offset_y）
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-                self._rounded_rect(cvs, card_x1, card_y1 + offset_y, card_x2, card_y2 + offset_y,
-                                   radius=6, outline="#d32f2f", width=3, tags="activated_mark")
+                cvs.create_polygon(shape_points, fill="", outline="#d32f2f", width=3,
+                                   tags="activated_mark")
 
-            # 已被对手见过的牌：左下角小缺角标记
+            # 已被对手见过的牌：左下角折痕效果（颜色随稀有度自适应）
             if getattr(card, "_shown_to_opponent", False):
-                cvs.create_polygon(2, ch - 2 + offset_y, 14, ch - 2 + offset_y, 2, ch - 14 + offset_y,
-                                   fill="#ff9800", outline="white", width=1, tags="shown_mark")
+                off = offset_y
+                # 获取卡牌稀有度以匹配折痕色调
+                fold_rarity = getattr(card, "rarity", None)
+                if fold_rarity is None and DEFAULT_REGISTRY:
+                    defn = DEFAULT_REGISTRY.get(card.name)
+                    if defn:
+                        fold_rarity = defn.rarity
+                back_color, front_color, line_color = self._FOLD_COLORS.get(
+                    fold_rarity, self._FOLD_COLORS[None]
+                )
+                # 背面阴影（大三角形下半部分）
+                cvs.create_polygon(0, ch - 6 + off, 0, ch + off, 12, ch + off,
+                                   fill=back_color, outline="", tags="shown_mark")
+                # 折起正面（大三角形上半部分，浅色覆盖）
+                cvs.create_polygon(0, ch - 12 + off, 0, ch - 6 + off, 12, ch + off,
+                                   fill=front_color, outline="", tags="shown_mark")
+                # 折痕线
+                cvs.create_line(0, ch - 6 + off, 12, ch + off,
+                                fill=line_color, width=1, tags="shown_mark")
 
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
@@ -2972,24 +3516,80 @@ class BattleFrame(tk.Frame):
     def _render_mulligan_card(self, parent, card, idx, selected, card_type_colors, am, cw, ch):
         """渲染单张 mulligan 卡牌。"""
         try:
-            base_bg = card_type_colors.get(type(card), "white")
-            bg = "#c8e6c9" if selected else base_bg
             frame_bd = 3 if selected else 0
             frame_bg = "#4caf50" if selected else "white"
             frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
             frame.pack(side=tk.LEFT, padx=4)
-            cvs = tk.Canvas(frame, width=cw, height=ch, bg=bg, highlightthickness=0)
+            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
             cvs.pack(padx=2, pady=2)
+
+            cost_str = str(card.cost)
+            TAB_W = self._calc_tab_width(cost_str)
+            TAB_H = 16
+            TAB_SLANT = max(5, TAB_W // 6)
+            card_x1, card_y1 = 0, 0
+            card_x2, card_y2 = cw, ch
+
+            # 带标签形状的稀有度渐变背景
+            rarity_colors = self._get_card_rarity_gradient_colors(card)
+            bg_colors = rarity_colors if rarity_colors else ("#FFFFFF", "#FFFFFF")
+            if _PIL_AVAILABLE:
+                photo = self._create_tab_gradient_photo(
+                    cw, ch,
+                    bg_colors[0], bg_colors[1],
+                    tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                )
+                if photo:
+                    cvs.create_image(
+                        cw // 2,
+                        ch // 2,
+                        image=photo, tags="rarity_bg"
+                    )
+                    cvs.rarity_bg_image = photo
+
+            # 标签区域填充（mulligan 无"可打出"状态，始终深灰）
+            label_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
+                card_x1, card_y1 + TAB_H,
+            ]
+            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+
+            # 整体外形边框（带标签的微圆角矩形）
+            r = 2
+            body_y1 = card_y1 + TAB_H
+            shape_points = [
+                card_x1, card_y1,
+                card_x1 + TAB_W, card_y1,
+                card_x1 + TAB_W + TAB_SLANT, body_y1,
+                card_x2 - r, body_y1,
+                card_x2, body_y1 + r,
+                card_x2, card_y2 - r,
+                card_x2 - r, card_y2,
+                card_x1 + r, card_y2,
+                card_x1, card_y2 - r,
+                card_x1, body_y1,
+            ]
+            border_color = "#4caf50" if selected else "#cfd8dc"
+            border_width = 2 if selected else 1
+            cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
+                               tags="card_border")
+
             img = None
             if getattr(card, "asset_id", None):
                 img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
             if img:
                 cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
                 cvs.image = img
-            else:
-                cvs.create_rectangle(2, 2, cw - 2, ch - 2, fill=bg, outline="#90a4ae", width=1, tags="card_bg")
+
+            # 费用文字（标签内，白色）
+            cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
+            cost_cy = card_y1 + TAB_H // 2
+            cvs.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+
             name = card.name
-            cost_str = str(card.cost)
             stats = ""
             from tards.cards import MinionCard as MC, Strategy as ST, Conspiracy as CO, MineralCard as MI
             if isinstance(card, MC):
@@ -3003,10 +3603,8 @@ class BattleFrame(tk.Frame):
                 bottom_text = "【矿物】"
             elif isinstance(card, MC):
                 bottom_text = f"【异象】{stats}"
-            cvs.create_text(cw // 2, 14, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-            cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
-                            font=("Microsoft YaHei", 8, "bold"), tags="card_text")
             cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
             cvs.bind("<Button-1>", lambda e, i=idx: self._on_mulligan_card_click(i))

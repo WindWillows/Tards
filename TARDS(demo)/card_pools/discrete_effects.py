@@ -5415,6 +5415,7 @@ def _tiaoshibang_effect(player, target, game, extras=None):
             print(f"  {source_name}：没有抽到策略")
             return None
         card = drawn[0]
+        card._shown_to_opponent = True
         print(f"  {source_name}：展示策略 [{card.name}]")
         if hasattr(card, "cost") and hasattr(card.cost, "t") and card.cost.t > 0:
             card.cost.t -= 1

@@ -504,6 +504,8 @@ class Game:
                     moments = [moment_def.to_game_card(p) for _ in range(6)]
                     p.card_deck.extend(moments)
                     random.shuffle(p.card_deck)
+                    from card_pools.effect_utils import clear_shown_in_deck
+                    clear_shown_in_deck(p)
                     print(f"  {p.name} 血契沉浸度 {blood_pts}：将6张时刻洗入卡组")
 
             p.draw_card(4, game=self)
@@ -1371,6 +1373,8 @@ class Game:
                 else:
                     player.card_deck.append(card)
                     random.shuffle(player.card_deck)
+                    from card_pools.effect_utils import clear_shown_in_deck
+                    clear_shown_in_deck(player)
                     print(f"  {player.name} 开发但手牌已满：{card.name} 洗入卡组")
 
             # 离散3级：开发一张牌时，+1HP

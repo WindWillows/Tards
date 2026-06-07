@@ -2447,6 +2447,8 @@ def _moshui_effect(game, event_data, player):
         target_player.card_deck.append(card)
         import random
         random.shuffle(target_player.card_deck)
+        from card_pools.effect_utils import clear_shown_in_deck
+        clear_shown_in_deck(target_player)
         print(f"  阴谋 [墨水] 将 [{card.name}] 洗入 {target_player.name} 的卡组")
     else:
         print(f"  [警告] 阴谋 [墨水] 未能在手牌中找到 [{card.name}]")
@@ -2891,6 +2893,8 @@ def _pimaoshang_effect(player, target, game, extras=None):
         player.card_hand.remove(chosen)
         player.card_deck.append(chosen)
         random.shuffle(player.card_deck)
+        from card_pools.effect_utils import clear_shown_in_deck
+        clear_shown_in_deck(player)
         print(f"  皮毛商：将 [{chosen.name}] 洗入卡组")
 
     # 阶段2：抉择
@@ -2939,6 +2943,8 @@ def _lieren_effect(player, target, game, extras=None):
         cloned = copy.copy(target)
         player.card_deck.append(cloned)
     random.shuffle(player.card_deck)
+    from card_pools.effect_utils import clear_shown_in_deck
+    clear_shown_in_deck(player)
     print(f"  猎人：将2张 [{target.name}] 的复制洗入牌库")
     return True
 
@@ -4267,6 +4273,8 @@ def _hesheng_effect(player, target, game, extras=None):
         return True
 
     # 展示
+    for c in candidates:
+        c._shown_to_opponent = True
     names = ", ".join([f"[{c.name}]" for c in candidates])
     print(f"  贺胜：{player.name} 牌库顶展示 {len(candidates)} 张：{names}")
 

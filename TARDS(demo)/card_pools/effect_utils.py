@@ -591,11 +591,23 @@ def remove_top_of_deck(player: "Player", amount: int) -> List["Card"]:
     return removed
 
 
+def clear_shown_in_deck(player: "Player") -> None:
+    """清除牌库中所有卡牌的 _shown_to_opponent 标记。
+
+    当牌库被洗切或有未知牌被插入/移除时调用，因为对手无法继续推断
+    被展示牌在牌库中的相对位置。
+    """
+    for card in player.card_deck:
+        if getattr(card, "_shown_to_opponent", False):
+            card._shown_to_opponent = False
+
+
 def shuffle_into_deck(player: "Player", card: "Card") -> None:
     """将一张卡洗入玩家的牌库。"""
     player.card_deck.append(card)
     import random
     random.shuffle(player.card_deck)
+    clear_shown_in_deck(player)
     print(f"  {card.name} 被洗入 {player.name} 的牌库")
 
 
@@ -2156,6 +2168,7 @@ def shuffle_deck(player: "Player") -> None:
     """洗切玩家的牌堆。"""
     import random
     random.shuffle(player.card_deck)
+    clear_shown_in_deck(player)
     print(f"  {player.name} 的牌堆已被洗切")
 
 
