@@ -14,6 +14,8 @@ class Board:
         self.minion_place: Dict[Tuple[int, int], "Minion"] = {}
         self.cell_underlay: Dict[Tuple[int, int], "Minion"] = {}
         self.game_ref: Optional["Game"] = None
+        self._sync_id_map: Dict[int, "Minion"] = {}
+        self._dead_sync_ids: set[int] = set()
 
     def target_check(self, target) -> bool:
         if not isinstance(target, tuple) or len(target) != 2:
@@ -88,6 +90,24 @@ class Board:
     def get_minion_at(self, target: Tuple[int, int]) -> Optional["Minion"]:
         return self.minion_place.get(target)
 
+    def get_minion_by_sync_id(self, sync_id: int) -> Optional["Minion"]:
+        return self._sync_id_map.get(sync_id)
+
+    def _register_sync_id(self, minion: "Minion") -> None:
+        """为异象分配并注册同步ID（若尚未分配）。"""
+        if getattr(minion, "_sync_id", None) is not None:
+            self._sync_id_map[minion._sync_id] = minion
+            return
+        if self.game_ref:
+            minion._sync_id = self.game_ref.allocate_sync_id()
+        else:
+            minion._sync_id = 0
+        self._sync_id_map[minion._sync_id] = minion
+
+    def _mark_sync_id_dead(self, sync_id: int) -> None:
+        if sync_id:
+            self._dead_sync_ids.add(sync_id)
+
     def remove_minion(self, target: Tuple[int, int]) -> Optional["Minion"]:
         """将异象从战场移除。注意：移除不触发亡语（与消灭不同）。"""
         m = self.minion_place.get(target, None)
@@ -144,6 +164,7 @@ class Board:
                 )
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
+            self._mark_sync_id_dead(getattr(m, "_sync_id", 0))
         return m
 
     def replace_minion(self, target: Tuple[int, int], new_minion: "Minion") -> bool:
@@ -163,6 +184,7 @@ class Board:
             )
         self.minion_place[target] = new_minion
         new_minion.position = target
+        self._register_sync_id(new_minion)
         if self.game_ref and not self.game_ref.effect_queue.is_resolving():
             self.game_ref.refresh_all_auras()
         if self.game_ref:
@@ -190,6 +212,7 @@ class Board:
             self.minion_place[target] = minion
             minion.position = target
             minion.vine_host = existing
+            self._register_sync_id(minion)
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
             if self.game_ref:
@@ -212,6 +235,7 @@ class Board:
             self.minion_place[target] = minion
             minion.position = target
             minion.float_host = existing
+            self._register_sync_id(minion)
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
             if self.game_ref:
@@ -230,6 +254,7 @@ class Board:
             return False
         self.minion_place[target] = minion
         minion.position = target
+        self._register_sync_id(minion)
         if self.game_ref and not self.game_ref.effect_queue.is_resolving():
             self.game_ref.refresh_all_auras()
         if self.game_ref:

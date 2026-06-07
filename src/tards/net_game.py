@@ -15,6 +15,7 @@ from .net_protocol import (
     msg_gameover,
     msg_hello,
     msg_start,
+    msg_sync_hash,
     msg_targeting,
     start_host,
 )
@@ -84,6 +85,14 @@ class NetworkDuel:
         self._targeting_valid_targets: Optional[list] = None
         self._targeting_result: Optional[Any] = None
         self._targeting_event = threading.Event()
+
+        # 同步校验
+        self._sync_hashes: Dict[int, str] = {}
+        self._sync_hash_thread: Optional[threading.Thread] = None
+
+        # 消息暂存（解决非预期消息在当前回合被丢弃的问题）
+        self._pending_messages: List[Dict[str, Any]] = []
+        self._pending_lock = threading.Lock()
 
     # ========== 连接与握手 ==========
     def connect(self) -> bool:
@@ -162,7 +171,9 @@ class NetworkDuel:
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
+        self.game.sync_hash_callback = self._on_sync_hash
         random.seed(self.seed)
+        self._start_sync_hash_listener()
 
         # 重建双方卡组，确保随机种子生效后牌序一致
         # 关键：Host 和 Client 必须以**相同顺序**调用 _rebuild_deck，
@@ -188,6 +199,42 @@ class NetworkDuel:
         self.game.start_game()
         if self.game_over_callback and self.game.game_over:
             self.game_over_callback(self.game.winner.name if self.game.winner else None)
+
+    def _start_sync_hash_listener(self):
+        """启动后台线程监听对方的 SYNC_HASH 消息。"""
+        def listener():
+            while self.conn and self.conn._running and not getattr(self.game, "game_over", False):
+                try:
+                    msg = self.conn.msg_queue.get(timeout=0.5)
+                except queue.Empty:
+                    continue
+                mtype = msg.get("type")
+                if mtype == "SYNC_HASH":
+                    turn = msg.get("turn", 0)
+                    remote_hash = msg.get("hash", "")
+                    local_hash = self._sync_hashes.get(turn)
+                    if local_hash is not None and local_hash != remote_hash:
+                        print(f"[DESYNC] 回合 {turn} 状态不一致！本地={local_hash} 远端={remote_hash}")
+                    else:
+                        print(f"[Sync] 回合 {turn} hash 一致 ({remote_hash})")
+                elif mtype == "DISCONNECT":
+                    break
+        self._sync_hash_thread = threading.Thread(target=listener, daemon=True)
+        self._sync_hash_thread.start()
+
+    def _on_sync_hash(self, turn: int, hash_val: str):
+        """Game 回合结束时调用：记录本地 hash 并发送给远端。"""
+        self._sync_hashes[turn] = hash_val
+        if self.conn:
+            self.conn.send(msg_sync_hash(turn, hash_val))
+
+    def _pop_pending(self, msg_type: str) -> Optional[Dict[str, Any]]:
+        """从暂存消息队列中取出第一条匹配类型的消息。"""
+        with self._pending_lock:
+            for i, msg in enumerate(self._pending_messages):
+                if msg.get("type") == msg_type:
+                    return self._pending_messages.pop(i)
+        return None
 
     def _make_action_provider(self):
         def provider(game, active, opponent):
@@ -215,13 +262,19 @@ class NetworkDuel:
                             return {"type": "brake"}
                         continue
 
-                    if msg.get("type") == "ACTION":
+                    mtype = msg.get("type")
+                    if mtype == "ACTION":
                         return deserialize_action(msg, game.board)
-                    if msg.get("type") == "GAMEOVER":
+                    if mtype == "GAMEOVER":
+                        game.game_over = True
                         return {"type": "brake"}
-                    if msg.get("type") == "DISCONNECT":
+                    if mtype == "DISCONNECT":
                         print("[Net] 对手断开连接")
+                        game.game_over = True
                         return {"type": "brake"}
+                    # 暂存非预期消息，供其他 provider 后续读取
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
         return provider
 
     def _make_discover_provider(self):
@@ -243,16 +296,28 @@ class NetworkDuel:
                         return d
                 return candidates[0] if candidates else None
             else:
+                # 先检查暂存消息
+                pending = self._pop_pending("DISCOVER")
+                if pending:
+                    chosen_name = pending["chosen"]
+                    remote_names = pending.get("names", [])
+                    remote_candidates = [DEFAULT_REGISTRY.get(n) for n in remote_names]
+                    remote_candidates = [c for c in remote_candidates if c is not None]
+                    search_pool = remote_candidates if remote_candidates else candidates
+                    for d in search_pool:
+                        if getattr(d, "name", str(d)) == chosen_name:
+                            return d
+                    return search_pool[0] if search_pool else None
                 while True:
                     try:
                         msg = self.conn.msg_queue.get(timeout=0.2)
                     except queue.Empty:
                         if game.game_over:
-                            return random.choice(candidates) if candidates else None
+                            return candidates[0] if candidates else None
                         continue
-                    if msg.get("type") == "DISCOVER":
+                    mtype = msg.get("type")
+                    if mtype == "DISCOVER":
                         chosen_name = msg["chosen"]
-                        # 使用对方发来的 names 列表重建候选，避免 random 状态分叉导致候选不同
                         remote_names = msg.get("names", [])
                         remote_candidates = [DEFAULT_REGISTRY.get(n) for n in remote_names]
                         remote_candidates = [c for c in remote_candidates if c is not None]
@@ -261,11 +326,15 @@ class NetworkDuel:
                             if getattr(d, "name", str(d)) == chosen_name:
                                 return d
                         return search_pool[0] if search_pool else None
-                    if msg.get("type") == "GAMEOVER":
-                        return random.choice(candidates) if candidates else None
-                    if msg.get("type") == "DISCONNECT":
+                    if mtype == "GAMEOVER":
+                        game.game_over = True
+                        return candidates[0] if candidates else None
+                    if mtype == "DISCONNECT":
                         print("[Net] 对手断开连接")
-                        return random.choice(candidates) if candidates else None
+                        game.game_over = True
+                        return candidates[0] if candidates else None
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
         return provider
 
     def submit_local_discover(self, chosen: str):
@@ -289,21 +358,30 @@ class NetworkDuel:
                     self.conn.send(msg_choice(options, chosen, title))
                 return chosen
             else:
+                pending = self._pop_pending("CHOICE")
+                if pending:
+                    chosen = pending["chosen"]
+                    return chosen if chosen in options else options[0]
                 while True:
                     try:
                         msg = self.conn.msg_queue.get(timeout=0.2)
                     except queue.Empty:
                         if game.game_over:
-                            return random.choice(options) if options else None
+                            return options[0] if options else None
                         continue
-                    if msg.get("type") == "CHOICE":
+                    mtype = msg.get("type")
+                    if mtype == "CHOICE":
                         chosen = msg["chosen"]
                         return chosen if chosen in options else options[0]
-                    if msg.get("type") == "GAMEOVER":
-                        return random.choice(options) if options else None
-                    if msg.get("type") == "DISCONNECT":
+                    if mtype == "GAMEOVER":
+                        game.game_over = True
+                        return options[0] if options else None
+                    if mtype == "DISCONNECT":
                         print("[Net] 对手断开连接")
-                        return random.choice(options) if options else None
+                        game.game_over = True
+                        return options[0] if options else None
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
         return provider
 
     def submit_local_choice(self, chosen: str):
@@ -330,7 +408,9 @@ class NetworkDuel:
                     ))
                 return result
             else:
-                # 远端玩家抉择：阻塞等待网络消息
+                pending = self._pop_pending("TARGETING")
+                if pending:
+                    return _deserialize_target(pending.get("target"), game.board)
                 while True:
                     try:
                         msg = self.conn.msg_queue.get(timeout=0.2)
@@ -338,13 +418,18 @@ class NetworkDuel:
                         if game.game_over:
                             return None
                         continue
-                    if msg.get("type") == "TARGETING":
+                    mtype = msg.get("type")
+                    if mtype == "TARGETING":
                         return _deserialize_target(msg.get("target"), game.board)
-                    if msg.get("type") == "GAMEOVER":
+                    if mtype == "GAMEOVER":
+                        game.game_over = True
                         return None
-                    if msg.get("type") == "DISCONNECT":
+                    if mtype == "DISCONNECT":
                         print("[Net] 对手断开连接")
+                        game.game_over = True
                         return None
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
         return provider
 
     def submit_local_targeting(self, target: Any):

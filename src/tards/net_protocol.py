@@ -109,6 +109,10 @@ def msg_gameover(winner_name: str) -> Dict[str, Any]:
     return {"type": "GAMEOVER", "winner": winner_name}
 
 
+def msg_sync_hash(turn: int, hash_val: str) -> Dict[str, Any]:
+    return {"type": "SYNC_HASH", "turn": turn, "hash": hash_val}
+
+
 def msg_chat(text: str) -> Dict[str, Any]:
     return {"type": "CHAT", "text": text}
 
@@ -163,9 +167,13 @@ def _serialize_target(target: Any) -> Any:
         return {"numeric": target}
     if isinstance(target, tuple) and len(target) == 2:
         return {"pos": [target[0], target[1]]}
-    # Minion 用其当前位置标识
+    # Minion 用 sync_id + 当前位置双重标识
     if hasattr(target, "position"):
-        return {"pos": [target.position[0], target.position[1]]}
+        out = {"pos": [target.position[0], target.position[1]]}
+        sid = getattr(target, "_sync_id", None)
+        if sid is not None:
+            out["sync_id"] = sid
+        return out
     if hasattr(target, "side"):
         return {"player_side": target.side}
     return None
@@ -207,7 +215,16 @@ def _deserialize_target(data: Any, board) -> Any:
         if "pos" in data:
             r, c = data["pos"]
             pos = (r, c)
-            # 如果该位置有异象，返回异象；否则返回位置
+            # 优先通过 sync_id 查找（更稳定）
+            sid = data.get("sync_id")
+            if sid is not None:
+                m = board.get_minion_by_sync_id(sid)
+                if m and m.is_alive():
+                    return m
+                # sync_id 已死亡或不存在，标记为潜在不同步
+                if sid in getattr(board, "_dead_sync_ids", set()):
+                    print(f"[Net] 警告：目标 sync_id={sid} 已死亡，回退到位置 {pos}")
+            # Fallback：通过位置查找当前 occupant
             m = board.get_minion_at(pos)
             return m if m else pos
         if "player_side" in data:

@@ -59,6 +59,8 @@ class Game:
         self.event_bus = EventBus(self)
         self.targeting_system = TargetingSystem(self)
         self.resolve_step_callback = None
+        self._next_sync_id = 1
+        self.sync_hash_callback = None
 
         # 机器日志（按回合索引的历史变量，供卡牌监听器查询）
         self.history = GameHistory(self)
@@ -95,6 +97,12 @@ class Game:
     # -------------------------------------------------------------------
     # 事件总线 API
     # -------------------------------------------------------------------
+
+    def allocate_sync_id(self) -> int:
+        """分配一个全局唯一的异象同步ID。"""
+        sid = self._next_sync_id
+        self._next_sync_id += 1
+        return sid
 
     def register_listener(self, event_type: str, fn: Callable[[GameEvent], None],
                           priority: int = 0, owner_id: Optional[int] = None) -> int:
@@ -557,6 +565,8 @@ class Game:
         self.clear_protections()
         from card_pools.effect_utils import clear_attack_restrictions
         clear_attack_restrictions(self)
+        if self.sync_hash_callback:
+            self.sync_hash_callback(self.current_turn, self.compute_sync_hash())
 
     def draw_phase(self, first: Player, second: Player):
         self.current_phase = self.PHASE_DRAW
@@ -1266,6 +1276,28 @@ class Game:
                 fn()
             except Exception as e:
                 print(f"  [延迟效果错误] {e}")
+
+    def compute_sync_hash(self) -> str:
+        """计算当前游戏状态的轻量 hash，用于联机同步校验。"""
+        import hashlib
+        parts = []
+        parts.append(str(self.current_turn))
+        for p in (self.p1, self.p2):
+            parts.append(p.name)
+            parts.append(str(p.health))
+            parts.append(str(p.t_point))
+            parts.append(str(p.c_point))
+            parts.append(str(p.s_point))
+            parts.append(str(p.b_point))
+            parts.append(str(len(p.card_hand)))
+            parts.append(str(len(p.card_deck)))
+            for c in p.card_hand:
+                parts.append(getattr(c, "name", "?"))
+        for pos, m in sorted(self.board.minion_place.items()):
+            if m.is_alive():
+                parts.append(f"{getattr(m,'_sync_id','?')}:{m.name}:{m.current_health}:{pos}")
+        raw = "|".join(parts)
+        return hashlib.md5(raw.encode("utf-8")).hexdigest()[:8]
 
     def check_game_over(self) -> bool:
         if self.game_over:

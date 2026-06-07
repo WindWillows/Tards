@@ -2333,7 +2333,11 @@ _apollo_refcount = 0
 
 def _apollo_choice(seq):
     """拦截 random.choice：当用于选择 Minion 目标时改为指向。"""
-    # 快速路径：没有阿波罗之卫在场
+    # 防御性清理：移除已死亡的阿波罗之卫注册
+    dead_games = [gid for gid, m in _apollo_games.items() if not m.is_alive()]
+    for gid in dead_games:
+        _apollo_games.pop(gid, None)
+        _uninstall_apollo_choice()
     if not _apollo_games:
         return _original_random_choice(seq)
 
@@ -2377,8 +2381,9 @@ def _apollo_choice(seq):
         print(f"  阿波罗之卫：随机目标改为指向 {target.name}")
         return target
 
-    # 玩家取消或无效，回退到随机
-    return _original_random_choice(seq)
+    # 玩家取消或无效，回退到随机（使用独立 Random 实例，避免污染全局 RNG 状态）
+    _apollo_fallback_random = random.Random(id(game) + len(seq))
+    return _apollo_fallback_random.choice(seq)
 
 
 def _install_apollo_choice():
