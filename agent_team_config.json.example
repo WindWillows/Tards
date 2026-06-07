@@ -1,0 +1,21 @@
+{
+  "_comment": "Kimi 支持两种模式：API 模式（需 API Key）或 CLI 模式（复用 Kimi Code CLI）",
+
+  "kimi_api_key": "your-moonshot-api-key",
+  "kimi_base_url": "https://api.moonshot.cn/v1",
+  "kimi_model": "moonshot-v1-128k",
+  "kimi_temperature": 0.3,
+
+  "kimi_use_cli": false,
+  "kimi_exe_path": "",
+  "kimi_cli_timeout": 120,
+
+  "deepseek_api_key": "your-deepseek-api-key",
+  "deepseek_base_url": "https://api.deepseek.com/v1",
+  "deepseek_model": "deepseek-chat",
+  "deepseek_temperature": 0.3,
+
+  "max_retries": 2,
+  "code_timeout": 30,
+  "allowed_dirs": ["c:/Users/34773/Desktop/tards开发库"]
+}
