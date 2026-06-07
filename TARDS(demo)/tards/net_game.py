@@ -486,8 +486,8 @@ class NetworkDuel:
                     if msg.get("type") == "MULLIGAN":
                         remote_indices = msg.get("indices", [])
                         break
-                if msg.get("type") in ("GAMEOVER", "DISCONNECT"):
-                    break
+                    if msg.get("type") in ("GAMEOVER", "DISCONNECT"):
+                        break
 
             # 4. 按 players 列表顺序执行 mulligan（保证双方 random 状态一致）
             for player in players:
