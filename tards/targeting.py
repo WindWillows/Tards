@@ -257,5 +257,5 @@ def get_deploy_extra_targets(
     board: "Board",
     card: Any,
 ) -> Tuple[List[Any], int, bool]:
-    """[已废弃] 随从卡统一使用 extra_targeting_stages 处理额外指向。"""
+    """[已废弃] 异象卡统一使用 extra_targeting_stages 处理额外指向。"""
     return [], 0, False

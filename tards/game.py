@@ -742,7 +742,7 @@ class Game:
                     can_play, reason = active.card_can_play(serial, target)
                     if can_play:
                         card = active._get_hand_card(serial)
-                        # 全局部署限制检查（仅随从卡）
+                        # 全局部署限制检查（仅异象卡）
                         if isinstance(card, MinionCard):
                             blocked = False
                             for restriction in self._global_deploy_restrictions:

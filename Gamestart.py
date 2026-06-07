@@ -1586,7 +1586,7 @@ class BattleFrame(tk.Frame):
         self._dragging_serial = None
 
     def _try_play_at_position(self, serial, target):
-        """尝试在指定格子直接部署卡牌（仅支持无需献祭/指向的随从卡）。"""
+        """尝试在指定格子直接部署卡牌（仅支持无需献祭/指向的异象卡）。"""
         if not self.duel.game:
             return
         active = self.duel.game.current_player
@@ -1595,7 +1595,7 @@ class BattleFrame(tk.Frame):
             return
         from tards.cards import MinionCard
         if not isinstance(card, MinionCard):
-            self.hint_label.config(text="只能拖拽部署随从卡")
+            self.hint_label.config(text="只能拖拽部署异象卡")
             self.after(800, self._reset_guide_hint)
             return
         if card.cost.b > 0:
@@ -1648,17 +1648,15 @@ class BattleFrame(tk.Frame):
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板（紧凑卡片式），返回包含所有 widget 的字典。"""
-        # 紧凑卡片式面板（高度 170，行距增大，资源为圆角彩色方块）
-        frame = tk.Frame(parent, height=170, bg="white",
+        frame = tk.Frame(parent, height=130, bg="white",
                          highlightthickness=1, highlightbackground="#e0e0e0")
         frame.pack_propagate(False)
-        frame.pack(fill=tk.X, pady=3)
+        frame.pack(fill=tk.X, pady=2)
 
-        # 行0：名字 + 手牌数 badge
+        # 行0：名字（左） + 牌库 badge + 手牌 badge（右）
         row0 = tk.Frame(frame, bg="white")
-        row0.pack(fill=tk.X, padx=10, pady=(10, 3))
+        row0.pack(fill=tk.X, padx=10, pady=(6, 2))
 
-        # 当前玩家指示小圆点
         dot_color = "#4caf50" if is_local else "#ef5350"
         dot = tk.Label(row0, text="●", font=("Microsoft YaHei", 8),
                        bg="white", fg=dot_color)
@@ -1668,82 +1666,84 @@ class BattleFrame(tk.Frame):
                               bg="white", anchor="w")
         name_label.pack(side=tk.LEFT, padx=(2, 0))
 
-        hand_label = tk.Label(row0, text="手牌 0", font=("Microsoft YaHei", 12, "bold"),
+        # 牌库 badge（和手牌 badge 同风格，灰底）
+        deck_badge = tk.Label(row0, text="牌库 0", font=("Microsoft YaHei", 11, "bold"),
+                              bg="#f5f5f5", fg="#424242", padx=8, pady=2)
+        deck_badge.pack(side=tk.RIGHT, padx=(0, 6))
+
+        hand_label = tk.Label(row0, text="手牌 0", font=("Microsoft YaHei", 11, "bold"),
                               bg="#e3f2fd", fg="#1565c0", padx=8, pady=2)
         hand_label.pack(side=tk.RIGHT)
 
         # 行1：HP 条
         row1 = tk.Frame(frame, bg="white")
-        row1.pack(fill=tk.X, padx=10, pady=(6, 2))
+        row1.pack(fill=tk.X, padx=10, pady=(2, 2))
 
         hp_frame = tk.Frame(row1, bg="white")
         hp_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        hp_bar = ttk.Progressbar(hp_frame, length=160, mode="determinate", maximum=30)
+        hp_bar = ttk.Progressbar(hp_frame, length=140, mode="determinate", maximum=30)
         hp_bar.pack(side=tk.LEFT)
 
         hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 11, "bold"),
                             bg="white", fg="#c62828")
-        hp_label.pack(side=tk.LEFT, padx=(8, 0))
+        hp_label.pack(side=tk.LEFT, padx=(6, 0))
 
-        # 行2：资源圆角彩色方块 + 牌库信息
+        # 行2：资源圆角彩色方块（带 T/C/B/S 标注）
         row2 = tk.Frame(frame, bg="white")
-        row2.pack(fill=tk.X, padx=10, pady=(8, 3))
+        row2.pack(fill=tk.X, padx=10, pady=(4, 2))
 
         def _res_badge(parent, color, width=56):
             """返回一个 Canvas，内含圆角矩形背景 + 文字占位。"""
-            h = 28
+            h = 26
             cvs = tk.Canvas(parent, width=width, height=h, bg="white", highlightthickness=0)
-            BattleFrame._rounded_rect(cvs, 1, 1, width - 1, h - 1, radius=6,
+            BattleFrame._rounded_rect(cvs, 1, 1, width - 1, h - 1, radius=5,
                                        fill=color, outline="", tags="bg")
             text_id = cvs.create_text(width // 2, h // 2, text="-", fill="white",
-                                       font=("Microsoft YaHei", 10, "bold"), tags="text")
+                                       font=("Microsoft YaHei", 9, "bold"), tags="text")
             return cvs, text_id
 
-        t_cvs, t_text = _res_badge(row2, "#1976d2", width=60)
-        t_cvs.pack(side=tk.LEFT, padx=(0, 6))
-        c_cvs, c_text = _res_badge(row2, "#388e3c", width=60)
-        c_cvs.pack(side=tk.LEFT, padx=(0, 6))
-        b_cvs, b_text = _res_badge(row2, "#7b1fa2", width=48)
-        b_cvs.pack(side=tk.LEFT, padx=(0, 6))
-        s_cvs, s_text = _res_badge(row2, "#f57c00", width=48)
-        s_cvs.pack(side=tk.LEFT, padx=(0, 14))
+        t_cvs, t_text = _res_badge(row2, "#1976d2", width=58)
+        t_cvs.pack(side=tk.LEFT, padx=(0, 5))
+        c_cvs, c_text = _res_badge(row2, "#388e3c", width=58)
+        c_cvs.pack(side=tk.LEFT, padx=(0, 5))
+        b_cvs, b_text = _res_badge(row2, "#7b1fa2", width=46)
+        b_cvs.pack(side=tk.LEFT, padx=(0, 5))
+        s_cvs, s_text = _res_badge(row2, "#f57c00", width=46)
+        s_cvs.pack(side=tk.LEFT, padx=(0, 10))
 
-        deck_label = tk.Label(row2, text="牌库 0", font=("Microsoft YaHei", 10),
-                              bg="white", fg="#757575")
-        deck_label.pack(side=tk.LEFT, padx=(0, 8))
-
-        dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 10),
+        # 弃牌、阴谋小字放在资源右侧
+        dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 9),
                              bg="white", fg="#757575")
         dis_label.pack(side=tk.LEFT, padx=(0, 8))
 
-        con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 10),
+        con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 9),
                              bg="white", fg="#757575")
         con_label.pack(side=tk.LEFT, padx=(0, 8))
 
         # 行3：已展示给对手的牌
         row_shown = tk.Frame(frame, bg="white")
-        row_shown.pack(fill=tk.X, padx=10, pady=(6, 6))
-        shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 9),
+        row_shown.pack(fill=tk.X, padx=10, pady=(2, 4))
+        shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 8),
                                bg="white", fg="#e65100", anchor="w")
         shown_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # 点击绑定
-        clickable = [frame, row0, row1, row2, row_shown, dot, name_label, hand_label,
+        clickable = [frame, row0, row1, row2, row_shown, dot, name_label, hand_label, deck_badge,
                      hp_frame, hp_bar, hp_label,
-                     deck_label, dis_label, con_label, shown_label]
+                     dis_label, con_label, shown_label]
         for w in clickable:
             w.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
 
         return {
             "frame": frame, "row0": row0, "row1": row1, "row2": row2, "row_shown": row_shown,
-            "name_label": name_label, "hand_label": hand_label,
+            "name_label": name_label, "hand_label": hand_label, "deck_badge": deck_badge,
             "hp_frame": hp_frame, "hp_bar": hp_bar, "hp_label": hp_label,
             "t_cvs": t_cvs, "t_text": t_text,
             "c_cvs": c_cvs, "c_text": c_text,
             "b_cvs": b_cvs, "b_text": b_text,
             "s_cvs": s_cvs, "s_text": s_text,
-            "deck_label": deck_label, "dis_label": dis_label,
+            "dis_label": dis_label,
             "conspiracy_label": con_label, "shown_label": shown_label,
         }
 
@@ -1916,20 +1916,37 @@ class BattleFrame(tk.Frame):
         ex_grp = tk.LabelFrame(btn_frame, text="兑换", bg="white", fg="#424242",
                                 font=("Microsoft YaHei", 8), padx=4, pady=2)
         ex_grp.pack(side=tk.LEFT, padx=(0, 6))
-        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#e3f2fd", fg="#1565c0",
-                                       activebackground="#bbdefb", font=("Microsoft YaHei", 9),
-                                       width=5, command=self._on_exchange)
+        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#fff9c4", fg="#f57f17",
+                                       activebackground="#fff59d", font=("Microsoft YaHei", 9),
+                                       width=5, command=self._toggle_mineral_bar)
         self.exchange_btn.pack(side=tk.LEFT, padx=2)
-        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#e3f2fd", fg="#1565c0",
-                                                activebackground="#bbdefb", font=("Microsoft YaHei", 9),
+        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#fff9c4", fg="#f57f17",
+                                                activebackground="#fff59d", font=("Microsoft YaHei", 9),
                                                 width=5, command=self._on_exchange_squirrel)
         self.exchange_squirrel_btn.pack(side=tk.LEFT, padx=2)
         self.squirrel_draw_var = tk.BooleanVar(value=False)
-        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg="white", fg="#1565c0",
+        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg="white", fg="#f57f17",
                                                 variable=self.squirrel_draw_var,
                                                 command=self._on_toggle_squirrel_draw,
                                                 font=("Microsoft YaHei", 9))
         self.squirrel_draw_cb.pack(side=tk.LEFT, padx=2)
+
+        # 矿物展开面板（点击"矿物"后展开，显示4个快捷兑换按钮）
+        self.mineral_bar = tk.Frame(right, bg="white")
+        self._mineral_buttons: Dict[str, tk.Button] = {}
+        mineral_specs = [
+            ("I", "铁锭"),
+            ("G", "金锭"),
+            ("D", "钻石"),
+            ("M", "青金石"),
+        ]
+        for mtype, mname in mineral_specs:
+            btn = tk.Button(self.mineral_bar, text=mname, font=("Microsoft YaHei", 9),
+                            width=6, bg="#fff9c4", fg="#f57f17",
+                            activebackground="#fff59d",
+                            command=lambda n=mname: self._do_exchange_mineral(n))
+            btn.pack(side=tk.LEFT, padx=3)
+            self._mineral_buttons[mtype] = btn
 
         # 系统组（弱化）
         sys_grp = tk.Frame(btn_frame, bg="white")
@@ -2033,7 +2050,7 @@ class BattleFrame(tk.Frame):
     def _preview_deploy_positions(self, serial: int):
         """悬停手牌时预览合法目标位置（绿色虚线方框）。
 
-        支持：随从卡的合法部署位置、策略卡的单指向合法目标。
+        支持：异象卡的合法部署位置、策略卡的单指向合法目标。
         """
         if not self.duel.game:
             return
@@ -2044,7 +2061,7 @@ class BattleFrame(tk.Frame):
 
         valid = []
         if isinstance(card, MinionCard):
-            # 随从卡：合法部署位置（空位）
+            # 异象卡：合法部署位置（空位）
             valid = []
             for t in active.get_valid_targets(card):
                 if isinstance(t, tuple) and self.duel.game.board.is_valid_deploy(t, active, card):
@@ -2493,7 +2510,13 @@ class BattleFrame(tk.Frame):
             return
 
         from tards.cards import Minion, MinionCard
+        from tards.card_db import Pack
         is_minion = isinstance(card, Minion)
+
+        # 判断是否为冥刻异象（仅冥刻卡包的异象过滤献祭1/丰饶1）
+        is_underworld = False
+        if is_minion and hasattr(card, "source_card") and card.source_card:
+            is_underworld = getattr(card.source_card, "pack", None) == Pack.UNDERWORLD
 
         # 获取描述：优先从 card 本身，其次从 source_card，最后从注册表
         desc = getattr(card, "description", "")
@@ -2546,22 +2569,64 @@ class BattleFrame(tk.Frame):
             kw_dict = getattr(card, "keywords", None) or {}
 
         if kw_dict:
-            kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in kw_dict.items())
-            lines.append(f"关键词: {kw}")
+            if is_minion and is_underworld:
+                kw = " ".join(
+                    f"{k}{v if v is not True else ''}"
+                    for k, v in kw_dict.items()
+                    if not (k in ("丰饶", "献祭") and v == 1)
+                )
+            else:
+                kw = " ".join(f"{k}{v if v is not True else ''}" for k, v in kw_dict.items())
+            if kw:
+                lines.append(f"关键词: {kw}")
 
         # 场上临时赋予的效果（不包括永久攻防增减）
         if is_minion:
             # 临时关键词
             temp_kw = getattr(card, "temp_keywords", None)
             if temp_kw:
-                kw_text = " ".join(f"{k}{v if v is not True else ''}" for k, v in temp_kw.items())
-                lines.append(f"临时效果: {kw_text}")
+                if is_underworld:
+                    kw_text = " ".join(
+                        f"{k}{v if v is not True else ''}"
+                        for k, v in temp_kw.items()
+                        if not (k in ("丰饶", "献祭") and v == 1)
+                    )
+                else:
+                    kw_text = " ".join(f"{k}{v if v is not True else ''}" for k, v in temp_kw.items())
+                if kw_text:
+                    lines.append(f"临时效果: {kw_text}")
 
             # 注入的回合回调（如被赋予的亡语等）
-            injected_start = getattr(card, "_injected_turn_start", [])
-            injected_end = getattr(card, "_injected_turn_end", [])
-            if injected_start or injected_end:
-                lines.append("被赋予的时序效果: 有")
+            injected_start = getattr(card, "_injected_turn_start", []) or []
+            injected_end = getattr(card, "_injected_turn_end", []) or []
+            for fn in injected_start:
+                src = getattr(fn, "_source_name", "未知")
+                desc = getattr(fn, "__name__", "回合开始效果")
+                lines.append(f"效果【{src}】：{desc}")
+            for fn in injected_end:
+                src = getattr(fn, "_source_name", "未知")
+                desc = getattr(fn, "__name__", "回合结束效果")
+                lines.append(f"效果【{src}】：{desc}")
+
+            # 光环效果（来自其他异象的攻击力/生命/关键词修饰）
+            aura_providers = [
+                (getattr(card, "_aura_attack_provider", None), "攻击力光环"),
+                (getattr(card, "_aura_max_health_provider", None), "最大生命光环"),
+                (getattr(card, "_aura_keyword_provider", None), "关键词光环"),
+            ]
+            for prov, label in aura_providers:
+                if prov:
+                    for entry in prov._entries:
+                        src = getattr(entry.source, "name", str(entry.source)) if entry.source else "未知"
+                        lines.append(f"效果【{src}】：{label}")
+
+            # EventBus 监听器效果（策略/异象注入的触发效果）
+            if self.duel.game and hasattr(self.duel.game, "history"):
+                for entry in self.duel.game.history.get_listeners_by_owner(card):
+                    src = getattr(entry.callback, "_source_name",
+                                  getattr(entry.callback, "__name__", "未知"))
+                    eff_desc = getattr(entry.callback, "_description", entry.event_type)
+                    lines.append(f"效果【{src}】：{eff_desc}")
 
             # 指向状态
             pending_atks = getattr(card, "_pending_attack_targets", None)
@@ -2585,6 +2650,31 @@ class BattleFrame(tk.Frame):
             if locked_target is not None:
                 locked_name = getattr(locked_target, "name", str(locked_target))
                 lines.append(f"锁定目标: {locked_name}")
+
+            # 被哪些异象指向（攻击目标 + 效果目标 + 通用实例属性反向查找）
+            pointed_by = []
+            if self.duel.game and self.duel.game.board:
+                for m in self.duel.game.board.minion_place.values():
+                    if m is card:
+                        continue
+                    m_pending = getattr(m, "_pending_attack_targets", None)
+                    if m_pending and isinstance(m_pending, list) and card in m_pending:
+                        pointed_by.append(m.name)
+                        continue
+                    m_effect = getattr(m, "_pending_effect_target", None)
+                    if m_effect is card:
+                        pointed_by.append(m.name)
+                        continue
+                    # 通用反向查找：检查其他异象的实例属性是否引用本异象
+                    for val in vars(m).values():
+                        if val is card:
+                            pointed_by.append(m.name)
+                            break
+                        if isinstance(val, (list, tuple, set)) and card in val:
+                            pointed_by.append(m.name)
+                            break
+            if pointed_by:
+                lines.append(f"被指向: {', '.join(pointed_by)}")
 
             # 藤蔓覆盖
             vine = getattr(card, "vine_overlay", None)
@@ -2736,13 +2826,13 @@ class BattleFrame(tk.Frame):
                             font=("Microsoft YaHei", 8, "bold"), tags="card_text")
             bottom_text = stats
             if isinstance(card, Strategy):
-                bottom_text = "【策】"
+                bottom_text = "【策略】"
             elif isinstance(card, Conspiracy):
-                bottom_text = "【谋】"
+                bottom_text = "【阴谋】"
             elif isinstance(card, MineralCard):
-                bottom_text = "【矿】"
+                bottom_text = "【矿物】"
             elif isinstance(card, MinionCard):
-                bottom_text = f"【随】{stats}"
+                bottom_text = f"【异象】{stats}"
             cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill="#455a64",
                             font=("Microsoft YaHei", 8), tags="card_text")
 
@@ -2906,13 +2996,13 @@ class BattleFrame(tk.Frame):
                 stats = f"{card.attack}/{card.health}"
             bottom_text = stats
             if isinstance(card, ST):
-                bottom_text = "【策】"
+                bottom_text = "【策略】"
             elif isinstance(card, CO):
-                bottom_text = "【谋】"
+                bottom_text = "【阴谋】"
             elif isinstance(card, MI):
-                bottom_text = "【矿】"
+                bottom_text = "【矿物】"
             elif isinstance(card, MC):
-                bottom_text = f"【随】{stats}"
+                bottom_text = f"【异象】{stats}"
             cvs.create_text(cw // 2, 14, text=name, fill="#212121",
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
             cvs.create_text(10, 10, text=cost_str, fill="#d32f2f",
@@ -2961,13 +3051,13 @@ class BattleFrame(tk.Frame):
         cost = str(card.cost)
         type_icon = ""
         if isinstance(card, MinionCard):
-            type_icon = "【随】"
+            type_icon = "【异象】"
         elif isinstance(card, Strategy):
-            type_icon = "【策】"
+            type_icon = "【策略】"
         elif isinstance(card, Conspiracy):
-            type_icon = "【谋】"
+            type_icon = "【阴谋】"
         elif isinstance(card, MineralCard):
-            type_icon = "【矿】"
+            type_icon = "【矿物】"
         if isinstance(card, MinionCard):
             return f"{type_icon}{name}\n{cost}费 {card.attack}/{card.health}"
         return f"{type_icon}{name}\n{cost}费"
@@ -2999,7 +3089,10 @@ class BattleFrame(tk.Frame):
                 bg = "#fafafa"
 
             for key in ["frame", "row0", "row1", "row2", "row_shown", "dot", "name_label", "hp_frame", "hp_label",
-                        "deck_label", "dis_label", "conspiracy_label", "shown_label"]:
+                        "dis_label", "conspiracy_label", "shown_label"]:
+                if key in widgets:
+                    widgets[key].config(bg=bg)
+            for key in ["deck_badge", "hand_label"]:
                 if key in widgets:
                     widgets[key].config(bg=bg)
             # 恢复手牌 badge 背景色
@@ -3034,10 +3127,11 @@ class BattleFrame(tk.Frame):
                         c.after(450, lambda: c.itemconfig(t, fill=orig))
                     _flash()
                 self._prev_res_values[(pname, key)] = val
+                prefix = {"t": "T", "c": "C", "b": "B", "s": "S"}[key]
                 if val_max is not None:
-                    cvs.itemconfig(text_id, text=f"{val}/{val_max}")
+                    cvs.itemconfig(text_id, text=f"{prefix} {val}/{val_max}")
                 else:
-                    cvs.itemconfig(text_id, text=f"{val}")
+                    cvs.itemconfig(text_id, text=f"{prefix} {val}")
 
             # 牌组信息
             hand_count = len(player.card_hand)
@@ -3047,7 +3141,7 @@ class BattleFrame(tk.Frame):
             else:
                 hand_text = f"手牌 {hand_count}"
             widgets["hand_label"].config(text=hand_text)
-            widgets["deck_label"].config(text=f"牌库 {len(player.card_deck)}")
+            widgets["deck_badge"].config(text=f"牌库 {len(player.card_deck)}")
             widgets["dis_label"].config(text=f"弃牌 {len(player.card_dis)}")
             widgets["conspiracy_label"].config(text=f"阴谋 {len(player.active_conspiracies)}")
 
@@ -3505,7 +3599,7 @@ class BattleFrame(tk.Frame):
                 self._submit_play(serial, None)
             return
 
-        # 随从卡：先处理献祭，再选择部署位置
+        # 异象卡：先处理献祭，再选择部署位置
         if isinstance(card, MinionCard):
             if card.cost.b > 0:
                 # 若当前B点已足够，直接部署，无需献祭
@@ -3546,7 +3640,7 @@ class BattleFrame(tk.Frame):
         return valid
 
     def _enter_deploy_targeting(self, serial: int, card, active):
-        """进入随从卡部署位置选择。"""
+        """进入异象卡部署位置选择。"""
         sacrifices = getattr(self, "_pending_sacrifices", [])
         valid = self._calc_deploy_range(card, active, sacrifices)
         if not valid:
@@ -3759,50 +3853,61 @@ class BattleFrame(tk.Frame):
         else:
             self._clear_selection()
 
-    def _on_exchange(self):
+    def _toggle_mineral_bar(self):
+        """展开/收起矿物快捷兑换面板。"""
+        if self.mineral_bar.winfo_ismapped():
+            self.mineral_bar.pack_forget()
+            self.exchange_btn.config(bg="#fff9c4")
+        else:
+            self._refresh_mineral_bar()
+            self.mineral_bar.pack(fill=tk.X, pady=(0, 5), before=self.hint_label)
+            self.exchange_btn.config(bg="#fff59d")
+
+    def _refresh_mineral_bar(self):
+        """根据当前玩家资源刷新4个矿物按钮的可用状态。"""
+        active = self.duel.game and self.duel.game.current_player
+        if not active:
+            for btn in self._mineral_buttons.values():
+                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+            return
+
+        from tards.card_db import Pack
+        can_exchange = active.immersion_points.get(Pack.DISCRETE, 0) >= 1
+
+        for mtype, btn in self._mineral_buttons.items():
+            target_name = None
+            for name, card_def in DEFAULT_REGISTRY._cards.items():
+                if card_def.card_type == CardType.MINERAL and card_def.mineral_type == mtype:
+                    target_name = name
+                    break
+            if not target_name or not can_exchange:
+                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                continue
+            tmp_card = DEFAULT_REGISTRY.get(target_name).to_game_card(active)
+            if tmp_card.exchange_cost.can_afford(active):
+                btn.config(state=tk.NORMAL, bg="#fff9c4", fg="#f57f17")
+            else:
+                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+
+    def _do_exchange_mineral(self, name: str) -> None:
+        """直接兑换指定名称的矿物，收起展开面板。"""
         active = self.duel.game and self.duel.game.current_player
         if not active:
             return
         if isinstance(self.duel, NetworkDuel) and active != self.local_player:
             return
-        from tards.card_db import Pack
-        if active.immersion_points.get(Pack.DISCRETE, 0) < 1:
-            messagebox.showinfo("兑换矿物", "你没有离散沉浸度，无法兑换矿物")
-            return
+        self.duel.submit_local_action({"type": "exchange", "card_name": name})
+        self._add_history(f"兑换矿物 [{name}]", is_play=True)
+        self.hint_label.config(text=f"已兑换 {name}")
+        self.after(1500, self._reset_guide_hint)
+        # 收起展开面板
+        if self.mineral_bar.winfo_ismapped():
+            self.mineral_bar.pack_forget()
+            self.exchange_btn.config(bg="#fff9c4")
 
-        minerals = []
-        for name, card_def in DEFAULT_REGISTRY._cards.items():
-            if card_def.card_type == CardType.MINERAL:
-                tmp_card = card_def.to_game_card(active)
-                if tmp_card.exchange_cost.can_afford(active):
-                    minerals.append((name, card_def.cost, card_def.mineral_type))
-
-        if not minerals:
-            messagebox.showinfo("兑换矿物", "当前没有可兑换的矿物")
-            return
-
-        win = tk.Toplevel(self)
-        win.title("兑换矿物")
-        win.geometry("300x200")
-        tk.Label(win, text="选择要兑换的矿物:").pack(pady=5)
-
-        var = tk.StringVar(win)
-        options = [f"{name} ({cost}) [{mtype}]" for name, cost, mtype in minerals]
-        var.set(options[0])
-        menu = tk.OptionMenu(win, var, *options)
-        menu.pack(pady=5)
-
-        def do_exchange():
-            selected = var.get()
-            name = selected.split(" ")[0]
-            self.duel.submit_local_action({"type": "exchange", "card_name": name})
-            win.destroy()
-            self._add_history(f"兑换矿物 [{name}]", is_play=True)
-            self.hint_label.config(text=f"已兑换 {name}")
-            self.after(1500, self._reset_guide_hint)
-
-        tk.Button(win, text="确认兑换", command=do_exchange).pack(pady=5)
-        tk.Button(win, text="取消", command=win.destroy).pack(pady=5)
+    def _on_exchange(self):
+        """旧版弹窗兑换（保留兼容，但主入口改为展开面板）。"""
+        self._toggle_mineral_bar()
 
     def _on_toggle_squirrel_draw(self):
         active = self.duel.game and self.duel.game.current_player
@@ -3858,15 +3963,11 @@ class BattleFrame(tk.Frame):
                     break
 
         if not target_name:
-            mineral_names = {"I": "铁锭", "G": "金矿", "D": "钻石", "M": "青金石"}
+            mineral_names = {"I": "铁锭", "G": "金锭", "D": "钻石", "M": "青金石"}
             messagebox.showinfo("兑换矿物", f"当前无法兑换{mineral_names.get(mineral_type, mineral_type)}")
             return
 
-        self.duel.submit_local_action({"type": "exchange", "card_name": target_name})
-        self._add_history(f"兑换矿物 [{target_name}]", is_play=True)
-        self.hint_label.config(text=f"已兑换 {target_name}")
-        self.after(1500, self._reset_guide_hint)
-        self.hint_label.config(text="已兑换松鼠")
+        self._do_exchange_mineral(target_name)
 
     def _clear_selection(self):
         self.selected_card_idx = None
@@ -3957,8 +4058,16 @@ class BattleFrame(tk.Frame):
                 self.exchange_btn.pack(side=tk.LEFT, padx=5)
             else:
                 self.exchange_btn.pack_forget()
+            # 松鼠按钮：有冥刻沉浸度时始终显示，但T点不足/已兑换/牌堆空时灰掉
             if has_underworld:
                 self.exchange_squirrel_btn.pack(side=tk.LEFT, padx=5)
+                can_squirrel = (current.t_point >= 1 and
+                                not current.squirrel_exchanged_this_turn and
+                                current.squirrel_deck)
+                if can_squirrel:
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#fff9c4", fg="#f57f17")
+                else:
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
             else:
                 self.exchange_squirrel_btn.pack_forget()
         elif self.local_player:
@@ -3971,6 +4080,13 @@ class BattleFrame(tk.Frame):
                 self.exchange_btn.pack_forget()
             if has_underworld:
                 self.exchange_squirrel_btn.pack(side=tk.LEFT, padx=5)
+                can_squirrel = (self.local_player.t_point >= 1 and
+                                not self.local_player.squirrel_exchanged_this_turn and
+                                self.local_player.squirrel_deck)
+                if can_squirrel:
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#e3f2fd", fg="#1565c0")
+                else:
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
             else:
                 self.exchange_squirrel_btn.pack_forget()
 
@@ -4069,84 +4185,12 @@ class BattleFrame(tk.Frame):
         return " ".join(parts)
 
     def _show_card_tooltip(self, event, card):
-        self._hide_tooltip()
-        lines = [card.name, f"费用: {card.cost}"]
-        if isinstance(card, MinionCard):
-            lines.append(f"攻击/生命: {card.attack}/{card.health}")
-        if getattr(card, "keywords", None):
-            lines.append(f"关键词: {self._fmt_keywords(card.keywords)}")
-        text = "\n".join(lines)
-        self._tooltip = Tooltip(self.hand_inner, text, event.x_root, event.y_root)
-        self._tooltip_source = card
+        # 浮窗已禁用，详情信息改由右侧固定面板显示
+        pass
 
     def _show_minion_tooltip(self, event, minion):
-        lines = [minion.name]
-        atk_text = str(minion.attack)
-        if minion.current_attack != minion.base_attack:
-            atk_text += f" (基础{minion.base_attack})"
-        hp_text = str(minion.health)
-        if minion.current_health != minion.base_health or minion.current_max_health != minion.base_max_health:
-            hp_text += f" (基础{minion.base_health}/{minion.base_max_health})"
-        lines.append(f"攻击/生命: {atk_text}/{hp_text}")
-        display_kw = minion.display_keywords
-        if display_kw:
-            lines.append(f"关键词: {self._fmt_keywords(display_kw)}")
-        # 亡语来源标注
-        dr_fn = display_kw.get("亡语")
-        if callable(dr_fn):
-            lines.append(f"亡语来源: {minion.name}")
-        # 指向关系
-        pending = getattr(minion, "_pending_attack_targets", None)
-        if pending and isinstance(pending, list) and len(pending) > 0:
-            target_names = []
-            for t in pending:
-                if hasattr(t, "name"):
-                    target_names.append(t.name)
-                else:
-                    target_names.append(str(t))
-            lines.append(f"攻击目标: {' → '.join(target_names)}")
-        effect_pending = getattr(minion, "_pending_effect_target", None)
-        if effect_pending is not None:
-            if hasattr(effect_pending, "name"):
-                lines.append(f"效果目标: {effect_pending.name}")
-            else:
-                lines.append(f"效果目标: {effect_pending}")
-        # 被哪些异象指向（攻击目标 + 特殊效果目标）
-        pointed_by = []
-        if self.duel.game and self.duel.game.board:
-            for m in self.duel.game.board.minion_place.values():
-                if m is minion:
-                    continue
-                m_pending = getattr(m, "_pending_attack_targets", None)
-                if m_pending and isinstance(m_pending, list) and minion in m_pending:
-                    pointed_by.append(m.name)
-                    continue
-                m_effect = getattr(m, "_pending_effect_target", None)
-                if m_effect is minion:
-                    pointed_by.append(m.name)
-                    continue
-                # 通用反向查找：检查其他异象的实例属性是否引用本异象
-                for val in vars(m).values():
-                    if val is minion:
-                        pointed_by.append(m.name)
-                        break
-                    if isinstance(val, (list, tuple, set)) and minion in val:
-                        pointed_by.append(m.name)
-                        break
-        if pointed_by:
-            lines.append(f"被指向: {', '.join(pointed_by)}")
-        # 漂浮物/藤蔓宿主信息
-        host = getattr(minion, "float_host", None) or getattr(minion, "vine_host", None)
-        if host:
-            lines.append("")
-            host_type = "漂浮物" if getattr(minion, "float_host", None) else "藤蔓"
-            lines.append(f"▓ {host_type}: {host.name}")
-            lines.append(f"   攻击/生命: {host.attack}/{host.health}")
-            if getattr(host, "keywords", None):
-                lines.append(f"   关键词: {self._fmt_keywords(host.keywords)}")
-        text = "\n".join(lines)
-        self._tooltip = Tooltip(self.canvas, text, event.x_root, event.y_root)
-        self._tooltip_source = minion
+        # 浮窗已禁用，详情信息改由右侧固定面板显示
+        pass
 
     def _move_tooltip(self, x, y):
         if self._tooltip:

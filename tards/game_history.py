@@ -291,6 +291,12 @@ class GameHistory:
         oid = id(owner)
         return len(self._owner_registry.get(oid, []))
 
+    def get_listeners_by_owner(self, owner: Any) -> List[ListenerEntry]:
+        """返回绑定到指定 owner 的所有监听器条目。"""
+        oid = id(owner)
+        lids = self._owner_registry.get(oid, [])
+        return [self._listener_entries[lid] for lid in lids if lid in self._listener_entries]
+
     # =============================================================================
     # v3.0 通用事件查询 API
     # =============================================================================

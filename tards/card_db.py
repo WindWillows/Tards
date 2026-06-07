@@ -56,7 +56,7 @@ class CardDefinition:
     targets_count: int = 1
     targets_repeat: bool = False
     # 多阶段指向（如"先选友方，再选敌方"）
-    # 随从卡和策略卡通用：第一阶段为 targets_fn，后续阶段为 extra_targeting_stages
+    # 异象卡和策略卡通用：第一阶段为 targets_fn，后续阶段为 extra_targeting_stages
     extra_targeting_stages: List[Any] = field(default_factory=list)
     # 自动化事件回调（时间节点触发）
     on_turn_start: Optional[Callable] = None

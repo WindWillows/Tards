@@ -1070,7 +1070,8 @@ def _init_event_name_map():
     }
 
 
-def on(period: str, callback, game, minion=None, priority: int = 0, once: bool = False) -> int:
+def on(period: str, callback, game, minion=None, priority: int = 0, once: bool = False,
+        source_name: str = None, description: str = None) -> int:
     """注册一个事件监听器。period 支持中英文事件名。
 
     常用 period：
@@ -1085,9 +1086,14 @@ def on(period: str, callback, game, minion=None, priority: int = 0, once: bool =
 
     minion 为 None 时，监听器无 owner（需手动注销）。
     once=True 时，监听器触发一次后自动注销。
+    source_name / description 用于 UI 详情面板显示效果来源与描述。
     """
     _init_event_name_map()
     event_type = _EVENT_NAME_MAP.get(period, period)
+    if source_name is not None:
+        callback._source_name = source_name
+    if description is not None:
+        callback._description = description
     return game.history.listen(event_type, callback, owner=minion, priority=priority, once=once)
 
 
@@ -2098,17 +2104,19 @@ def get_minions_by_cost(
 # 16. 动态效果注入
 # =============================================================================
 
-def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -> None:
-    """给异象注入一个回合开始效果。"""
+def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None], source_name: str = "未知") -> None:
+    """给异象注入一个回合开始效果。source_name 用于 UI 显示来源。"""
     if not hasattr(minion, "_injected_turn_start"):
         minion._injected_turn_start = []
+    fn._source_name = source_name
     minion._injected_turn_start.append(fn)
 
 
-def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None]) -> None:
-    """给异象注入一个回合结束效果。"""
+def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None], source_name: str = "未知") -> None:
+    """给异象注入一个回合结束效果。source_name 用于 UI 显示来源。"""
     if not hasattr(minion, "_injected_turn_end"):
         minion._injected_turn_end = []
+    fn._source_name = source_name
     minion._injected_turn_end.append(fn)
 
 

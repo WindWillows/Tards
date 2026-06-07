@@ -3321,8 +3321,10 @@ def _jiaoshui_effect(player, target, game, extras=None):
             target.current_health += 1
             print(f"  胶水：{target.name} 因此存活，+1/1")
 
-    on(EVENT_BEFORE_DAMAGE, protect, game, minion=target)
-    on(EVENT_AFTER_DAMAGE, check_survival, game, minion=target)
+    on(EVENT_BEFORE_DAMAGE, protect, game, minion=target,
+       source_name="胶水", description="受到致命伤害前+0/1")
+    on(EVENT_AFTER_DAMAGE, check_survival, game, minion=target,
+       source_name="胶水", description="若因此存活+1/1")
     print(f"  胶水：{target.name} 获得致命伤害保护")
     return True
 
