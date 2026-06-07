@@ -2,7 +2,7 @@ import queue
 import random
 import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .board import Board
 from .game import Game
@@ -219,6 +219,11 @@ class NetworkDuel:
                         print(f"[Sync] 回合 {turn} hash 一致 ({remote_hash})")
                 elif mtype == "DISCONNECT":
                     break
+                else:
+                    # 将非 SYNC_HASH 消息暂存，避免被当前线程丢弃
+                    # 导致 Discover/Choice/Mulligan 等 provider 收不到消息
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
         self._sync_hash_thread = threading.Thread(target=listener, daemon=True)
         self._sync_hash_thread.start()
 
@@ -467,16 +472,20 @@ class NetworkDuel:
 
             # 3. 等待对方 mulligan 结果
             remote_indices = []
-            while True:
-                try:
-                    msg = self.conn.msg_queue.get(timeout=0.2)
-                except queue.Empty:
-                    if game.game_over:
+            pending = self._pop_pending("MULLIGAN")
+            if pending:
+                remote_indices = pending.get("indices", [])
+            else:
+                while True:
+                    try:
+                        msg = self.conn.msg_queue.get(timeout=0.2)
+                    except queue.Empty:
+                        if game.game_over:
+                            break
+                        continue
+                    if msg.get("type") == "MULLIGAN":
+                        remote_indices = msg.get("indices", [])
                         break
-                    continue
-                if msg.get("type") == "MULLIGAN":
-                    remote_indices = msg.get("indices", [])
-                    break
                 if msg.get("type") in ("GAMEOVER", "DISCONNECT"):
                     break
 
