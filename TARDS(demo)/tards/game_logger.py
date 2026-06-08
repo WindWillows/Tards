@@ -39,6 +39,12 @@ class BattleLogWriter:
         """创建一局对战的日志写入器，自动按时间戳生成文件。"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_path = os.path.join(LOGS_DIR, f"battle_{timestamp}.log")
+        # 避免同一秒内多个进程冲突，追加序号
+        counter = 1
+        base_path = log_path
+        while os.path.exists(log_path):
+            log_path = f"{base_path[:-4]}_{counter}.log"
+            counter += 1
         file_obj = open(log_path, "w", encoding="utf-8")
         console_stdout.write(f"[系统] 对局日志已保存到: {log_path}\n")
         return cls(file_obj, console_stdout)
