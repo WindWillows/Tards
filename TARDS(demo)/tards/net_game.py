@@ -477,6 +477,11 @@ class NetworkDuel:
                 remote_indices = pending.get("indices", [])
             else:
                 while True:
+                    # 先检查暂存队列（后台线程可能已取走消息）
+                    pending = self._pop_pending("MULLIGAN")
+                    if pending:
+                        remote_indices = pending.get("indices", [])
+                        break
                     try:
                         msg = self.conn.msg_queue.get(timeout=0.2)
                     except queue.Empty:
@@ -488,6 +493,9 @@ class NetworkDuel:
                         break
                     if msg.get("type") in ("GAMEOVER", "DISCONNECT"):
                         break
+                    # 非目标消息暂存，供其他 provider 使用
+                    with self._pending_lock:
+                        self._pending_messages.append(msg)
 
             # 4. 按 players 列表顺序执行 mulligan（保证双方 random 状态一致）
             for player in players:
