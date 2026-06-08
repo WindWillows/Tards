@@ -259,11 +259,11 @@ class NetworkDuel:
                 return action
             else:
                 # 远端玩家：阻塞等待网络消息
-                # 先检查暂存队列（后台线程可能已取走消息）
-                pending_action = self._pop_pending("ACTION")
-                if pending_action:
-                    return deserialize_action(pending_action, game.board)
                 while True:
+                    # 先检查暂存队列（后台线程可能已取走消息）
+                    pending_action = self._pop_pending("ACTION")
+                    if pending_action:
+                        return deserialize_action(pending_action, game.board)
                     try:
                         msg = self.conn.msg_queue.get(timeout=0.2)
                     except queue.Empty:

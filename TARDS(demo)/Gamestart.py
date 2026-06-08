@@ -4643,9 +4643,11 @@ class BattleFrame(tk.Frame):
                     traceback.print_exc()
                 if self.duel.game:
                     active = self.duel.game.current_player
-                    if isinstance(self.duel, NetworkDuel):
+                    if not active:
+                        self.hint_label.config(text="游戏加载中...")
+                    elif isinstance(self.duel, NetworkDuel):
                         if active == self.local_player:
-                            self.hint_label.config(text=f"轮到你的行动")
+                            self.hint_label.config(text="轮到你的行动")
                         else:
                             self.hint_label.config(text=f"等待 {active.name} 行动...")
                     else:
