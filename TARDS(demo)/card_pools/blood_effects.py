@@ -330,7 +330,7 @@ def _jiaopian_effect(player, target, game, extras=None):
     """胶片：抉择——对你造成1点伤害 或 移除卡组顶1张到弃牌堆。"""
     from card_pools.effect_utils import deal_damage_to_player
 
-    choice = (extras or [None])[0]
+    choice = game.request_choice(player, ["造成1点伤害", "移除卡组顶1张"], title="胶片")
     if choice == "造成1点伤害":
         deal_damage_to_player(player, 1, game=game)
         print(f"  胶片：{player.name} 受到1点伤害")
@@ -1760,7 +1760,7 @@ def _xianyingshi_special(minion, player, game, extras=None):
 @special
 def _dujiaodadao_special(minion, player, game, extras=None):
     """独脚大盗：部署：抽取对方卡组顶的1张牌。"""
-    opponent = game.p1 if player == game.p1 else game.p2
+    opponent = game.p2 if player == game.p1 else game.p1
     drawn = player.draw_card(1, game=game, deck_owner=opponent)
     if drawn:
         drawn[0].owner = player
@@ -1852,7 +1852,7 @@ def _register_zhadanren_listener(card, player, game):
         # 磨牌不是弃牌
         if event_data.get("reason") == "mill":
             return
-        opponent = game.p1 if player == game.p1 else game.p2
+        opponent = game.p2 if player == game.p1 else game.p1
         if opponent.card_hand:
             import random
             to_discard = random.choice(opponent.card_hand)

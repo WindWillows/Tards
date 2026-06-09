@@ -1740,6 +1740,21 @@ class BattleFrame(tk.Frame):
         self._schedule_refresh()
         self._bind_shortcuts()
 
+    def _display_row(self, logic_r: int) -> int:
+        """将逻辑行坐标转换为显示行坐标。
+
+        side=1（Client/后手）时翻转视角：自己的半场始终显示在屏幕下方。
+        """
+        if self.local_player and self.local_player.side == 1:
+            return self.BOARD_ROWS - 1 - logic_r
+        return logic_r
+
+    def _logic_row(self, display_r: int) -> int:
+        """将显示行坐标转换回逻辑行坐标（_display_row 的逆运算）。"""
+        if self.local_player and self.local_player.side == 1:
+            return self.BOARD_ROWS - 1 - display_r
+        return display_r
+
     def _bind_shortcuts(self):
         """绑定键盘快捷键与全局拖拽事件。"""
         self.bind_all("<Key>", self._on_key_press)
@@ -1828,7 +1843,7 @@ class BattleFrame(tk.Frame):
             if not m.can_attack_this_turn(self.duel.game.current_turn):
                 continue
             vision = m.keywords.get("视野", 0)
-            multi = m.keywords.get("高频", 0) or m.keywords.get("连击", 0) or m.keywords.get("多重打击", 0)
+            multi = m.keywords.get("高频", 0)
             count = multi if isinstance(multi, int) and multi > 0 else 1
             if vision <= 0 and (not isinstance(multi, int) or multi <= 0):
                 continue
@@ -1948,8 +1963,9 @@ class BattleFrame(tk.Frame):
         board_h = self.BOARD_ROWS * self.cell_size
         if 0 <= canvas_x < board_w and 0 <= canvas_y < board_h:
             c = int(canvas_x // self.cell_size)
-            r = int(canvas_y // self.cell_size)
-            self._try_play_at_position(self._dragging_serial, (r, c))
+            display_r = int(canvas_y // self.cell_size)
+            logic_r = self._logic_row(display_r)
+            self._try_play_at_position(self._dragging_serial, (logic_r, c))
         self._dragging_card = None
         self._dragging_serial = None
 
@@ -2422,7 +2438,8 @@ class BattleFrame(tk.Frame):
         """
         if not self.duel.game:
             return
-        active = self.duel.game.current_player
+        # 与 _render_hand 保持一致：网络对局用 local_player，本地对局用 current_player
+        active = self.local_player if isinstance(self.duel, NetworkDuel) else self.duel.game.current_player
         card = active._get_hand_card(serial) if active else None
         if card is None:
             return
@@ -2446,16 +2463,18 @@ class BattleFrame(tk.Frame):
 
         for target in valid:
             if isinstance(target, tuple) and len(target) == 2:
-                r, c = target
+                logic_r, c = target
+                display_r = self._display_row(logic_r)
                 cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
                                              outline="#4caf50", width=2, dash=(4, 4),
                                              tags="preview_hint")
             elif hasattr(target, "position") and target.position:
-                r, c = target.position
+                logic_r, c = target.position
+                display_r = self._display_row(logic_r)
                 cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
                                              outline="#4caf50", width=2, dash=(4, 4),
                                              tags="preview_hint")
@@ -2490,41 +2509,42 @@ class BattleFrame(tk.Frame):
             4: "#ffffff",
         }
 
-        for r in range(5):
+        for logic_r in range(5):
             for c in range(5):
+                display_r = self._display_row(logic_r)
                 x1 = c * self.cell_size + self.board_offset_x
-                y1 = r * self.cell_size + self.board_offset_y
+                y1 = display_r * self.cell_size + self.board_offset_y
                 x2 = x1 + self.cell_size
                 y2 = y1 + self.cell_size
                 terrain_id = None
-                if r in (0, 1):
+                if display_r in (0, 1):
                     terrain_id = "terrain_enemy"
-                elif r == 2:
+                elif display_r == 2:
                     terrain_id = "terrain_neutral"
-                elif r in (3, 4):
+                elif display_r in (3, 4):
                     terrain_id = "terrain_friendly"
 
                 # 绘制垂直渐变背景（用细条模拟）
-                top_c = row_top_colors[r]
-                bot_c = row_bottom_colors[r]
+                top_c = row_top_colors[display_r]
+                bot_c = row_bottom_colors[display_r]
                 step_h = self.cell_size / GRADIENT_STEPS
                 for i in range(GRADIENT_STEPS):
                     t = i / GRADIENT_STEPS
                     color = self._interpolate_color(top_c, bot_c, t)
                     sy1 = int(y1 + i * step_h)
                     sy2 = int(y1 + (i + 1) * step_h)
-                    self.canvas.create_rectangle(x1, sy1, x2, sy2, fill=color, outline="", tags=f"cell_{r}_{c}")
+                    self.canvas.create_rectangle(x1, sy1, x2, sy2, fill=color, outline="", tags=f"cell_{logic_r}_{c}")
 
                 # 尝试加载地形纹理（覆盖在渐变之上，半透明）
                 if terrain_id:
                     tile = am.get_board_tile(terrain_id, self.cell_size)
                     if tile:
-                        self._tile_image_refs[(r, c)] = tile
+                        self._tile_image_refs[(logic_r, c)] = tile
                         self.canvas.create_image(x1 + self.cell_size // 2, y1 + self.cell_size // 2,
-                                                 image=tile, tags=f"cell_{r}_{c}")
+                                                 image=tile, tags=f"cell_{logic_r}_{c}")
 
                 # 格子边框（内阴影感）
-                self.canvas.create_rectangle(x1, y1, x2, y2, outline="#bdbdbd", width=1, tags=f"cell_{r}_{c}")
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline="#bdbdbd", width=1, tags=f"cell_{logic_r}_{c}")
 
         # 列名标签（带主题色底）
         col_label_colors = ["#d7ccc8", "#e0e0e0", "#f5f5f5", "#e3f2fd", "#e1f5fe"]
@@ -2549,7 +2569,7 @@ class BattleFrame(tk.Frame):
 
         # 计算需要预设的攻击次数
         needed = 0
-        multi_attack = minion.keywords.get("高频", 0) or minion.keywords.get("连击", 0) or minion.keywords.get("多重打击", 0)
+        multi_attack = minion.keywords.get("高频", 0)
         if isinstance(multi_attack, int) and multi_attack > 0:
             needed = multi_attack
         elif minion.keywords.get("视野", 0) > 0:
@@ -2577,13 +2597,10 @@ class BattleFrame(tk.Frame):
             "成长": ("#4caf50", "white"),
             "视野": ("#ffeb3b", "black"),
             "高频": ("#f44336", "white"),
-            "连击": ("#e91e63", "white"),
-            "多重打击": ("#e91e63", "white"),
             "防空": ("#009688", "white"),
             "尖刺": ("#8bc34a", "black"),
             "穿刺": ("#ff5722", "white"),
             "串击": ("#ff5722", "white"),
-            "穿透": ("#ff5722", "white"),
             "横扫": ("#ff9800", "white"),
             "丰饶": ("#ff9800", "white"),
             "献祭": ("#795548", "white"),
@@ -2607,7 +2624,7 @@ class BattleFrame(tk.Frame):
         priority = {
             "恐惧": 0, "冰冻": 0, "眩晕": 0, "休眠": 0,
             "亡语": 1, "迅捷": 1, "潜水": 1, "潜行": 1,
-            "成长": 2, "视野": 3, "高频": 3, "连击": 3, "多重打击": 3,
+            "成长": 2, "视野": 3, "高频": 3,
         }
         active_keywords.sort(key=lambda x: priority.get(x[0], 99))
 
@@ -2626,7 +2643,7 @@ class BattleFrame(tk.Frame):
             text = k[0]
             if isinstance(v, int) and v > 1:
                 text += str(v)
-            elif isinstance(v, int) and v == 1 and k in ("视野", "高频", "连击", "多重打击", "横扫", "尖刺"):
+            elif isinstance(v, int) and v == 1 and k in ("视野", "高频", "横扫", "尖刺"):
                 text += "1"
             self.canvas.create_rectangle(bx - 8, by - 6, bx + 8, by + 6,
                                          fill=bg, outline="white", width=1,
@@ -2647,9 +2664,10 @@ class BattleFrame(tk.Frame):
             return
         am = get_asset_manager()
         self._minion_image_refs = {}
-        for (r, c), m in self.duel.game.board.minion_place.items():
+        for (logic_r, c), m in self.duel.game.board.minion_place.items():
+            display_r = self._display_row(logic_r)
             cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-            cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             # 异象主色调：柔和 pastel，与半场背景协调且易辨识
             if m.owner.side == self.local_player.side:
                 color = "#5c8bd6"        # 友方 - 柔和蓝（暖黄背景上清新）
@@ -2657,7 +2675,7 @@ class BattleFrame(tk.Frame):
             else:
                 color = "#d87878"        # 敌方 - 柔和珊瑚（淡蓝背景上温暖）
                 shadow_color = "#b05555"
-            tag = f"minion_{r}_{c}"
+            tag = f"minion_{logic_r}_{c}"
             # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
                 self.canvas.tag_unbind(tag, seq)
@@ -2690,7 +2708,7 @@ class BattleFrame(tk.Frame):
             if getattr(m, "asset_id", None):
                 portrait = am.get_thumbnail(m.asset_id, 56, 56)
             if portrait:
-                self._minion_image_refs[(r, c)] = portrait
+                self._minion_image_refs[(logic_r, c)] = portrait
                 self.canvas.create_image(cx, cy, image=portrait, tags=(tag, "minion", "portrait"))
                 # 保留边框
                 self.canvas.create_rectangle(cx - 28, cy - 25, cx + 28, cy + 25, fill="", outline=outline, width=width, tags=(tag, "minion"))
@@ -2751,7 +2769,7 @@ class BattleFrame(tk.Frame):
             if pending and isinstance(pending, list) and len(pending) > 0:
                 clear_x = cx + 22
                 clear_y = cy + 18
-                clear_tag = f"clear_pending_{r}_{c}"
+                clear_tag = f"clear_pending_{logic_r}_{c}"
                 self.canvas.tag_unbind(clear_tag, "<Button-1>")
                 self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
                                              fill="#ff5252", outline="white", width=1,
@@ -2766,7 +2784,7 @@ class BattleFrame(tk.Frame):
             if effect_pending is not None:
                 clear_x = cx - 22
                 clear_y = cy + 18
-                clear_tag = f"clear_effect_{r}_{c}"
+                clear_tag = f"clear_effect_{logic_r}_{c}"
                 self.canvas.tag_unbind(clear_tag, "<Button-1>")
                 self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
                                              fill="#448aff", outline="white", width=1,
@@ -2781,7 +2799,7 @@ class BattleFrame(tk.Frame):
                     and m.owner == self.duel.game.current_player
                     and m.can_attack_this_turn(self.duel.game.current_turn)):
                 vision = m.keywords.get("视野", 0)
-                multi = m.keywords.get("高频", 0) or m.keywords.get("连击", 0) or m.keywords.get("多重打击", 0)
+                multi = m.keywords.get("高频", 0)
                 if vision > 0 or (isinstance(multi, int) and multi > 0):
                     self.canvas.create_oval(cx + 18, cy - 22, cx + 26, cy - 14,
                                             fill="#76ff03", outline="white", width=1,
@@ -2795,22 +2813,24 @@ class BattleFrame(tk.Frame):
                                             fill="#00e5ff", outline="white", width=1,
                                             tags=(tag, "minion", "interactive_dot"))
         # 绘制攻击预设连线
-        for (r, c), m in self.duel.game.board.minion_place.items():
+        for (logic_r, c), m in self.duel.game.board.minion_place.items():
             pending = getattr(m, "_pending_attack_targets", None)
             if not pending or not isinstance(pending, list):
                 continue
+            display_r = self._display_row(logic_r)
             x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            y1 = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             for target in pending:
                 if hasattr(target, "position") and target.position:
-                    tr, tc = target.position
+                    t_logic_r, tc = target.position
+                    t_display_r = self._display_row(t_logic_r)
                     x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                    y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                    y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_line(x1, y1, x2, y2,
                                             fill="#ffeb3b", dash=(4, 4), width=2,
                                             arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 绘制效果预设连线（预输入阶段）
-        for (r, c), m in self.duel.game.board.minion_place.items():
+        for (logic_r, c), m in self.duel.game.board.minion_place.items():
             pending = getattr(m, "_pending_effect_target", None)
             if pending is None:
                 continue
@@ -2818,28 +2838,32 @@ class BattleFrame(tk.Frame):
             hidden = getattr(m, '_hidden_effect_pending', False)
             if hidden and m.owner != self.local_player:
                 continue
+            display_r = self._display_row(logic_r)
             x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            y1 = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             target = pending
             if hasattr(target, "position") and target.position:
-                tr, tc = target.position
+                t_logic_r, tc = target.position
+                t_display_r = self._display_row(t_logic_r)
                 x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_line(x1, y1, x2, y2,
                                         fill="#00e5ff", dash=(4, 4), width=2,
                                         arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 绘制已完成指向的锁定连线（所有人可见，如鮟鱇）
-        for (r, c), m in self.duel.game.board.minion_place.items():
+        for (logic_r, c), m in self.duel.game.board.minion_place.items():
             locked = getattr(m, "_ankang_locked_target", None)
             if locked is None:
                 continue
+            display_r = self._display_row(logic_r)
             x1 = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-            y1 = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            y1 = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             target = locked
             if hasattr(target, "position") and target.position:
-                tr, tc = target.position
+                t_logic_r, tc = target.position
+                t_display_r = self._display_row(t_logic_r)
                 x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                y2 = tr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_line(x1, y1, x2, y2,
                                         fill="#00e5ff", dash=(4, 4), width=2,
                                         arrow=tk.LAST, tags=("target_arrow", "minion"))
@@ -2847,8 +2871,9 @@ class BattleFrame(tk.Frame):
         if self._in_sacrifice_mode and self._sacrifice_card and self._sacrifice_active:
             preview = self._calc_deploy_range(self._sacrifice_card, self._sacrifice_active, self._selected_sacrifices)
             for (pr, pc) in preview:
+                p_display_r = self._display_row(pr)
                 vcx = pc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                vcy = pr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                vcy = p_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
                                              outline="#ffd600", width=4,
                                              fill="#fff59d", stipple="gray50",
@@ -2856,8 +2881,9 @@ class BattleFrame(tk.Frame):
         # 高亮指向来源异象（金色发光边框）
         if self._targeting_source_minion and self._targeting_source_minion.position:
             sr, sc = self._targeting_source_minion.position
+            s_display_r = self._display_row(sr)
             scx = sc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-            scy = sr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+            scy = s_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             self.canvas.create_rectangle(scx - 34, scy - 29, scx + 34, scy + 29,
                                          outline="gold", width=4, tags="target_hint")
         # 高亮合法目标（位置）——黄色方框
@@ -2865,8 +2891,9 @@ class BattleFrame(tk.Frame):
             for t in self.valid_targets:
                 if isinstance(t, tuple) and len(t) == 2:
                     vr, vc = t
+                    v_display_r = self._display_row(vr)
                     vcx = vc * self.cell_size + self.cell_size // 2 + self.board_offset_x
-                    vcy = vr * self.cell_size + self.cell_size // 2 + self.board_offset_y
+                    vcy = v_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
                                                  outline="#ffd600", width=4,
                                                  fill="#fff59d", stipple="gray50",
@@ -4119,7 +4146,7 @@ class BattleFrame(tk.Frame):
             vision = m.keywords.get("视野", 0)
             if vision <= 0:
                 return
-            multi_attack = m.keywords.get("高频", 0) or m.keywords.get("连击", 0) or m.keywords.get("多重打击", 0)
+            multi_attack = m.keywords.get("高频", 0)
             atk_candidates = get_attack_target_candidates(m, self.duel.game)
             if not atk_candidates:
                 return
@@ -4314,13 +4341,14 @@ class BattleFrame(tk.Frame):
         if not self.duel.game:
             return
         if isinstance(target, tuple) and len(target) == 2:
-            r, c = target
+            logic_r, c = target
         elif hasattr(target, "position") and target.position:
-            r, c = target.position
+            logic_r, c = target.position
         else:
             return
+        display_r = self._display_row(logic_r)
         cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
-        cy = r * self.cell_size + self.cell_size // 2 + self.board_offset_y
+        cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
         flash = self.canvas.create_rectangle(cx - 40, cy - 40, cx + 40, cy + 40,
                                              outline="#ff1744", width=4,
                                              tags="flash_hint")
@@ -4334,8 +4362,9 @@ class BattleFrame(tk.Frame):
         if isinstance(self.duel, NetworkDuel) and active != self.local_player:
             return
         c = (event.x - self.board_offset_x) // self.cell_size
-        r = (event.y - self.board_offset_y) // self.cell_size
-        target = (r, c)
+        display_r = (event.y - self.board_offset_y) // self.cell_size
+        logic_r = self._logic_row(display_r)
+        target = (logic_r, c)
 
         # 0. 献祭选择模式：点击空白格子非法，点击异象由 _on_minion_click 处理
         if self._in_sacrifice_mode:

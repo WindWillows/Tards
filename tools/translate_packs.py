@@ -477,7 +477,7 @@ def try_generate_keyword_effect(description: str) -> Optional[str]:
         kw = m.group(1)
         val_str = m.group(2)
         val = _parse_count(val_str) if val_str else True
-        bool_kws = {"恐惧", "冰冻", "眩晕", "迅捷", "协同", "独行", "藤蔓", "水生", "两栖", "串击", "穿刺", "空袭", "防空", "潜水", "潜行", "绝缘", "尖刺", "回响", "坚韧", "视野", "横扫", "高地", "漂浮物", "脆弱", "三重打击", "穿透", "亡语"}
+        bool_kws = {"恐惧", "冰冻", "眩晕", "迅捷", "协同", "独行", "藤蔓", "水生", "两栖", "串击", "穿刺", "空袭", "防空", "潜水", "潜行", "绝缘", "尖刺", "回响", "坚韧", "视野", "横扫", "高地", "漂浮物", "脆弱", "亡语"}
         if kw in bool_kws and val is True:
             return 'lambda p, t, g, extras=None: (setattr(t, "base_keywords", dict(getattr(t, "base_keywords", {}))) or t.base_keywords.update({"' + kw + '": True}) or t.recalculate() or True) if hasattr(t, "recalculate") else False'
         if kw in {"先攻", "冰冻", "眩晕", "休眠", "坚韧", "尖刺", "视野", "高频", "横扫"}:

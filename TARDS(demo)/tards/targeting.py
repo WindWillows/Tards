@@ -229,6 +229,7 @@ def get_attack_target_candidates(minion: "Minion", game: "Game") -> List[Any]:
     """返回该异象当前可以攻击的合法目标（包含敌方异象和敌方玩家）。
 
     有视野的异象可以攻击视野范围内的任意敌方异象（含潜水/潜行，因为指向发生在出牌阶段）；
+    只要视野范围内存在可攻击的敌方异象，就不能攻击敌方玩家。
     无视野的异象只能攻击同列最前排的敌方异象。
     """
     board = game.board
@@ -241,7 +242,11 @@ def get_attack_target_candidates(minion: "Minion", game: "Game") -> List[Any]:
                    if m.owner != minion.owner and m.is_alive()
                    and abs(m.position[1] - base_col) <= vision_range
                    and not (m.keywords.get("虚化", False) or m.temp_keywords.get("虚化", False))]
-        candidates = enemies + [opponent]
+        # 视野范围内有异象时必须优先攻击异象，无法攻击对手
+        if enemies:
+            candidates = enemies
+        else:
+            candidates = [opponent]
     else:
         front = board.get_front_minion(base_col, minion.owner, attacker=minion)
         candidates = [front] if front else [opponent]

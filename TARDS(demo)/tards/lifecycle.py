@@ -67,6 +67,13 @@ class ListenerLifetimeManager:
         # 8. 战斗相关回调
         self._clear_combat_callbacks(minion)
 
+        # 9. 费用修正（source 绑定到该异象的修正）
+        player = getattr(minion, "owner", None)
+        if player and hasattr(player, "_cost_modifier_system"):
+            removed = player._cost_modifier_system.remove_by_source(minion)
+            if removed:
+                print(f"{prefix} 清理 {removed} 个费用修正")
+
     def clear_card(self, card: "Card", *, reason: str = "") -> None:
         """统一清理与某个卡牌关联的所有监听器。
 

@@ -119,7 +119,7 @@
 |------|------|---------|---------|---------|
 | **水幕墙** | 离散 | 受到非生命异象或策略造成的伤害时，将其设为0 | 需要伤害来源类型标记 | `take_damage` 增加 `source_type: str` 参数（"minion"/"strategy"/"player"）；在 `before_damage` 中过滤 |
 | **末地水晶** | 离散 | 友方目标受到对方策略效果时，改为由本异象承受 | 需要策略伤害识别+伤害重定向 | 同上，监听 `before_damage`，判断 `source_type=="strategy"` 且 `is_enemy(source, target)`，修改 event.target |
-| **恶魂** | 离散 | 本异象造成的伤害无视坚韧效果 | 需要"无视坚韧"穿透标记 | `deal_damage_to_minion` 增加 `ignore_toughness: bool`；或给 event 增加 `ignore_toughness` 标志 |
+| **恶魂** | 离散 | 本异象造成的伤害无视坚韧效果 | 需要"无视坚韧"标记 | `deal_damage_to_minion` 增加 `ignore_toughness: bool`；或给 event 增加 `ignore_toughness` 标志 |
 | **钟** | 离散 | 友方异象造成1点战斗伤害时，改为造成3点 | 需要"战斗伤害"分类 | `take_damage` 增加 `is_combat_damage: bool`；或从攻击流程中标记 |
 | **TNT炮** | 离散 | 攻击异象前，先造成等同于目标部署花费的伤害 | 需要预伤害（在正式攻击前额外造成伤害） | 在 `on_before_attack` 中调用 `deal_damage_to_minion(target, target_cost, ...)`，然后继续正常攻击流程 |
 

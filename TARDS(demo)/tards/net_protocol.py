@@ -135,6 +135,11 @@ def msg_mulligan(indices: list) -> Dict[str, Any]:
     return {"type": "MULLIGAN", "indices": indices}
 
 
+def msg_disconnect() -> Dict[str, Any]:
+    """断开连接通知消息。"""
+    return {"type": "DISCONNECT"}
+
+
 # ========== Action 序列化/反序列化 ==========
 def _serialize_action(action: Dict[str, Any]) -> Dict[str, Any]:
     """将本地 action 转换为可网络传输的 dict。"""

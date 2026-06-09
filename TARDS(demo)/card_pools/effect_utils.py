@@ -2308,6 +2308,7 @@ def register_terrain_enforcement(
     column: int,
     forced_terrain: str,
     end_turn: int,
+    owner: Optional[Any] = None,
 ) -> None:
     """注册一列的地形强制覆盖，并在每个阶段检查该列异象合法性，移除非法者。
 
@@ -2316,6 +2317,7 @@ def register_terrain_enforcement(
         column: 被覆盖的列号（0-4）
         forced_terrain: 强制地形（如"水路"、"高地"）
         end_turn: 覆盖持续到哪个回合结束（含）
+        owner: 可选绑定对象，绑定后该对象离场时延迟清理会被生命周期系统跳过
     """
     from tards.constants import EVENT_PHASE_START
 
@@ -2371,12 +2373,14 @@ def register_terrain_enforcement(
                 u.position = None
                 print(f"  地形恢复({restored_terrain})：{u.name} 因不合法被移除")
 
-    game._delayed_effects.append({
+    delayed = {
         "trigger": "turn_end",
         "turn": end_turn,
         "fn": _cleanup,
-        "owner": minion,  # 绑定 owner：minion 死亡时自动跳过
-    })
+    }
+    if owner is not None:
+        delayed["owner"] = owner
+    game._delayed_effects.append(delayed)
 
 
 # =============================================================================
@@ -3019,7 +3023,7 @@ def health_lost_this_phase(game: "Game", player: "Player") -> int:
     if not h:
         return 0
     from tards.constants import EVENT_HEALTH_CHANGED, EVENT_PHASE_START
-    events = h.query_events(up_to_turn=None)
+    events = h.query_events()
     # 找到最近一次结算阶段开始的位置
     start_idx = 0
     resolve_phase = getattr(game, "PHASE_RESOLVE", None)
@@ -3057,7 +3061,6 @@ def perform_attack_action(minion: "Minion", game: "Game") -> None:
     can_pierce = not has_enemy_anti_air and (
         minion.keywords.get("串击", False)
         or minion.keywords.get("穿刺", False)
-        or minion.keywords.get("穿透", False)
     )
 
     sweep = minion.keywords.get("横扫", 0)

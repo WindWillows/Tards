@@ -509,17 +509,19 @@ register_card(
 
 register_card(
     name="鹰",
-    cost_str="2T3B",
+    cost_str="1T6B",
     card_type=CardType.MINION,
     pack=Pack.UNDERWORLD,
-    rarity=Rarity.IRON,
+    rarity=Rarity.SILVER,
     immersion_level=1,
-    attack=1,
-    health=5,
-    keywords={"视野": 2, "高频": 3},
-    description="受到其伤害的目标此前每被本异象攻击过一次，受到的伤害+1。（跨回合累计）",
+    attack=7,
+    health=3,
+    keywords={"视野": 2, "迅捷": True, "独行": True},
+    tags=["飞禽", "生物", "肉食"],
+    description="在手牌中时，场上每有1个友方异象，具有-1B花费。在场上时，场上每有1个友方异象，具有-2攻击力。",
     targets_fn=target("position", friendly=True),
     special_fn=_ying_special,
+    cost_modifier=_ying_cost_modifier,
 )
 
 register_card(
@@ -863,7 +865,7 @@ register_card(
     immersion_level=3,
     attack=2,
     health=2,
-    keywords={"协同": True, "两栖": True, "穿透": True},
+    keywords={"协同": True, "两栖": True, "串击": True},
     tags=['两栖'],
     description="友方异象被消灭后，加入其位置并攻击。友方异象部署时，本异象返回手牌。",
     targets_fn=target("position", friendly=True),
@@ -884,9 +886,9 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="arthropod",
-    on_statue_activate=_arthropod_top_effect,
     description="（雕像激活后将在回合结束时移除 保留增益） 激活时：所有友方昆虫异象具有亡语；对对手造成1点伤害。",
     targets_fn=target("position", friendly=True),
+    special_fn=_arthropod_top_special,
 )
 
 register_card(
@@ -902,9 +904,9 @@ register_card(
     statue_top=False,
     statue_bottom=True,
     statue_pair="arthropod",
-    on_statue_fuse=_arthropod_bottom_effect,
     description="（只有“上下匹配”的雕像可以在一回合内拼装 否则需要两回合） 融合：激活座首，所有友方昆虫异象进入战场时+1/1。",
     targets_fn=target("position", friendly=True),
+    special_fn=_arthropod_bottom_special,
 )
 
 register_card(
@@ -921,10 +923,9 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="aquatic",
-    on_statue_activate=_aquatic_top_effect,
     description="激活时：所有友方两栖/水生异象部署花费-1T。",
     targets_fn=target("position", friendly=True),
-    special_fn=_guan_special,
+    special_fn=_aquatic_top_special,
 )
 
 register_card(
@@ -941,10 +942,9 @@ register_card(
     statue_top=False,
     statue_bottom=True,
     statue_pair="aquatic",
-    on_statue_fuse=_aquatic_bottom_effect,
     description="融合：激活座首，所有友方两栖/水生异象具有先攻1。",
     targets_fn=target("position", friendly=True),
-    special_fn=_guan_special,
+    special_fn=_aquatic_bottom_special,
 )
 
 register_card(
@@ -961,10 +961,9 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="predator",
-    on_statue_activate=_predator_top_effect,
     description="激活时：所有友方的陆生肉食动物进入战场时+2/1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_predator_top_special,
 )
 
 register_card(
@@ -981,10 +980,9 @@ register_card(
     statue_top=False,
     statue_bottom=True,
     statue_pair="predator",
-    on_statue_fuse=_predator_bottom_effect,
     description="融合：激活座首，所有友方陆生肉食动物部署花费-1B。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_predator_bottom_special,
 )
 
 register_card(
@@ -1001,10 +999,9 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="sacrifice",
-    on_statue_activate=_sacrifice_top_effect,
     description="激活时：每回合首个友方B=0异象入场时献祭等级+1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_sacrifice_top_special,
 )
 
 register_card(
@@ -1020,10 +1017,9 @@ register_card(
     statue_top=False,
     statue_bottom=True,
     statue_pair="sacrifice",
-    on_statue_fuse=_sacrifice_bottom_effect,
     description="中路 融合：激活座首，所有B=0异象丰饶等级+1。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_sacrifice_bottom_special,
 )
 
 register_card(
@@ -1040,10 +1036,9 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="avian",
-    on_statue_activate=_avian_top_effect,
     description="激活时：所有友方飞禽类异象具有迅捷。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_avian_top_special,
 )
 
 register_card(
@@ -1060,10 +1055,9 @@ register_card(
     statue_top=False,
     statue_bottom=True,
     statue_pair="avian",
-    on_statue_fuse=_avian_bottom_effect,
     description="融合：激活座首，所有友方飞禽类异象首次攻击力+2。",
     targets_fn=target("position", friendly=True),
-    special_fn=None,  # TODO: 实现部署/回合效果
+    special_fn=_avian_bottom_special,
 )
 
 register_card(
@@ -1203,7 +1197,7 @@ register_card(
     immersion_level=3,
     attack=0,
     health=4,
-    keywords={"迅捷": True, "三重打击": True},
+    keywords={"迅捷": True, "高频": 3},
     description="攻击后，获得+1攻击力。免疫偶数伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_hu_tiger_special,
@@ -1528,7 +1522,7 @@ register_card(
     immersion_level=2,
     attack=1,
     health=4,
-    keywords={"协同": True, "穿透": True},
+    keywords={"协同": True, "串击": True},
     description="回合结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_tianniu_special,

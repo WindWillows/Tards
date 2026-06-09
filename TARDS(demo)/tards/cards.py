@@ -1001,8 +1001,8 @@ class Minion:
 
         # 执行攻击
         if isinstance(target, Minion):
-            # 串击/穿透：对同列所有敌方异象造成伤害
-            if self.keywords.get("串击", False) or self.keywords.get("穿透", False):
+            # 串击：对同列所有敌方异象造成伤害
+            if self.keywords.get("串击", False):
                 col = self.position[1]
                 enemies = [m for m in self.board.get_enemy_minions_in_column(col, self.owner) if m.is_alive()]
                 if enemies:

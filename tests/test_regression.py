@@ -805,3 +805,92 @@ def test_he_target_removed_skips():
 
     assert p1.health == p1_health_before
     assert getattr(he, '_pending_effect_target', None) is None
+
+
+# =============================================================================
+# 37. effect_utils 崩溃点回归
+# =============================================================================
+
+def test_register_terrain_enforcement_without_owner_does_not_crash():
+    """register_terrain_enforcement：旧调用不传 owner 时不应引用不存在的 minion。"""
+    h = GameHarness()
+
+    from card_pools.effect_utils import register_terrain_enforcement
+
+    register_terrain_enforcement(h.game, column=0, forced_terrain="水路", end_turn=h.game.current_turn)
+
+    assert h.game._terrain_overrides[(0, 0)] == "水路"
+    cleanup = h.game._delayed_effects[-1]["fn"]
+    cleanup()
+    assert (0, 0) not in h.game._terrain_overrides
+
+
+def test_health_lost_this_phase_uses_current_history_api():
+    """health_lost_this_phase：使用现有 GameHistory.query_events() 接口统计，不应因旧参数崩溃。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import health_lost_this_phase
+
+    h.resolve_phase(p1, p2)
+    p1.health_change(-3)
+
+    assert health_lost_this_phase(h.game, p1) == 3
+
+
+# =============================================================================
+# 38. 雕像 special_fn 绑定
+# =============================================================================
+
+def test_statue_cards_bind_effects_through_special_fn():
+    """雕像牌的融合回调由 special_fn 部署时绑定，而不是直接挂在卡定义字段上。"""
+    from tards.card_db import DEFAULT_REGISTRY
+
+    statue_names = [
+        "节肢座首", "多足底座",
+        "水肺座首", "鳍尾底座",
+        "尖牙座首", "利爪底座",
+        "丰饶座首", "牢牲底座",
+        "长翅座首", "破风底座",
+    ]
+
+    for name in statue_names:
+        card_def = DEFAULT_REGISTRY.get(name)
+        assert card_def is not None, f"缺少雕像卡定义：{name}"
+        assert card_def.special_fn is not None, f"{name} 应通过 special_fn 绑定雕像效果"
+        assert card_def.on_statue_activate is None
+        assert card_def.on_statue_fuse is None
+
+
+def test_direct_summoned_avian_statues_fuse_via_special_fn():
+    """直接召唤雕像时，special_fn 也应绑定运行时雕像字段并触发融合。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import summon_minion_by_name
+
+    bird = summon_minion_by_name(h.game, "鸥", p1, (4, 2))
+    bird.tags.append("飞禽")
+    base_attack = bird.current_attack
+    top = summon_minion_by_name(h.game, "长翅座首", p1, (4, 1))
+    bottom = summon_minion_by_name(h.game, "破风底座", p1, (4, 0))
+
+    assert top.statue_top is True
+    assert top.statue_pair == "avian"
+    assert callable(top.on_statue_activate)
+    assert bottom.statue_bottom is True
+    assert bottom.statue_pair == "avian"
+    assert callable(bottom.on_statue_fuse)
+    assert len(h.game._pending_statues) == 1
+    edge = h.game.fusion_system.edge_between(top, bottom)
+    assert edge is not None
+    assert edge.kind == "statue"
+    assert edge["top"] is top
+    assert edge["bottom"] is bottom
+
+    h.game._resolve_statue_fusions()
+
+    assert bird.keywords.get("迅捷") is True
+    assert bird.current_attack == base_attack + 2
+    assert not top.is_alive()
+    assert not bottom.is_alive()

@@ -19,6 +19,7 @@ from .constants import (
 )
 from .effect_queue import EffectQueue
 from .events import EventBus, GameEvent
+from .fusion import FusionSystem
 from .game_history import GameHistory
 from .player import Player
 from .targeting import TargetingRequest, TargetingSystem
@@ -65,8 +66,11 @@ class Game:
         # 机器日志（按回合索引的历史变量，供卡牌监听器查询）
         self.history = GameHistory(self)
 
-        # 雕像拼装待处理队列
-        self._pending_statues: List[Dict[str, Any]] = []
+        # 异象融合系统（雕像是第一类使用者）
+        self.fusion_system = FusionSystem(self)
+        self.fusion_graph = self.fusion_system.graph
+        self._pending_fusions = self.fusion_system.pending
+        self._pending_statues = self._pending_fusions
 
         # 部署光环/钩子（全局监听新异象部署）
         self.deploy_hooks: List[Callable[["Minion"], None]] = []
@@ -136,13 +140,13 @@ class Game:
                           EVENT_BELL, EVENT_PLAYER_DAMAGE):
             self._trigger_auto_effects(event_type, event_data)
 
-            # 雕像拼装检测
+            # 异象融合检测与结算
             if event_type == EVENT_DEPLOYED:
-                self._check_statue_pair(event_data)
+                self._check_fusion_edges(event_data)
             if event_type == EVENT_PHASE_END and event_data.get("phase") == self.PHASE_RESOLVE:
-                self._resolve_statue_fusions()
+                self._resolve_fusions()
             if event_type == EVENT_TURN_END:
-                self._resolve_statue_fusions()
+                self._resolve_fusions()
 
             # === 费用修正自动过期清理 ===
             if event_type == EVENT_TURN_END:
@@ -380,89 +384,21 @@ class Game:
             return False
         return self.board.swap_minions(m1, m2)
 
+    def _check_fusion_edges(self, event_data: Dict[str, Any]):
+        """在部署事件后检查是否形成了新的异象融合边。"""
+        self.fusion_system.scan_after_deploy(event_data)
+
+    def _resolve_fusions(self):
+        """结算待处理的异象融合。"""
+        self.fusion_system.resolve_ready()
+
     def _check_statue_pair(self, event_data: Dict[str, Any]):
-        """在部署事件后检查是否形成了新的雕像对。"""
-        minion = event_data.get("minion")
-        if not minion or not getattr(minion, "is_alive", lambda: True)():
-            return
-        player = event_data.get("player")
-        if not player:
-            return
-
-        is_top = getattr(minion, "statue_top", False)
-        is_bottom = getattr(minion, "statue_bottom", False)
-        if not (is_top or is_bottom):
-            return
-
-        # 寻找配对对象
-        for m in self.board.get_minions_of_player(player):
-            if m is minion:
-                continue
-            if not m.is_alive():
-                continue
-            if is_top and getattr(m, "statue_bottom", False):
-                top, bottom = minion, m
-            elif is_bottom and getattr(m, "statue_top", False):
-                top, bottom = m, minion
-            else:
-                continue
-
-            # 检查是否已在 pending 中
-            already_pending = any(
-                (pend["top"] is top and pend["bottom"] is bottom)
-                for pend in self._pending_statues
-            )
-            if already_pending:
-                continue
-
-            matched = (getattr(top, "statue_pair", None) == getattr(bottom, "statue_pair", None))
-            fuse_at = self.current_turn if matched else self.current_turn + 1
-            self._pending_statues.append({
-                "top": top,
-                "bottom": bottom,
-                "fuse_at_turn": fuse_at,
-                "owner": player,
-            })
-            print(f"  雕像拼装开始：{top.name} + {bottom.name}，{'配对' if matched else '未配对'}，将于第 {fuse_at} 回合结束时生效")
+        """兼容旧接口：雕像配对现在由通用融合系统处理。"""
+        self._check_fusion_edges(event_data)
 
     def _resolve_statue_fusions(self):
-        """结算待处理的雕像融合（在结算阶段结束或回合结束时调用）。"""
-        resolved = []
-        for pend in self._pending_statues:
-            top = pend["top"]
-            bottom = pend["bottom"]
-            if not (top.is_alive() and bottom.is_alive()):
-                resolved.append(pend)
-                continue
-            if self.current_turn < pend["fuse_at_turn"]:
-                continue
-
-            # 执行融合
-            print(f"  雕像 [{top.name} + {bottom.name}] 拼装完成！")
-            activate_fn = getattr(top, "on_statue_activate", None)
-            fuse_fn = getattr(bottom, "on_statue_fuse", None)
-            if activate_fn:
-                self.effect_queue.queue(
-                    f"{top.name} 激活",
-                    lambda t=top, fn=activate_fn: fn(self, t),
-                )
-            if fuse_fn:
-                self.effect_queue.queue(
-                    f"{bottom.name} 融合",
-                    lambda b=bottom, t=top, fn=fuse_fn: fn(self, b, t),
-                )
-            # 移除组件（不触发亡语）
-            self.effect_queue.queue(
-                f"移除雕像组件",
-                lambda t=top, b=bottom: (
-                    self.board.remove_minion(t.position) if t.is_alive() else None,
-                    self.board.remove_minion(b.position) if b.is_alive() else None,
-                ),
-            )
-            resolved.append(pend)
-
-        for pend in resolved:
-            self._pending_statues.remove(pend)
+        """兼容旧接口：雕像融合现在由通用融合系统处理。"""
+        self._resolve_fusions()
 
     def start_game(self):
         import random
@@ -890,8 +826,6 @@ class Game:
 
                 if m not in attacker_swings:
                     swings = m.keywords.get("高频", 1)
-                    if m.keywords.get("三重打击", False):
-                        swings = 3
                     if swings is True:
                         swings = 1
                     elif not isinstance(swings, int) or swings <= 0:
@@ -942,14 +876,12 @@ class Game:
                         if not m.is_alive() or attacker_swings.get(m, 0) <= 0:
                             continue
 
-                        # 防空：本列敌方异象失去串击/穿刺/穿透
+                        # 防空：本列敌方异象失去串击/穿刺
                         has_enemy_anti_air = any(
                             enemy.keywords.get("防空", False)
                             for enemy in self.board.get_enemy_minions_in_column(base_col, m.owner)
                         )
-                        can_chain = not has_enemy_anti_air and (
-                            m.keywords.get("串击", False) or m.keywords.get("穿透", False)
-                        )
+                        can_chain = not has_enemy_anti_air and m.keywords.get("串击", False)
                         has_pierce = not has_enemy_anti_air and m.keywords.get("穿刺", False)
 
                         sweep = m.keywords.get("横扫", 0)
@@ -1030,7 +962,7 @@ class Game:
                                 enemy = self.p2 if m.owner == self.p1 else self.p1
                                 m.attack_target(enemy)
                         elif can_chain:
-                            # 串击/穿透：攻击同列所有敌方异象
+                            # 串击：攻击同列所有敌方异象
                             enemies = [e for e in self.board.get_enemy_minions_in_column(base_col, m.owner) if e.is_alive()]
                             # 潜水/潜行始终不可见
                             enemies = [e for e in enemies if not e.keywords.get("潜水", False) and not e.keywords.get("潜行", False)]

@@ -2496,7 +2496,7 @@ register_card(
     rarity=Rarity.GOLD,
     immersion_level=1,
     hidden_keywords={},
-    description="将卡组顶的1张迅捷异象加入战场。",
+    description="将卡组中一张具有迅捷的异象加入手牌，将其部署花费设为0直到出牌阶段结束。",
     targets_fn=target_none,
     effect_fn=_yanhuaqiaochi_effect
 )

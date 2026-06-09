@@ -99,13 +99,11 @@ def render_keyword_icon(keyword: str, size: int = 16) -> pygame.Surface:
         "成长": (76, 175, 80),
         "视野": (255, 235, 59),
         "高频": (244, 67, 54),
-        "连击": (233, 30, 99),
-        "多重打击": (233, 30, 99),
+        "高频": (233, 30, 99),
         "防空": (0, 150, 136),
         "尖刺": (139, 195, 74),
         "穿刺": (255, 87, 34),
         "串击": (255, 87, 34),
-        "穿透": (255, 87, 34),
         "横扫": (255, 152, 0),
         "丰饶": (255, 152, 0),
         "献祭": (121, 85, 72),
@@ -165,7 +163,7 @@ def _draw_keyword_symbol(surf: pygame.Surface, keyword: str, size: int):
         pygame.draw.ellipse(surf, white, (c - 4, c - 2, 8, 4), max(1, size // 12))
         pygame.draw.circle(surf, white, (c, c), max(1, size // 10))
 
-    elif keyword in ("高频", "连击", "多重打击"):
+    elif keyword == "高频":
         for i in range(3):
             pygame.draw.line(surf, white, (2, 4 + i * 3), (size - 2, 4 + i * 3), max(1, size // 12))
 

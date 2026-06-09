@@ -5197,30 +5197,37 @@ def _yaoshuijian_effect(player, target, game, extras=None):
 
 
 def _yanhuaqiaochi_effect(player, target, game, extras=None):
-    """烟花鞘翅：将卡组顶的1张迅捷异象加入战场。"""
+    """烟花鞘翅：将卡组中一张具有迅捷的异象加入手牌，将其部署花费设为0直到出牌阶段结束。"""
     from tards.cards import MinionCard
+    from tards.cost_modifier import CostModifier
 
-    empties = empty_positions(player, game.board)
-    if not empties:
-        print("  烟花鞘翅：友方区域没有空位")
-        return False
-
-    # 使用 search_deck 从卡组顶搜索迅捷异象
+    # 使用 search_deck 从卡组中搜索迅捷异象
     candidates = search_deck(player, lambda c: isinstance(c, MinionCard) and c.keywords.get("迅捷"))
     if not candidates:
         print("  烟花鞘翅：卡组中没有迅捷异象")
-        return False
+        return True  # 无事发生，策略牌正常打出
 
     card = candidates[0]
     player.card_deck.remove(card)
-    pos = random.choice(empties)
-    result = card.effect(player, pos, game)
-    if result:
-        print(f"  烟花鞘翅：将 {card.name} 加入战场 {pos}")
-        return True
-    else:
-        player.add_card_to_hand(card, game=game, emit_events=False)
-        return False
+    player.add_card_to_hand(card, game=game)
+
+    # 将其部署花费设为0直到出牌阶段结束
+    def zero_cost(_, cost):
+        cost.t = 0
+        cost.c = 0
+        cost.b = 0
+        cost.s = 0
+        cost.ct = 0
+        cost.minerals = {}
+
+    player._cost_modifier_system.add(CostModifier(
+        apply_fn=zero_cost,
+        source=card,
+        expires_on="phase_end"
+    ))
+
+    print(f"  烟花鞘翅：将 {card.name} 加入手牌，部署花费设为0直到出牌阶段结束")
+    return True
 
 
 @strategy

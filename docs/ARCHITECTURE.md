@@ -480,7 +480,7 @@ Minion.attack_target(target)
     │
     ├── emit_event(EVENT_BEFORE_ATTACK) → 可取消/改目标
     ├── 执行伤害：
-    │       ├── 串击/穿刺/穿透 → 同列所有敌方异象
+    │       ├── 串击/穿刺 → 同列所有敌方异象
     │       ├── 横扫 → 覆盖列依次伤害
     │       └── 普通攻击 → 单个目标
     │

@@ -1,9 +1,9 @@
 # 通用卡包定义文件
 
 from tards import register_card, CardType, Pack, Rarity
-from tards.targets import target
+from tards.targets import target, target_none
 from card_pools.effect_decorator import special
-from card_pools.effect_utils import add_deathrattle, deal_damage_to_minion, buff_minion, on
+from card_pools.effect_utils import add_deathrattle, deal_damage_to_minion, buff_minion, on, destroy_minion
 import random
 
 
@@ -86,6 +86,26 @@ def _fengling_special(minion, player, game, extras=None):
         else:
             print(f"  {m.name} 亡语触发，但场上没有敌方异象")
     add_deathrattle(minion, _dr)
+
+
+# =============================================================================
+# 策略卡效果函数
+# =============================================================================
+
+def _xuanwo_effect(player, target, game, extras=None):
+    """漩涡：抽2张牌。"""
+    player.draw_card(2, game=game)
+    print(f"  漩涡：{player.name} 抽2张牌")
+    return True
+
+
+def _genchu_effect(player, target, game, extras=None):
+    """根除：消灭一个异象。"""
+    if target and hasattr(target, "is_alive") and target.is_alive():
+        destroy_minion(target, game)
+        return True
+    print("  根除：未选择有效目标")
+    return False
 
 
 # =============================================================================
@@ -186,4 +206,28 @@ register_card(
     description="亡语：使一个随机敌方异象获得-1攻击力。",
     targets_fn=target("position", friendly=True),
     special_fn=_fengling_special,
+)
+
+register_card(
+    name="漩涡",
+    cost_str="3T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.GENERAL,
+    rarity=Rarity.IRON,
+    immersion_level=1,
+    description="抽2张牌。",
+    targets_fn=target_none,
+    effect_fn=_xuanwo_effect,
+)
+
+register_card(
+    name="根除",
+    cost_str="5T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.GENERAL,
+    rarity=Rarity.SILVER,
+    immersion_level=1,
+    description="消灭一个异象。",
+    targets_fn=target("minion"),
+    effect_fn=_genchu_effect,
 )

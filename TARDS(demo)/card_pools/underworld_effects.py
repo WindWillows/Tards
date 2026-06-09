@@ -79,6 +79,16 @@ SPECIAL_MAP = {
     "象群": "_xiangqun_special",
     "隼": "_sun_special",
     "鸠": "_jiu_special",
+    "节肢座首": "_arthropod_top_special",
+    "多足底座": "_arthropod_bottom_special",
+    "水肺座首": "_aquatic_top_special",
+    "鳍尾底座": "_aquatic_bottom_special",
+    "尖牙座首": "_predator_top_special",
+    "利爪底座": "_predator_bottom_special",
+    "丰饶座首": "_sacrifice_top_special",
+    "牢牲底座": "_sacrifice_bottom_special",
+    "长翅座首": "_avian_top_special",
+    "破风底座": "_avian_bottom_special",
     "幼狼": "_youlang_special",
     "成狼": "_chenglang_special",
     "狼王": "_langwang_special",
@@ -127,6 +137,16 @@ __all__ = [
     "_sacrifice_bottom_effect",
     "_avian_top_effect",
     "_avian_bottom_effect",
+    "_arthropod_top_special",
+    "_arthropod_bottom_special",
+    "_aquatic_top_special",
+    "_aquatic_bottom_special",
+    "_predator_top_special",
+    "_predator_bottom_special",
+    "_sacrifice_top_special",
+    "_sacrifice_bottom_special",
+    "_avian_top_special",
+    "_avian_bottom_special",
     "_diao_special",
     "_peng_special",
     "_songshuqiu_special",
@@ -225,6 +245,7 @@ __all__ = [
     "_zongxiong_special",
     "_lugui_special",
     "_cuiniao_special",
+    "_ying_cost_modifier",
     "_ying_special",
     "_que_special",
     "_yao_special",
@@ -330,11 +351,16 @@ def _arthropod_bottom_effect(game, bottom, top):
 
 
 def _aquatic_top_effect(game, top):
+    from tards.cost_modifier import CostModifier
     def mod(card, cost):
         aquatic = "两栖" in card.keywords or "水生" in card.keywords or "两栖" in getattr(card, "tags", []) or "水生" in getattr(card, "tags", [])
         if aquatic:
             cost.t = max(0, cost.t - 1)
-    top.owner._cost_modifiers.append(mod)
+    top.owner._cost_modifier_system.add(CostModifier(
+        apply_fn=mod,
+        source=top,
+        expires_on="turn_end"
+    ))
 
 
 def _aquatic_bottom_effect(game, bottom, top):
@@ -355,10 +381,15 @@ def _predator_top_effect(game, top):
 
 
 def _predator_bottom_effect(game, bottom, top):
+    from tards.cost_modifier import CostModifier
     def mod(card, cost):
         if "陆生" in getattr(card, "tags", []) and "肉食动物" in getattr(card, "tags", []):
             cost.b = max(0, cost.b - 1)
-    bottom.owner._cost_modifiers.append(mod)
+    bottom.owner._cost_modifier_system.add(CostModifier(
+        apply_fn=mod,
+        source=bottom,
+        expires_on="turn_end"
+    ))
 
 
 def _sacrifice_top_effect(game, top):
@@ -395,6 +426,105 @@ def _avian_bottom_effect(game, bottom, top):
         if "飞禽" in getattr(m, "tags", []):
             m.perm_attack_bonus += 2
             m.recalculate()
+
+
+def _bind_statue_special(minion, pair, is_top, activate_fn=None, fuse_fn=None):
+    minion.statue_top = bool(is_top)
+    minion.statue_bottom = not bool(is_top)
+    minion.statue_pair = pair
+    minion.on_statue_activate = activate_fn
+    minion.on_statue_fuse = fuse_fn
+    role = "top" if is_top else "bottom"
+    compatible_role = "bottom" if is_top else "top"
+    actions = []
+    if activate_fn:
+        actions.append({
+            "label": f"{minion.name} 激活",
+            "fn": lambda game, edge, self_minion, fn=activate_fn: fn(game, self_minion),
+        })
+    if fuse_fn:
+        actions.append({
+            "label": f"{minion.name} 融合",
+            "fn": lambda game, edge, self_minion, fn=fuse_fn: fn(game, self_minion, edge.role("top")),
+        })
+    spec = {
+        "kind": "statue",
+        "role": role,
+        "role_order": 0 if is_top else 1,
+        "compatible_roles": {compatible_role},
+        "group": pair,
+        "matched_delay": 0,
+        "unmatched_delay": 1,
+        "label": "雕像",
+        "start_verb": "拼装开始",
+        "complete_verb": "拼装完成",
+        "remove_after": True,
+        "actions": actions,
+    }
+    specs = [s for s in getattr(minion, "fusion_specs", []) if s.get("kind") != "statue"]
+    specs.append(spec)
+    minion.fusion_specs = specs
+    return True
+
+
+@special
+def _arthropod_top_special(minion, player, game, extras=None):
+    """节肢座首：部署后绑定昆虫雕像座首激活效果。"""
+    return _bind_statue_special(minion, "arthropod", True, activate_fn=_arthropod_top_effect)
+
+
+@special
+def _arthropod_bottom_special(minion, player, game, extras=None):
+    """多足底座：部署后绑定昆虫雕像底座融合效果。"""
+    return _bind_statue_special(minion, "arthropod", False, fuse_fn=_arthropod_bottom_effect)
+
+
+@special
+def _aquatic_top_special(minion, player, game, extras=None):
+    """水肺座首：部署后绑定水生雕像座首激活效果。"""
+    return _bind_statue_special(minion, "aquatic", True, activate_fn=_aquatic_top_effect)
+
+
+@special
+def _aquatic_bottom_special(minion, player, game, extras=None):
+    """鳍尾底座：部署后绑定水生雕像底座融合效果。"""
+    return _bind_statue_special(minion, "aquatic", False, fuse_fn=_aquatic_bottom_effect)
+
+
+@special
+def _predator_top_special(minion, player, game, extras=None):
+    """尖牙座首：部署后绑定肉食雕像座首激活效果。"""
+    return _bind_statue_special(minion, "predator", True, activate_fn=_predator_top_effect)
+
+
+@special
+def _predator_bottom_special(minion, player, game, extras=None):
+    """利爪底座：部署后绑定肉食雕像底座融合效果。"""
+    return _bind_statue_special(minion, "predator", False, fuse_fn=_predator_bottom_effect)
+
+
+@special
+def _sacrifice_top_special(minion, player, game, extras=None):
+    """丰饶座首：部署后绑定献祭雕像座首激活效果。"""
+    return _bind_statue_special(minion, "sacrifice", True, activate_fn=_sacrifice_top_effect)
+
+
+@special
+def _sacrifice_bottom_special(minion, player, game, extras=None):
+    """牢牲底座：部署后绑定献祭雕像底座融合效果。"""
+    return _bind_statue_special(minion, "sacrifice", False, fuse_fn=_sacrifice_bottom_effect)
+
+
+@special
+def _avian_top_special(minion, player, game, extras=None):
+    """长翅座首：部署后绑定飞禽雕像座首激活效果。"""
+    return _bind_statue_special(minion, "avian", True, activate_fn=_avian_top_effect)
+
+
+@special
+def _avian_bottom_special(minion, player, game, extras=None):
+    """破风底座：部署后绑定飞禽雕像底座融合效果。"""
+    return _bind_statue_special(minion, "avian", False, fuse_fn=_avian_bottom_effect)
 
 
 # ===== 复杂卡牌手动效果 =====
@@ -1101,39 +1231,33 @@ def _cuiniao_special(minion, player, game, extras=None):
     return True
 
 
+def _ying_cost_modifier(card, cost):
+    """鹰：在手牌中时，场上每有1个友方异象，费用-1B。"""
+    owner = getattr(card, "owner", None)
+    if not owner:
+        return
+    board = getattr(owner, "board_ref", None)
+    if not board:
+        return
+    friendly_count = sum(
+        1 for m in board.minion_place.values()
+        if m.owner is owner and m.is_alive()
+    )
+    if friendly_count > 0:
+        cost.b = max(0, cost.b - friendly_count)
+
+
 @special
 def _ying_special(minion, player, game, extras=None):
-    """鹰：受到其伤害的目标此前每被本异象攻击过一次，受到的伤害+1。（跨回合累计）"""
-    if not hasattr(minion, "_ying_attack_count"):
-        minion._ying_attack_count = {}
+    """鹰：在场上时，场上每有1个友方异象，具有-2攻击力。"""
+    def aura_fn(m):
+        count = sum(
+            1 for mm in m.board.minion_place.values()
+            if mm.owner is player and mm.is_alive()
+        )
+        return -2 * count
 
-    def on_after_attack(event):
-        attacker = event.data.get("attacker")
-        target = event.data.get("target")
-        if attacker is not minion:
-            return
-        if target is not None:
-            minion._ying_attack_count[target] = minion._ying_attack_count.get(target, 0) + 1
-
-    def on_before_damage(event):
-        if not minion.is_alive():
-            return
-        source = event.data.get("source_minion")
-        if source is not minion:
-            return
-        target = event.data.get("target")
-        if target is None:
-            return
-        if not event.data.get("is_combat_damage", False):
-            return
-        count = minion._ying_attack_count.get(target, 0)
-        if count > 0:
-            old_damage = event.data.get("damage", 0)
-            event.data["damage"] = old_damage + count
-            print(f"  鹰：对 {getattr(target, 'name', target)} 此前攻击过 {count} 次，伤害从 {old_damage} 提升至 {old_damage + count}")
-
-    on("after_attack", on_after_attack, game, minion=minion)
-    on("before_damage", on_before_damage, game, minion=minion)
+    minion.add_aura_attack(aura_fn)
     return True
 
 
