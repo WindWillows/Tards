@@ -297,7 +297,7 @@ register_card(
     rarity=Rarity.SILVER,
     immersion_level=2,
     attack=2,
-    health=4,
+    health=3,
     keywords={"迅捷": True},
     tags=['生物'],
     description="部署：将1张“环丁二烯”和1张“配体”加入手牌。",
@@ -527,6 +527,19 @@ register_card(
     description="对方抽2张牌，然后若对方手牌数不小于5，你获得+6HP。",
     targets_fn=target_none,
     effect_fn=_zhanzheng_heping_effect
+)
+
+register_card(
+    name="三倍icecream",
+    cost_str="1T1S",
+    card_type=CardType.STRATEGY,
+    pack=Pack.BLOOD,
+    rarity=Rarity.SILVER,
+    immersion_level=2,
+    keywords={"异放": 3},
+    description="双方各抽1张牌。",
+    targets_fn=target_none,
+    effect_fn=_sanbei_icecream_effect,
 )
 
 register_card(
@@ -826,7 +839,7 @@ register_card(
     card_type=CardType.STRATEGY,
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
-    immersion_level=1,
+    immersion_level=2,
     description="随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。",
     targets_fn=target_none,
     effect_fn=_tianxiawushuang_effect,

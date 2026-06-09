@@ -70,6 +70,7 @@ __all__ = [
     "_peiti_effect",
     "_shuangsheng_bishou_effect",
     "_zhanzheng_heping_effect",
+    "_sanbei_icecream_effect",
     "_ziyou_effect",
     "_wuzhi_effect",
     "_xianchu_xinzang_effect",
@@ -422,6 +423,15 @@ def _zhanzheng_heping_effect(player, target, game, extras=None):
         print(f"  战争即和平：{opponent.name} 手牌≥5，{player.name} 获得+6HP")
     else:
         print(f"  战争即和平：{opponent.name} 手牌{len(opponent.card_hand)}，不足5张")
+    return True
+
+
+def _sanbei_icecream_effect(player, target, game, extras=None):
+    """三倍icecream：双方各抽1张牌。"""
+    opponent = game.p2 if player == game.p1 else game.p1
+    player.draw_card(1, game=game)
+    opponent.draw_card(1, game=game)
+    print(f"  三倍icecream：{player.name} 和 {opponent.name} 各抽1张牌")
     return True
 
 def _ziyou_effect(player, target, game, extras=None):
