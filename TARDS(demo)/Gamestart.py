@@ -916,10 +916,24 @@ class LobbyFrame(tk.Frame):
             self.port_entry = tk.Entry(self, width=10)
             self.port_entry.insert(0, "9876")
             self.port_entry.pack(anchor="w", padx=10)
+
+            self.ngrok_var = tk.BooleanVar(value=False)
+            tk.Checkbutton(self, text="使用内网穿透（跨网络联机）", variable=self.ngrok_var,
+                           command=self._toggle_ngrok).pack(anchor="w", padx=10, pady=5)
+
+            self.ngrok_frame = tk.Frame(self)
+            self.ngrok_frame.pack(anchor="w", padx=10, fill="x")
+            tk.Label(self.ngrok_frame, text="ngrok Authtoken（可选，首次使用需填写）:").pack(anchor="w")
+            self.ngrok_token_entry = tk.Entry(self.ngrok_frame, width=40, show="*")
+            self.ngrok_token_entry.pack(anchor="w")
+            self.ngrok_url_label = tk.Label(self.ngrok_frame, text="", fg="green", wraplength=400)
+            self.ngrok_url_label.pack(anchor="w", pady=5)
+            self.ngrok_frame.pack_forget()  # 默认隐藏
+
             tk.Button(self, text="创建房间并等待", font=("Microsoft YaHei", 14), command=self._start_host).pack(pady=20)
         else:
-            tk.Label(self, text="Host IP:").pack(anchor="w", padx=10, pady=5)
-            self.ip_entry = tk.Entry(self, width=20)
+            tk.Label(self, text="Host 地址（IP 或 ngrok 地址）:").pack(anchor="w", padx=10, pady=5)
+            self.ip_entry = tk.Entry(self, width=30)
             self.ip_entry.insert(0, "127.0.0.1")
             self.ip_entry.pack(anchor="w", padx=10)
             tk.Label(self, text="端口:").pack(anchor="w", padx=10, pady=5)
@@ -945,12 +959,20 @@ class LobbyFrame(tk.Frame):
             return None
         return deck
 
+    def _toggle_ngrok(self):
+        if self.ngrok_var.get():
+            self.ngrok_frame.pack(anchor="w", padx=10, fill="x", before=self.status_label)
+        else:
+            self.ngrok_frame.pack_forget()
+
     def _start_host(self):
         deck = self._get_selected_deck()
         if not deck:
             return
         pname = self.name_entry.get().strip() or "玩家A"
         port = int(self.port_entry.get() or 9876)
+        use_ngrok = getattr(self, 'ngrok_var', None) and self.ngrok_var.get()
+        ngrok_token = self.ngrok_token_entry.get().strip() if use_ngrok else None
 
         local_player = Player(side=0, name=pname, diver="Net", card_deck=deck.to_game_deck(None), original_deck_defs=_deck_defs_list(deck))
         local_player.sacrifice_chooser = lambda req: None
@@ -961,25 +983,49 @@ class LobbyFrame(tk.Frame):
         deck_names = []
         for name in sorted(deck.card_entries.keys()):
             deck_names.extend([name] * deck.card_entries[name])
-        self.duel = NetworkDuel(local_player, deck_names, is_host=True, port=port)
-        self.status_label.config(text=f"等待连接于端口 {port} ...")
+        self.duel = NetworkDuel(local_player, deck_names, is_host=True, port=port,
+                                use_ngrok=use_ngrok, ngrok_token=ngrok_token)
+
+        if use_ngrok:
+            self.status_label.config(text=f"正在启动内网穿透隧道...")
+        else:
+            self.status_label.config(text=f"等待连接于端口 {port} ...")
 
         def connect_thread():
             ok = self.duel.connect()
             if ok:
+                if use_ngrok:
+                    url = self.duel.get_ngrok_url()
+                    self.after(0, lambda: self.ngrok_url_label.config(text=f"公网地址: {url}", fg="green"))
                 self.after(0, lambda: self._on_connected(deck, local_player, opponent))
             else:
                 self.after(0, lambda: self.status_label.config(text="连接失败", fg="red"))
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
+    def _parse_host_address(self, raw: str) -> tuple[str, int]:
+        """解析 Host 地址，支持普通 IP:端口 和 ngrok tcp://host:port 格式。"""
+        raw = raw.strip()
+        # 去掉 tcp:// 前缀
+        if raw.startswith("tcp://"):
+            raw = raw[6:]
+        # 尝试解析 host:port 格式
+        if ":" in raw:
+            host, port_str = raw.rsplit(":", 1)
+            try:
+                return host, int(port_str)
+            except ValueError:
+                pass
+        # 回退到单独 IP，使用默认端口
+        return raw, 9876
+
     def _start_client(self):
         deck = self._get_selected_deck()
         if not deck:
             return
         pname = self.name_entry.get().strip() or "玩家B"
-        ip = self.ip_entry.get().strip() or "127.0.0.1"
-        port = int(self.port_entry.get() or 9876)
+        raw_addr = self.ip_entry.get().strip() or "127.0.0.1"
+        ip, port = self._parse_host_address(raw_addr)
 
         local_player = Player(side=1, name=pname, diver="Net", card_deck=deck.to_game_deck(None), original_deck_defs=_deck_defs_list(deck))
         local_player.sacrifice_chooser = lambda req: None

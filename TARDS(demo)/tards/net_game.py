@@ -29,6 +29,7 @@ class NetworkDuel:
 
     负责 Host/Client 的握手、行动同步、以及为 Game 提供 action_provider。
     本地玩家和远端玩家各自维护一个 Game 实例，通过交换行动指令保持一致。
+    支持 pyngrok 内网穿透，实现跨网络联机。
     """
 
     def __init__(
@@ -38,13 +39,18 @@ class NetworkDuel:
         is_host: bool,
         host_ip: Optional[str] = None,
         port: int = 9876,
+        use_ngrok: bool = False,
+        ngrok_token: Optional[str] = None,
     ):
         self.local_player = local_player
         self.local_deck_list = local_deck_list
         self.is_host = is_host
         self.host_ip = host_ip
         self.port = port
+        self.use_ngrok = use_ngrok
+        self.ngrok_token = ngrok_token
         self.resolve_step_callback = None
+        self._ngrok_tunnel = None
 
         self.conn: Optional[GameConnection] = None
         self.remote_name: Optional[str] = None
@@ -95,10 +101,50 @@ class NetworkDuel:
         self._pending_messages: List[Dict[str, Any]] = []
         self._pending_lock = threading.Lock()
 
+    # ========== ngrok 内网穿透 ==========
+    def _start_ngrok_tunnel(self) -> Optional[str]:
+        """启动 ngrok TCP 隧道，返回公网地址（如 tcp://0.tcp.ngrok.io:12345）。"""
+        try:
+            from pyngrok import ngrok
+        except ImportError:
+            print("[Net] pyngrok 未安装，无法使用内网穿透。请运行: pip install pyngrok")
+            return None
+        try:
+            if self.ngrok_token:
+                ngrok.set_auth_token(self.ngrok_token)
+            tunnel = ngrok.connect(self.port, "tcp")
+            self._ngrok_tunnel = tunnel
+            print(f"[Net] ngrok 隧道已启动: {tunnel.public_url}")
+            return tunnel.public_url
+        except Exception as e:
+            print(f"[Net] 启动 ngrok 隧道失败: {e}")
+            return None
+
+    def _stop_ngrok_tunnel(self) -> None:
+        """关闭 ngrok 隧道。"""
+        if self._ngrok_tunnel:
+            try:
+                from pyngrok import ngrok
+                ngrok.disconnect(self._ngrok_tunnel.public_url)
+                print("[Net] ngrok 隧道已关闭")
+            except Exception as e:
+                print(f"[Net] 关闭 ngrok 隧道时出错: {e}")
+            self._ngrok_tunnel = None
+
+    def get_ngrok_url(self) -> Optional[str]:
+        """获取当前 ngrok 公网地址。"""
+        if self._ngrok_tunnel:
+            return self._ngrok_tunnel.public_url
+        return None
+
     # ========== 连接与握手 ==========
     def connect(self) -> bool:
         """建立连接。阻塞方法。"""
         if self.is_host:
+            if self.use_ngrok:
+                url = self._start_ngrok_tunnel()
+                if not url:
+                    return False
             self.conn = start_host(self.port)
         else:
             if not self.host_ip:
@@ -536,6 +582,8 @@ class NetworkDuel:
         if self.game:
             self.game.game_over = True
         self._local_action_event.set()
+        # 关闭 ngrok 隧道
+        self._stop_ngrok_tunnel()
         self._discover_event.set()
         self._choice_event.set()
         self._mulligan_event.set()
