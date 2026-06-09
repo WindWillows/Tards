@@ -2738,13 +2738,13 @@ register_card(
 
 register_card(
     name="虫蚀石头",
-    cost_str="2I",
+    cost_str="1T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
-    description="移除对方卡组顶的2张牌，将2张“蠹虫”置入对方卡组顶。",
+    description="移除卡组顶的2张牌，将2张“蠹虫”加入抽牌堆顶，使其花费为0T。",
     targets_fn=target_none,
     effect_fn=_chongshishitou_strategy,
 )

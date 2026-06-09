@@ -2755,14 +2755,19 @@ def _baoweiyaosai_strategy(player, target, game, extras=None):
 
 @strategy
 def _chongshishitou_strategy(player, target, game, extras=None):
-    """虫蚀石头：移除对方卡组顶的2张牌，将2张"蠹虫"置入对方卡组顶。"""
-    opponent = game.p2 if player == game.p1 else game.p1
-    remove_top_of_deck(opponent, 2)
+    """虫蚀石头：移除卡组顶的2张牌，将2张"蠹虫"加入抽牌堆顶，使其花费为0T。"""
+    remove_top_of_deck(player, 2)
     for _ in range(2):
-        card = create_card_by_name("蠹虫", opponent)
+        card = create_card_by_name("蠹虫", player)
         if card:
-            opponent.card_deck.append(card)
-            print(f"  蠹虫被置入 {opponent.name} 的牌库顶")
+            # 将费用设为 0T
+            card.cost.t = 0
+            card.cost.b = 0
+            card.cost.s = 0
+            card.cost.ct = 0
+            card.cost.minerals = {}
+            player.card_deck.append(card)
+            print(f"  蠹虫被置入 {player.name} 的牌库顶（花费 0T）")
     return True
 
 
