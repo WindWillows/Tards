@@ -570,6 +570,8 @@ class DeckBuilderFrame(tk.Frame):
         self.notebook.pack(fill=tk.BOTH, expand=True)
         self.pack_tabs = {}
         self.pack_canvases = {}
+        self._button_pools = {}
+        self._empty_labels = {}
         for pack in Pack:
             tab = tk.Frame(self.notebook)
             self.notebook.add(tab, text=pack.value)
@@ -589,6 +591,10 @@ class DeckBuilderFrame(tk.Frame):
             self.pack_canvases[pack] = canvas
             # 绑定鼠标滚轮
             canvas.bind("<MouseWheel>", lambda e, c=canvas: c.yview_scroll(int(-e.delta / 120), "units"))
+            # 预创建空提示标签（缓存）
+            lbl = tk.Label(inner, text="无可用卡牌（请分配沉浸点）")
+            lbl.grid_remove()
+            self._empty_labels[pack] = lbl
 
         # ===== 衍生卡 Tab（只读展示）=====
         token_tab = tk.Frame(self.notebook)
@@ -607,6 +613,9 @@ class DeckBuilderFrame(tk.Frame):
         self.pack_tabs["__token__"] = token_inner
         self.pack_canvases["__token__"] = token_canvas
         token_canvas.bind("<MouseWheel>", lambda e, c=token_canvas: c.yview_scroll(int(-e.delta / 120), "units"))
+        token_lbl = tk.Label(token_inner, text="无可用卡牌（请分配沉浸点）")
+        token_lbl.grid_remove()
+        self._empty_labels["__token__"] = token_lbl
 
         # ===== 关联 Tab（动态填充）=====
         assoc_tab = tk.Frame(self.notebook)
@@ -857,7 +866,7 @@ class DeckBuilderFrame(tk.Frame):
         if not assoc_inner:
             return
 
-        # 清空关联 Tab
+        # 清空关联 Tab（destroy 旧按钮）
         for w in assoc_inner.winfo_children():
             w.destroy()
 
@@ -882,8 +891,6 @@ class DeckBuilderFrame(tk.Frame):
         self._association_mode = True
         # 自动切换到关联 Tab
         try:
-            tab_id = self.notebook.tabs()[-1]  # 最后一个 tab 通常是"关联"
-            # 但我们需要找到 text="关联" 的 tab
             for t in self.notebook.tabs():
                 if self.notebook.tab(t, "text") == "关联":
                     self.notebook.select(t)
@@ -985,8 +992,13 @@ class DeckBuilderFrame(tk.Frame):
         for key, tab in self.pack_tabs.items():
             if key == "__assoc__":
                 continue
-            for w in tab.winfo_children():
-                w.destroy()
+            # 缓存模式：隐藏所有已有按钮和空提示，而非 destroy
+            for btn in self._button_pools.get(key, []):
+                btn.grid_remove()
+            lbl = self._empty_labels.get(key)
+            if lbl:
+                lbl.grid_remove()
+
         type_filter = set()
         if self.show_minion.get():
             type_filter.add(CardType.MINION)
@@ -1041,11 +1053,12 @@ class DeckBuilderFrame(tk.Frame):
                 cards = filtered
 
             inner = self.pack_tabs[pack]
+            buttons = self._button_pools.setdefault(pack, [])
             if not cards:
-                if search_term:
-                    tk.Label(inner, text="无匹配卡牌").grid(sticky="ew", padx=5, pady=2)
-                else:
-                    tk.Label(inner, text="无可用卡牌（请分配沉浸点）").grid(sticky="ew", padx=5, pady=2)
+                lbl = self._empty_labels.get(pack)
+                if lbl:
+                    lbl.config(text="无匹配卡牌" if search_term else "无可用卡牌（请分配沉浸点）")
+                    lbl.grid(sticky="ew", padx=5, pady=2)
                 continue
             if sort_by == "cost":
                 cards.sort(key=lambda c: (self._cost_sort_key(c), c.immersion_level, c.name))
@@ -1055,13 +1068,18 @@ class DeckBuilderFrame(tk.Frame):
                 info = f"[{card.immersion_display} {card.cost}] {card.name}"
                 if card.attack is not None:
                     info += f" {card.attack}/{card.health}"
-                btn = tk.Button(inner, text=info, anchor="w")
+                if idx < len(buttons):
+                    btn = buttons[idx]
+                    btn.config(text=info)
+                else:
+                    btn = tk.Button(inner, text=info, anchor="w")
+                    buttons.append(btn)
+                # 更新事件绑定（卡牌可能变化）
+                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
+                btn.bind("<Double-Button-1>", lambda e, c=card: (e.widget.event_generate("<ButtonRelease-1>"), self._add_card(c.name)))
                 row = idx // 2
                 col = (idx % 2) * 2  # 0 或 2，中间列 1 作为间距
                 btn.grid(row=row, column=col, sticky="ew", padx=2, pady=1)
-                # 单击显示详情，双击加入卡组
-                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
-                btn.bind("<Double-Button-1>", lambda e, c=card: self._add_card(c.name))
 
         # ===== 填充衍生卡 Tab（只读）=====
         token_inner = self.pack_tabs.get("__token__")
@@ -1069,16 +1087,21 @@ class DeckBuilderFrame(tk.Frame):
             # 只展示无法进入构筑的纯 token 卡（无稀有度 = 不可构筑）
             token_cards = [c for c in DEFAULT_REGISTRY.all_cards() if c.is_token and c.rarity is None]
             token_cards.sort(key=lambda c: (c.pack.value, c.name))
+            token_buttons = self._button_pools.setdefault("__token__", [])
             for idx, card in enumerate(token_cards):
                 info = f"[{card.pack.value} {card.cost}] {card.name}"
                 if card.attack is not None:
                     info += f" {card.attack}/{card.health}"
-                btn = tk.Button(token_inner, text=info, anchor="w")
+                if idx < len(token_buttons):
+                    btn = token_buttons[idx]
+                    btn.config(text=info)
+                else:
+                    btn = tk.Button(token_inner, text=info, anchor="w")
+                    token_buttons.append(btn)
+                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
                 row = idx // 2
                 col = (idx % 2) * 2
                 btn.grid(row=row, column=col, sticky="ew", padx=2, pady=1)
-                # 衍生卡只读：仅显示详情，不可加入卡组
-                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
 
     def _add_card(self, name: str):
         card_def = DEFAULT_REGISTRY.get(name)
@@ -1088,10 +1111,10 @@ class DeckBuilderFrame(tk.Frame):
         # 测试卡组取消稀有度上限和40张限制
         if not self.deck.is_test_deck:
             if current >= card_def.rarity.value:
-                messagebox.showwarning("提示", f"{card_def.rarity.name} 卡最多携带 {card_def.rarity.value} 张")
+                self.after(10, lambda: messagebox.showwarning("提示", f"{card_def.rarity.name} 卡最多携带 {card_def.rarity.value} 张"))
                 return
             if self.deck.total_cards() >= 40:
-                messagebox.showwarning("提示", "卡组已满 40 张")
+                self.after(10, lambda: messagebox.showwarning("提示", "卡组已满 40 张"))
                 return
         self.deck.add_card(name)
         self._refresh_deck_list()

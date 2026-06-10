@@ -758,7 +758,7 @@ register_card(
     keywords={"两栖": True},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="具有两栖。部署在高地时，变化为“尸壳”；部署在水路时，变化为“溺尸”。否则：造成伤害时，你获得等量HP。",
+    description="部署在高地时，变化为“尸壳”；部署在水路时，变化为“溺尸”。否则：造成伤害时，你获得等量HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_jiangshi_special,
 )
