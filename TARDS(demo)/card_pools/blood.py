@@ -404,10 +404,10 @@ register_card(
     immersion_level=1,
     attack=4,
     health=3,
-    keywords={"协同": True, "亡语": True},
+    keywords={"协同": True},
     tags=['生物'],
-    description="亡语：随机消灭1个处于协同的敌方异象。",
-    targets_fn=target("position", friendly=True),
+    description="部署：消灭一个处于协同的敌方异象。",
+    targets_fn=target("minion", alive=True, enemy=True, custom_filter=lambda m: m.keywords.get("协同", False)),
     special_fn=_zhuxin_special,
 )
 

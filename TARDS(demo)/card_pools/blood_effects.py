@@ -276,20 +276,15 @@ def _liuqinghuajia_special(minion, player, game, extras=None):
 # 竹心：亡语：随机消灭1个处于协同的敌方异象。
 # =============================================================================
 @special
+@special
 def _zhuxin_special(minion, player, game, extras=None):
-    """竹心：亡语：随机消灭1个处于协同的敌方异象。"""
-    def _dr(m, p, b):
-        from card_pools.effect_utils import get_all_minions
-        enemies = [x for x in get_all_minions(game) if x.owner != p and x.is_alive() and x.keywords.get("协同", False)]
-        if not enemies:
-            print(f"  竹心亡语：没有处于协同的敌方异象")
-            return
-        import random
-        target = random.choice(enemies)
-        destroy_minion(target, game)
-        print(f"  竹心亡语：随机消灭处于协同的 {target.name}")
-
-    add_deathrattle(minion, _dr)
+    """竹心：部署：消灭一个处于协同的敌方异象。"""
+    target = extras
+    if not target or not target.is_alive():
+        return False
+    destroy_minion(target, game)
+    print(f"  竹心部署：消灭处于协同的 {target.name}")
+    return True
 
 
 # =============================================================================
