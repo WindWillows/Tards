@@ -982,3 +982,33 @@ register_card(
     targets_fn=target_none,
     effect_fn=_meidan_effect,
 )
+
+register_card(
+    name="雪降",
+    cost_str="3T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.BLOOD,
+    rarity=Rarity.SILVER,
+    immersion_level=1,
+    description="抽取：如可能，消耗3S，然后冰冻所有异象。\n对一个被冰冻的异象造成4点伤害。",
+    targets_fn=target("minion", alive=True, friendly=True, enemy=True,
+                      custom_filter=lambda m: m.keywords.get("冰冻", 0)),
+    effect_fn=_xuejiang_effect,
+    hidden_keywords={"抽取": _xuejiang_draw_trigger},
+)
+
+register_card(
+    name="血痂",
+    cost_str="2T",
+    card_type=CardType.MINION,
+    pack=Pack.BLOOD,
+    rarity=Rarity.IRON,
+    immersion_level=2,
+    attack=1, health=1,
+    keywords={"协同": True},
+    tags=["生物"],
+    description="抽取：对己方主角造成3点伤害。\n部署：你获得3点HP。\n亡语：抽1张牌。",
+    targets_fn=target("position", friendly=True),
+    special_fn=_xuejia_special,
+    hidden_keywords={"抽取": _xuejia_draw_trigger},
+)

@@ -1168,7 +1168,7 @@ register_card(
     card_type=CardType.MINION,
     pack=Pack.DISCRETE,
     rarity=Rarity.BRONZE,
-    immersion_level=2,
+    immersion_level=1,
     attack=3,
     health=3,
     keywords={"两栖": True, "迅捷": True, "亡语": True},
@@ -2224,13 +2224,13 @@ register_card(
 
 register_card(
     name="蛀蚀",
-    cost_str="3T",
+    cost_str="2T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    description="对方抽1张牌，失去与此牌花费相同的T点。若场上有蠹虫，再弃掉此牌。",
+    description="对手抽1张牌。若场上有蠹虫，对手失去与抽到的牌折算花费相同的T点。",
     targets_fn=target_none,
     effect_fn=_zhushi_effect,
 )
@@ -2344,7 +2344,6 @@ register_card(
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
     is_token=True,

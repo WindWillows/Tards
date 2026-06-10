@@ -71,6 +71,8 @@ __all__ = [
     "_shuangsheng_bishou_effect",
     "_zhanzheng_heping_effect",
     "_sanbei_icecream_effect",
+    "_xuejiang_effect",
+    "_xuejiang_draw_trigger",
     "_ziyou_effect",
     "_wuzhi_effect",
     "_xianchu_xinzang_effect",
@@ -132,6 +134,9 @@ __all__ = [
     "_shuixieshi_draw_trigger",
     "_guankui_effect",
     "_tianxiawushuang_effect",
+    "_xuejia_draw_trigger",
+    "_xuejia_special",
+    "_xuejia_deathrattle",
 ]
 
 
@@ -2454,3 +2459,73 @@ def _aboluozhiwei_special(minion, player, game, extras=None):
     game.history.listen("minion_death", on_death, owner=minion)
     game.history.listen("minion_removed", on_removed, owner=minion)
     return True
+
+
+# =============================================================================
+# 雪降：抽取时若可能消耗3S冰冻所有异象；打出时对一个被冰冻异象造成4点伤害
+# =============================================================================
+def _xuejiang_draw_trigger(player, game, card):
+    """抽取：如可能，消耗3S，然后冰冻所有异象。"""
+    from card_pools.effect_utils import freeze_minion
+
+    if player.s_point >= 3:
+        player.s_point -= 3
+        print(f"  {card.name} 抽取：{player.name} 消耗3S")
+    else:
+        print(f"  {card.name} 抽取：{player.name} S不足，无法消耗")
+
+    all_minions = list(game.board.minion_place.values())
+    frozen_count = 0
+    for m in all_minions:
+        if m.is_alive():
+            freeze_minion(m, layers=1)
+            frozen_count += 1
+    if frozen_count > 0:
+        print(f"  {card.name} 抽取：冰冻了 {frozen_count} 个异象")
+
+
+def _xuejiang_effect(player, target, game, extras=None, card=None):
+    """雪降：对一个被冰冻的异象造成4点伤害。"""
+    from card_pools.effect_utils import deal_damage_to_minion
+
+    if target is None or not getattr(target, "is_alive", lambda: False)():
+        print(f"  雪降：没有有效的目标")
+        return False
+
+    if not target.keywords.get("冰冻", 0):
+        print(f"  雪降：目标 {target.name} 未被冰冻")
+        return False
+
+    deal_damage_to_minion(target, 4, game=game)
+    print(f"  雪降：被冰冻的 {target.name} 受到4点伤害")
+    return True
+
+
+# =============================================================================
+# 血痂：2T 1/1 协同；抽取自伤3，部署回血3，亡语抽1
+# =============================================================================
+def _xuejia_draw_trigger(player, game, card):
+    """抽取：对己方主角造成3点伤害。"""
+    player.health_change(-3)
+    print(f"  {card.name} 抽取：{player.name} 受到3点伤害")
+
+
+@special
+def _xuejia_special(minion, player, game, extras=None):
+    """血痂：部署：你获得3点HP。亡语：抽1张牌。"""
+    player.health_change(3)
+    print(f"  {minion.name} 部署：{player.name} 获得3点HP")
+
+    def _dr(m, p, b):
+        from card_pools.effect_utils import draw_cards
+        g = b.game_ref if hasattr(b, "game_ref") else None
+        draw_cards(p, 1, game=g)
+        print(f"  {m.name} 亡语：{p.name} 抽1张牌")
+
+    add_deathrattle(minion, _dr)
+    return True
+
+
+def _xuejia_deathrattle(minion, player, board):
+    """血痂亡语（外部引用占位，实际亡语在 _xuejia_special 中注册）。"""
+    pass

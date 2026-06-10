@@ -608,6 +608,7 @@ class Game:
             self.show_hand(active)
             active.bell = False
             active.t_changed_this_round = False
+            active.played_card_this_round = False
 
             if self.action_provider:
                 action = self.action_provider(self, active, opponent)
@@ -636,8 +637,8 @@ class Game:
             elif act_type == "bell":
                 active.bell = True
                 self.emit_event(EVENT_BELL, player=active)
-                if not active.t_changed_this_round:
-                    print(f"  {active.name} 未改变T点即拍铃，失去 1 T点")
+                if not active.played_card_this_round:
+                    print(f"  {active.name} 本回合未打出过手牌即拍铃，失去 1 T点")
                     active.t_point_change(-1)
                 active, opponent = opponent, active
                 continue

@@ -88,6 +88,70 @@ from tards.targeting import (
 # 导入卡包池以注册所有卡牌到 DEFAULT_REGISTRY
 import card_pools
 
+# =============================================================================
+# 卡牌关联关系（自动生成 + 手动补充）
+# =============================================================================
+_CARD_RELATIONS: dict[str, list[str]] = {}
+
+def _build_card_relations():
+    """从卡牌描述中提取引号内的卡牌名，构建关联关系映射。"""
+    import re
+    pattern = re.compile(r'[""""](.+?)[""""]')
+    for card in DEFAULT_REGISTRY.all_cards():
+        desc = getattr(card, "description", "") or ""
+        related = set()
+        for m in pattern.finditer(desc):
+            name = m.group(1)
+            if name != card.name and DEFAULT_REGISTRY.get(name):
+                related.add(name)
+        if related:
+            _CARD_RELATIONS[card.name] = list(related)
+    # 手动补充 description 中未明确提及的关系
+    manual = {
+        "铁心": ["环丁二烯", "配体"],
+        "血渍怀表": ["钝锈指针"],
+        "钝锈指针": ["含垢齿轮"],
+        "烈焰人": ["烈焰粉"],
+        "凋零骷髅": ["凋零骷髅头"],
+        "猪灵弓兵": ["光灵箭"],
+        "蜘蛛": ["蜘蛛眼"],
+        "僵尸村民": ["金苹果"],
+        "书": ["附魔书"],
+        "附魔台": ["附魔书"],
+        "饵钓": ["书"],
+        "复制技术": ["轰击", "制导技术"],
+        "制导技术": ["矢量炮", "珍珠塔"],
+        "轰击": ["TNT炮"],
+        "遗迹机关": ["绊线钩"],
+        "保卫要塞": ["蠹虫"],
+        "虫蚀石头": ["蠹虫"],
+        "蠹虫": ["蠹虫"],
+        "蛀蚀": ["蠹虫"],
+        "高山": ["铁锭"],
+        "松鼠球": ["松鼠"],
+        "松鼠罐": ["松鼠"],
+        "13号孩子": ["13号"],
+        "13号": ["13号孩子"],
+        "河狸": ["河坝"],
+        "猹": ["西瓜"],
+        "奇怪的蛹": ["巨蛾"],
+        "石钱子": ["断尾"],
+        "断尾": ["石钱子"],
+        "蚁穴": ["兵蚁"],
+        "松鼠瓶": ["松鼠"],
+        "树洞": ["松鼠"],
+        "骨王": ["骨王之赏", "骨王之惠"],
+        "蜡烛": ["烛烟"],
+        "屠刀": ["松鼠"],
+        "林鼠": ["松鼠"],
+    }
+    for name, rels in manual.items():
+        existing = set(_CARD_RELATIONS.get(name, []))
+        existing.update(rels)
+        _CARD_RELATIONS[name] = list(existing)
+
+_build_card_relations()
+
 # 全局事件：用于后台游戏线程通知 GUI 刷新
 import threading
 gui_refresh_event = threading.Event()
@@ -505,6 +569,7 @@ class DeckBuilderFrame(tk.Frame):
         self.notebook = ttk.Notebook(cards_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         self.pack_tabs = {}
+        self.pack_canvases = {}
         for pack in Pack:
             tab = tk.Frame(self.notebook)
             self.notebook.add(tab, text=pack.value)
@@ -512,11 +577,56 @@ class DeckBuilderFrame(tk.Frame):
             scrollbar = tk.Scrollbar(tab, orient=tk.VERTICAL, command=canvas.yview)
             inner = tk.Frame(canvas)
             inner.bind("<Configure>", lambda e, c=canvas: c.configure(scrollregion=c.bbox("all")))
+            # 两列布局：列权重 10，间距权重 7（间距 = 0.7 × 列宽）
+            inner.columnconfigure(0, weight=10, uniform="col")
+            inner.columnconfigure(1, weight=7)
+            inner.columnconfigure(2, weight=10, uniform="col")
             canvas.create_window((0, 0), window=inner, anchor="nw")
             canvas.configure(yscrollcommand=scrollbar.set)
             canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
             self.pack_tabs[pack] = inner
+            self.pack_canvases[pack] = canvas
+            # 绑定鼠标滚轮
+            canvas.bind("<MouseWheel>", lambda e, c=canvas: c.yview_scroll(int(-e.delta / 120), "units"))
+
+        # ===== 衍生卡 Tab（只读展示）=====
+        token_tab = tk.Frame(self.notebook)
+        self.notebook.add(token_tab, text="衍生卡")
+        token_canvas = tk.Canvas(token_tab)
+        token_scroll = tk.Scrollbar(token_tab, orient=tk.VERTICAL, command=token_canvas.yview)
+        token_inner = tk.Frame(token_canvas)
+        token_inner.bind("<Configure>", lambda e, c=token_canvas: c.configure(scrollregion=c.bbox("all")))
+        token_inner.columnconfigure(0, weight=10, uniform="col")
+        token_inner.columnconfigure(1, weight=7)
+        token_inner.columnconfigure(2, weight=10, uniform="col")
+        token_canvas.create_window((0, 0), window=token_inner, anchor="nw")
+        token_canvas.configure(yscrollcommand=token_scroll.set)
+        token_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        token_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.pack_tabs["__token__"] = token_inner
+        self.pack_canvases["__token__"] = token_canvas
+        token_canvas.bind("<MouseWheel>", lambda e, c=token_canvas: c.yview_scroll(int(-e.delta / 120), "units"))
+
+        # ===== 关联 Tab（动态填充）=====
+        assoc_tab = tk.Frame(self.notebook)
+        self.notebook.add(assoc_tab, text="关联")
+        assoc_canvas = tk.Canvas(assoc_tab)
+        assoc_scroll = tk.Scrollbar(assoc_tab, orient=tk.VERTICAL, command=assoc_canvas.yview)
+        assoc_inner = tk.Frame(assoc_canvas)
+        assoc_inner.bind("<Configure>", lambda e, c=assoc_canvas: c.configure(scrollregion=c.bbox("all")))
+        assoc_inner.columnconfigure(0, weight=10, uniform="col")
+        assoc_inner.columnconfigure(1, weight=7)
+        assoc_inner.columnconfigure(2, weight=10, uniform="col")
+        assoc_canvas.create_window((0, 0), window=assoc_inner, anchor="nw")
+        assoc_canvas.configure(yscrollcommand=assoc_scroll.set)
+        assoc_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        assoc_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.pack_tabs["__assoc__"] = assoc_inner
+        self.pack_canvases["__assoc__"] = assoc_canvas
+        assoc_canvas.bind("<MouseWheel>", lambda e, c=assoc_canvas: c.yview_scroll(int(-e.delta / 120), "units"))
+        self._association_mode = False
+        self._last_normal_tab = None
 
         # ===== 右侧：卡牌详情 + 当前卡组 =====
         right_frame = tk.Frame(self)
@@ -533,6 +643,12 @@ class DeckBuilderFrame(tk.Frame):
         self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
         self.detail_text.config(state=tk.DISABLED)
 
+        # 相关卡牌索引按钮
+        self.related_btn = tk.Button(detail_frame, text="📎 相关卡牌索引", state=tk.DISABLED,
+                                      command=self._show_related_cards_in_tab)
+        self.related_btn.pack(anchor="se", padx=5, pady=(0, 5))
+        self._current_detail_card = None  # 当前详情面板显示的卡
+
         deck_frame = tk.LabelFrame(right_frame, text="当前卡组")
         deck_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
@@ -546,6 +662,7 @@ class DeckBuilderFrame(tk.Frame):
         list_frame.pack_propagate(False)
         self.deck_listbox = tk.Listbox(list_frame, height=8, font=("Microsoft YaHei", 10))
         self.deck_listbox.pack(fill=tk.BOTH, expand=True)
+        self.deck_listbox.bind("<<ListboxSelect>>", self._on_deck_list_select)
 
         # 右侧：统计信息 + 操作按钮
         stats_frame = tk.Frame(deck_content)
@@ -587,34 +704,214 @@ class DeckBuilderFrame(tk.Frame):
         self._refresh_available()
         self._refresh_deck_list()
 
+    def _on_deck_list_select(self, event):
+        """卡组列表选中时显示卡牌详情。"""
+        sel = self.deck_listbox.curselection()
+        if not sel:
+            return
+        text = self.deck_listbox.get(sel[0])
+        name = text.split(" x")[0]
+        card = DEFAULT_REGISTRY.get(name)
+        if card:
+            self._show_card_detail(card)
+
+    def _fmt_keywords(self, keywords: dict, minion_name: str = "") -> str:
+        """格式化关键词字典为人类可读字符串。"""
+        parts = []
+        for k, v in keywords.items():
+            if v is True:
+                parts.append(k)
+            elif callable(v):
+                parts.append(k)
+            elif isinstance(v, (int, float, str)):
+                parts.append(f"{k}{v}")
+            else:
+                continue
+        return " ".join(parts)
+
     def _show_card_detail(self, card):
         """在右侧固定详情面板中显示卡牌信息（非浮窗）。"""
-        lines = [f"【{card.name}】  [{card.pack.value} {card.immersion_display} {card.rarity.name}]"]
-        lines.append(f"费用: {card.cost}  类型: {card.card_type.value}")
-        if card.attack is not None:
-            lines.append(f"攻击/生命: {card.attack}/{card.health}")
-        if card.keywords:
-            kw = self._fmt_keywords(card.keywords, card.name)
-            lines.append(f"关键词: {kw}")
-        if card.evolve_to:
-            lines.append(f"成长为: {card.evolve_to}")
-        # 效果描述（从卡包源文件解析的原始文本）
-        desc = getattr(card, "description", "")
-        if desc:
-            lines.append(f"\n【效果】\n{desc}")
-        else:
-            lines.append("\n【效果】\n（暂无描述）")
-        text = "\n".join(lines)
-        self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, text)
-        self.detail_text.config(state=tk.DISABLED)
+        try:
+            self._current_detail_card = card
+            rarity_str = card.rarity.name if card.rarity else "-"
+            lines = [f"【{card.name}】  [{card.pack.value} {card.immersion_display} {rarity_str}]"]
+            lines.append(f"费用: {card.cost}  类型: {card.card_type.value}")
+            if card.attack is not None:
+                lines.append(f"攻击/生命: {card.attack}/{card.health}")
+            if card.keywords:
+                kw = self._fmt_keywords(card.keywords, card.name)
+                lines.append(f"关键词: {kw}")
+            if card.evolve_to:
+                lines.append(f"成长为: {card.evolve_to}")
+            # 效果描述（从卡包源文件解析的原始文本）
+            desc = getattr(card, "description", "")
+            if desc:
+                lines.append(f"\n【效果】\n{desc}")
+            else:
+                lines.append("\n【效果】\n（暂无描述）")
+            text = "\n".join(lines)
+            self.detail_text.config(state=tk.NORMAL)
+            self.detail_text.delete("1.0", tk.END)
+            self.detail_text.insert(tk.END, text)
+            self.detail_text.config(state=tk.DISABLED)
+            # 根据是否有相关卡牌启用/禁用按钮
+            related = self._get_related_cards(card)
+            if related:
+                self.related_btn.config(state=tk.NORMAL)
+            else:
+                self.related_btn.config(state=tk.DISABLED)
+        except Exception as e:
+            print(f"[警告] 显示卡牌详情时出错: {e}")
 
     def _clear_card_detail(self):
         self.detail_text.config(state=tk.NORMAL)
         self.detail_text.delete("1.0", tk.END)
         self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
         self.detail_text.config(state=tk.DISABLED)
+        self._current_detail_card = None
+        self.related_btn.config(state=tk.DISABLED)
+
+    def _get_related_cards(self, card):
+        """获取与指定卡牌关联的其他卡牌列表（正向+反向）。"""
+        desc = getattr(card, "description", "") or ""
+        all_cards = DEFAULT_REGISTRY.all_cards()
+        related = []
+
+        # 正向：描述中提到的其他卡
+        for other in all_cards:
+            if other.name == card.name:
+                continue
+            if other.name in desc:
+                related.append(other)
+
+        # 特殊概念映射：描述中提到"附魔书"的卡与"书"关联
+        if "附魔书" in desc:
+            book = DEFAULT_REGISTRY.get("书")
+            if book and book.name != card.name and book not in related:
+                related.append(book)
+
+        # evolve_to
+        if card.evolve_to and DEFAULT_REGISTRY.get(card.evolve_to):
+            evo = DEFAULT_REGISTRY.get(card.evolve_to)
+            if evo not in related:
+                related.append(evo)
+
+        # 反向：哪些卡提到了当前卡（仅 token 卡）
+        if card.is_token:
+            for other in all_cards:
+                if other.name == card.name:
+                    continue
+                other_desc = getattr(other, "description", "") or ""
+                if card.name not in other_desc:
+                    continue
+                # 若描述中存在更长的卡名包含当前卡名，则视为更精确匹配，跳过
+                has_longer = False
+                for longer in all_cards:
+                    if longer.name in (card.name, other.name):
+                        continue
+                    if card.name in longer.name and longer.name in other_desc:
+                        has_longer = True
+                        break
+                if has_longer:
+                    continue
+                if other not in related:
+                    related.append(other)
+
+        # 过滤子串误匹配（如"蜘蛛"被"蜘蛛眼"覆盖）
+        def _filter_substring(matches):
+            by_len = sorted(matches, key=lambda c: len(c.name), reverse=True)
+            filtered = []
+            for c in by_len:
+                if any(c.name in kept.name for kept in filtered):
+                    continue
+                filtered.append(c)
+            return filtered
+
+        related = _filter_substring(related)
+        # 去重并排序
+        seen = set()
+        unique = []
+        for c in related:
+            if c.name not in seen:
+                seen.add(c.name)
+                unique.append(c)
+        unique.sort(key=lambda c: (c.pack.value, c.name))
+        return unique
+
+    def _show_related_cards_in_tab(self):
+        """在左侧"关联"Tab 中展示当前卡牌的相关卡牌。"""
+        card = getattr(self, "_current_detail_card", None)
+        if not card:
+            return
+        related = self._get_related_cards(card)
+        if not related:
+            return
+
+        # 记录当前正常 Tab，以便返回
+        try:
+            self._last_normal_tab = self.notebook.select()
+        except Exception:
+            self._last_normal_tab = None
+
+        assoc_inner = self.pack_tabs.get("__assoc__")
+        if not assoc_inner:
+            return
+
+        # 清空关联 Tab
+        for w in assoc_inner.winfo_children():
+            w.destroy()
+
+        # 顶部标题栏 + 返回按钮
+        header = tk.Frame(assoc_inner)
+        header.grid(row=0, column=0, columnspan=3, sticky="ew", padx=2, pady=(4, 8))
+        tk.Label(header, text=f"【{card.name}】的关联卡牌（{len(related)} 张）",
+                 font=("Microsoft YaHei", 11, "bold")).pack(side=tk.LEFT)
+        tk.Button(header, text="🔙 返回", command=self._return_from_association).pack(side=tk.RIGHT)
+
+        # 两列布局展示相关卡牌
+        for idx, rc in enumerate(related):
+            info = f"[{rc.pack.value} {rc.cost}] {rc.name}"
+            if rc.attack is not None:
+                info += f" {rc.attack}/{rc.health}"
+            btn = tk.Button(assoc_inner, text=info, anchor="w")
+            row = (idx // 2) + 1  # 从第 1 行开始（第 0 行是标题）
+            col = (idx % 2) * 2
+            btn.grid(row=row, column=col, sticky="ew", padx=2, pady=1)
+            btn.bind("<Button-1>", lambda e, c=rc: self._show_card_detail(c))
+
+        self._association_mode = True
+        # 自动切换到关联 Tab
+        try:
+            tab_id = self.notebook.tabs()[-1]  # 最后一个 tab 通常是"关联"
+            # 但我们需要找到 text="关联" 的 tab
+            for t in self.notebook.tabs():
+                if self.notebook.tab(t, "text") == "关联":
+                    self.notebook.select(t)
+                    break
+        except Exception:
+            pass
+
+    def _return_from_association(self):
+        """从关联结果视图返回正常卡池视图。"""
+        self._association_mode = False
+        assoc_inner = self.pack_tabs.get("__assoc__")
+        if assoc_inner:
+            for w in assoc_inner.winfo_children():
+                w.destroy()
+            tk.Label(assoc_inner, text='点击右侧"相关卡牌索引"查看关联卡牌',
+                     fg="gray").grid(sticky="ew", padx=5, pady=5)
+        # 切回之前的 Tab
+        if self._last_normal_tab:
+            try:
+                self.notebook.select(self._last_normal_tab)
+            except Exception:
+                pass
+        else:
+            # 默认选择第一个 pack tab
+            try:
+                self.notebook.select(self.notebook.tabs()[0])
+            except Exception:
+                pass
 
     # ===== BattleFrame 卡牌详情大图 =====
     def _update_detail_text(self, card):
@@ -685,7 +982,9 @@ class DeckBuilderFrame(tk.Frame):
         return convert_cost_to_t(cost) + cost.ct
 
     def _refresh_available(self):
-        for tab in self.pack_tabs.values():
+        for key, tab in self.pack_tabs.items():
+            if key == "__assoc__":
+                continue
             for w in tab.winfo_children():
                 w.destroy()
         type_filter = set()
@@ -741,26 +1040,45 @@ class DeckBuilderFrame(tk.Frame):
                             filtered.append(c)
                 cards = filtered
 
-            tab = self.pack_tabs[pack]
+            inner = self.pack_tabs[pack]
             if not cards:
                 if search_term:
-                    tk.Label(tab, text="无匹配卡牌").pack(anchor="w", padx=5, pady=2)
+                    tk.Label(inner, text="无匹配卡牌").grid(sticky="ew", padx=5, pady=2)
                 else:
-                    tk.Label(tab, text="无可用卡牌（请分配沉浸点）").pack(anchor="w", padx=5, pady=2)
+                    tk.Label(inner, text="无可用卡牌（请分配沉浸点）").grid(sticky="ew", padx=5, pady=2)
                 continue
             if sort_by == "cost":
                 cards.sort(key=lambda c: (self._cost_sort_key(c), c.immersion_level, c.name))
             else:
                 cards.sort(key=lambda c: (c.immersion_level, self._cost_sort_key(c), c.name))
-            for card in cards:
+            for idx, card in enumerate(cards):
                 info = f"[{card.immersion_display} {card.cost}] {card.name}"
                 if card.attack is not None:
                     info += f" {card.attack}/{card.health}"
-                btn = tk.Button(tab, text=info, anchor="w")
-                btn.pack(fill=tk.X, padx=2, pady=1)
+                btn = tk.Button(inner, text=info, anchor="w")
+                row = idx // 2
+                col = (idx % 2) * 2  # 0 或 2，中间列 1 作为间距
+                btn.grid(row=row, column=col, sticky="ew", padx=2, pady=1)
                 # 单击显示详情，双击加入卡组
                 btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
                 btn.bind("<Double-Button-1>", lambda e, c=card: self._add_card(c.name))
+
+        # ===== 填充衍生卡 Tab（只读）=====
+        token_inner = self.pack_tabs.get("__token__")
+        if token_inner:
+            # 只展示无法进入构筑的纯 token 卡（无稀有度 = 不可构筑）
+            token_cards = [c for c in DEFAULT_REGISTRY.all_cards() if c.is_token and c.rarity is None]
+            token_cards.sort(key=lambda c: (c.pack.value, c.name))
+            for idx, card in enumerate(token_cards):
+                info = f"[{card.pack.value} {card.cost}] {card.name}"
+                if card.attack is not None:
+                    info += f" {card.attack}/{card.health}"
+                btn = tk.Button(token_inner, text=info, anchor="w")
+                row = idx // 2
+                col = (idx % 2) * 2
+                btn.grid(row=row, column=col, sticky="ew", padx=2, pady=1)
+                # 衍生卡只读：仅显示详情，不可加入卡组
+                btn.bind("<Button-1>", lambda e, c=card: self._show_card_detail(c))
 
     def _add_card(self, name: str):
         card_def = DEFAULT_REGISTRY.get(name)

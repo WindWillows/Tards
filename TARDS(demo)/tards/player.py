@@ -48,6 +48,7 @@ class Player:
         self.bell = False
         self.braked = False
         self.t_changed_this_round = False
+        self.played_card_this_round = False
         self.board_ref: Optional["Board"] = None
 
         # 献祭选择器：由外部注入，接收 (required_blood) -> Optional[List[Minion]]
@@ -620,6 +621,7 @@ class Player:
                 original_card.stack_count += 1
             return False
         self._cards_played_this_phase += 1
+        self.played_card_this_round = True
 
         # === 若未传入 extra_targets，串行获取 ===
         if extra_targets is None:
@@ -720,11 +722,11 @@ class Player:
                     else:
                         card.move_to("hand", game)
                         self.card_hand.append(card)
-                    self.t_point_change(card.cost.t)
-                    self.b_point += card.cost.b
-                    self.s_point += card.cost.s
-                    self.c_point_change(card.cost.c)
-                    card.cost.rollback(self)
+                    self.t_point_change(cost.t)
+                    self.b_point += cost.b
+                    self.s_point += cost.s
+                    self.c_point_change(cost.c)
+                    cost.rollback(self)
             game.effect_queue.resolve(f"打出 [{card.name}]", play_fn, source=card)
             return True
 
@@ -808,5 +810,6 @@ class Player:
 
     def reset_turn_flags(self):
         self.t_changed_this_round = False
+        self.played_card_this_round = False
         self.bell = False
         self.braked = False

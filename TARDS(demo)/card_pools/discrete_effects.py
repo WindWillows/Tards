@@ -3795,30 +3795,29 @@ def _zhengzhuangshangzhen_effect(player, target, game, extras=None):
 
 @strategy
 def _zhushi_effect(player, target, game, extras=None):
-    """蛀蚀：对方抽1张牌，失去与此牌花费相同的T点。若场上有蠹虫，再弃掉此牌。"""
+    """蛀蚀：对手抽1张牌。若场上有蠹虫，对手失去与抽到的牌折算花费相同的T点。"""
     opponent = game.p2 if player == game.p1 else game.p1
 
-    # 1. 对方抽1张牌（走完整 draw_card 流程）
+    # 1. 对手抽1张牌
     drawn = opponent.draw_card(1, game=game)
     if not drawn:
+        print("  蛀蚀：对手无牌可抽")
         return True
 
     drawn_card = drawn[0]
+    print(f"  蛀蚀：{opponent.name} 抽到 [{drawn_card.name}]")
 
-    # 2. 失去与此牌花费相同的T点（无论牌是否进入手牌）
-    cost_value = convert_cost_to_t(drawn_card.cost) + drawn_card.cost.ct
-    opponent.t_point = max(0, opponent.t_point - cost_value)
-    print(f"  蛀蚀：{opponent.name} 因抽到 [{drawn_card.name}] 失去 {cost_value} T点")
-
-    # 3. 若场上有蠹虫，再弃掉此牌（仅当牌确实在手牌中时）
-    if drawn_card in opponent.card_hand or drawn_card in opponent.extra_hand:
-        has_silverfish = any(
-            m.is_alive() and m.name == "蠹虫"
-            for m in game.board.minion_place.values()
-        )
-        if has_silverfish:
-            opponent.discard_card(drawn_card, game, reason="effect")
-            print(f"  蛀蚀：场上有蠹虫，弃掉 {drawn_card.name}")
+    # 2. 若场上有蠹虫，对手失去与抽到的牌折算花费相同的T点
+    has_silverfish = any(
+        m.is_alive() and m.name == "蠹虫"
+        for m in game.board.minion_place.values()
+    )
+    if has_silverfish:
+        cost_value = convert_cost_to_t(drawn_card.cost)
+        opponent.t_point = max(0, opponent.t_point - cost_value)
+        print(f"  蛀蚀：场上有蠹虫，{opponent.name} 失去 {cost_value} T点")
+    else:
+        print("  蛀蚀：场上没有蠹虫，无额外效果")
 
     return True
 
