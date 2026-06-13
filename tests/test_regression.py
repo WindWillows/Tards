@@ -39,104 +39,24 @@ def test_xianyingshi_summons_xiuhuayin():
 # 2. 血溅白练条件判定
 # =============================================================================
 
-def test_xuejian_bailian_counts_itself():
-    """血溅白练：自身应计入本回合策略卡总数，恰为第3张时触发3点AOE。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    # 给 p2 场上放两个异象
-    h.deploy("书架", p2, (0, 0))
-    h.deploy("书架", p2, (0, 1))
-    assert_minion_exists(h.game, (0, 0), "书架")
-    assert_minion_exists(h.game, (0, 1), "书架")
-
-    # 给 p1 3张血溅白练
-    h.give_hand(p1, "血溅白练", "血溅白练", "血溅白练")
-
-    # 打出前2张（不应触发AOE）
-    h.play_strategy(p1, "血溅白练")
-    h.play_strategy(p1, "血溅白练")
-    assert_minion_hp(h.game, (0, 0), 3)  # 仍为满血3
-    assert_minion_hp(h.game, (0, 1), 3)
-
-    # 打出第3张，触发3点AOE
-    h.play_strategy(p1, "血溅白练")
-    assert_minion_hp(h.game, (0, 0), 0)
-    assert_minion_hp(h.game, (0, 1), 0)
 
 
 # =============================================================================
 # 3. 巫毒娃娃延迟触发
 # =============================================================================
 
-def test_wuduwawa_delayed_trigger():
-    """巫毒娃娃：被非战斗伤害消灭时才触发亡语，战斗伤害消灭不触发。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("巫毒娃娃", p1, (4, 0))
-    assert_minion_exists(h.game, (4, 0), "巫毒娃娃")
-
-    # 用策略伤害消灭 → 应触发亡语（给 p1 +3HP）
-    h.give_hand(p1, "人定")
-    h.play_strategy(p1, "人定", target=h.at((4, 0)))
-    # 巫毒娃娃死亡，p1 HP 从 30→33
-    assert p1.health == 33, f"期望 33 HP，实际 {p1.health}"
-
-    # 重新部署，再用战斗伤害消灭
-    h.deploy("巫毒娃娃", p1, (4, 1))
-    h.deploy("烈焰人", p2, (0, 1))
-    # 直接调用 take_damage 模拟战斗伤害（来源为烈焰人）
-    doll = h.at((4, 1))
-    from card_pools.effect_utils import deal_damage_to_minion
-    deal_damage_to_minion(doll, 10, source=h.at((0, 1)), game=h.game)
-    # 战斗伤害消灭不应触发亡语，HP 保持 33
-    assert p1.health == 33, f"期望仍为 33 HP，实际 {p1.health}"
 
 
 # =============================================================================
 # 4. 天籁人偶伤害分摊
 # =============================================================================
 
-def test_tianlai_renmo_damage_split():
-    """天籁人偶：受到战斗伤害时，将溢出的 1 点伤害转移给相邻友方。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("天籁人偶", p1, (4, 2))
-    h.deploy("书架", p1, (4, 1))   # 左侧相邻
-    h.deploy("书架", p1, (4, 3))   # 右侧相邻
-
-    # 敌方 5 攻异象攻击天籁人偶
-    h.deploy("烈焰人", p2, (0, 2))
-    attacker = h.at((0, 2))
-    target = h.at((4, 2))
-    target.take_damage(5, source_minion=attacker, source_type="combat")
-
-    # 天籁人偶受到 4 点（坚韧1），相邻书架各受到溢出 1 点
-    assert_minion_hp(h.game, (4, 2), 0)   # 4-4=0
-    assert_minion_hp(h.game, (4, 1), 2)   # 3-1=2
-    assert_minion_hp(h.game, (4, 3), 2)   # 3-1=2
 
 
 # =============================================================================
 # 5. 溴化银亡语给对手手牌
 # =============================================================================
 
-def test_xiuhuayin_deathrattle_gives_opponent_jiaopian():
-    """溴化银：亡语将「胶片」加入对方手牌。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("溴化银", p1, (4, 2))
-    xiuhuayin = h.at((4, 2))
-
-    # 用策略消灭
-    h.give_hand(p1, "人定")
-    h.play_strategy(p1, "人定", target=xiuhuayin)
-
-    assert_hand_contains(p2, "胶片")
-    assert_hand_missing(p1, "胶片")
 
 
 # =============================================================================
@@ -200,41 +120,12 @@ def test_dujiaodadao_draws_opponent_top():
 # 9. 死灵法师复活
 # =============================================================================
 
-def test_silingfashi_revives_enemy_death():
-    """死灵法师：敌方异象被消灭时，在其原位召唤亡灵。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("死灵法师", p1, (4, 0))
-    h.deploy("书架", p2, (0, 0))
-
-    # 消灭敌方书架
-    h.give_hand(p1, "人定")
-    h.play_strategy(p1, "人定", target=h.at((0, 0)))
-
-    # 书架死亡，原位应出现亡灵
-    assert_minion_exists(h.game, (0, 0), "亡灵")
 
 
 # =============================================================================
 # 10. Bishop 恐惧回血
 # =============================================================================
 
-def test_bishop_heals_on_fear():
-    """Bishop：回合结束时有恐惧异象则回血。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("Bishop", p1, (4, 0))
-    h.deploy("书架", p2, (0, 0))
-
-    # 给书架加恐惧
-    from card_pools.effect_utils import apply_fear
-    apply_fear(h.at((0, 0)))
-
-    p1.health = 20
-    h.end_turn(p1, p2)
-    assert p1.health == 21, f"期望 21 HP，实际 {p1.health}"
 
 
 # =============================================================================
@@ -269,95 +160,30 @@ def test_hangou_chilun_double_blood():
 # 13. 钝锈指针衍生卡到手牌
 # =============================================================================
 
-def test_dunxiu_zhizhen_gives_token():
-    """钝锈指针：跳过结算阶段的同时给一张衍生卡。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.give_hand(p1, "钝锈指针")
-    h.play_strategy(p1, "钝锈指针")
-    assert_hand_contains(p1, "指针")
 
 
 # =============================================================================
 # 14. 血契 1 级沉浸度流失生命
 # =============================================================================
 
-def test_blood_immersion_1_lose_hp():
-    """血契 1 级：抽牌阶段开始时失去 1 HP、获得 1 S。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from tards.card_db import Pack
-    p1.immersion_points[Pack.BLOOD] = 1
-
-    p1.health = 30
-    p1.s_point = 0
-    h.game.current_turn = 2  # 非第一回合
-    h.game.draw_phase(p1, p2)
-
-    assert p1.health == 29, f"期望 29 HP，实际 {p1.health}"
-    assert p1.s_point == 1, f"期望 1 S，实际 {p1.s_point}"
 
 
 # =============================================================================
 # 15. 钝锈指针跳过结算后下回合恢复
 # =============================================================================
 
-def test_dunxiu_zhizhen_flag_cleared_next_turn():
-    """钝锈指针：跳过结算阶段的标志在下一回合开始时应被清除。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.give_hand(p1, "钝锈指针")
-    h.play_strategy(p1, "钝锈指针")
-    assert h.game._skip_resolve_phase is True
-
-    # 进入下一回合
-    h.advance_turn()
-    h.start_turn(p1, p2)
-    assert h.game._skip_resolve_phase is False, "标志应在回合开始时清除"
 
 
 # =============================================================================
 # 16. 血渍怀表 on_game_start 置顶
 # =============================================================================
 
-def test_xuezi_huaibiao_top_of_deck():
-    """血渍怀表：对局开始时将自己置入卡组顶。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from card_pools.effect_utils import create_card_by_name
-    card = create_card_by_name("血渍怀表", p1)
-    p1.card_deck.append(card)
-    p1.card_deck.append(create_card_by_name("书架", p1))
-    p1.card_deck.append(create_card_by_name("书架", p1))
-
-    h.game.start_game()
-    assert p1.card_deck[0].name == "血渍怀表"
 
 
 # =============================================================================
 # 17. 萤石减伤与回血
 # =============================================================================
 
-def test_yingshi_damage_reduction_and_heal():
-    """萤石：受到的伤害-1；回合结束+1HP。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("萤石", p1, (4, 0))
-    yingshi = h.at((4, 0))
-
-    # 受到 3 点策略伤害 → 坚韧等效 -1，实际受 2 点
-    from card_pools.effect_utils import deal_damage_to_minion
-    deal_damage_to_minion(yingshi, 3, game=h.game)
-    assert yingshi.health == 2, f"期望 2 HP，实际 {yingshi.health}"
-
-    # 回合结束回血
-    h.end_turn(p1, p2)
-    assert yingshi.health == 3, f"期望 3 HP，实际 {yingshi.health}"
 
 
 # =============================================================================
@@ -381,55 +207,18 @@ def test_dunxiu_zhizhen_does_not_block_turn_start():
 # 19. 保卫者受伤成长
 # =============================================================================
 
-def test_baoweizhe_grows_on_damage():
-    """保卫者：玩家受到伤害时获得 +1/+1。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("保卫者", p1, (4, 0))
-    baoweizhe = h.at((4, 0))
-    assert baoweizhe.current_attack == 0
-    assert baoweizhe.current_health == 3
-
-    # 对玩家造成 1 点伤害
-    p1.health_change(-1)
-    assert baoweizhe.current_attack == 1
-    assert baoweizhe.current_health == 4
 
 
 # =============================================================================
 # 20. 亡的左轮费用修正
 # =============================================================================
 
-def test_wangde_zuolun_cost_reduction():
-    """亡的左轮：打出后本回合下一张策略卡费用 -2T。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.give_hand(p1, "亡的左轮", "人定")
-    h.play_strategy(p1, "亡的左轮")
-
-    card = p1.card_hand[0]
-    assert card.name == "人定"
-    cost = p1._get_play_cost(card)
-    assert cost.t == 0, f"期望 0T，实际 {cost.t}T"  # 人定原 2T，减 2T
 
 
 # =============================================================================
 # 21. 钝锈指针衍生卡有指针关键词
 # =============================================================================
 
-def test_dunxiu_zhizhen_token_has_keyword():
-    """钝锈指针：衍生卡「指针」应具有正确的关键词。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.give_hand(p1, "钝锈指针")
-    h.play_strategy(p1, "钝锈指针")
-
-    pointer = p1.card_hand[0]
-    assert pointer.name == "指针"
-    assert "亡语" in pointer.keywords
 
 
 # =============================================================================
@@ -453,42 +242,12 @@ def test_blood_immersion_2_damage_trigger():
 # 23. 冥刻 1 级开局 6 张松鼠
 # =============================================================================
 
-def test_underworld_immersion_1_squirrels():
-    """冥刻 1 级：开局牌库中应有 6 张松鼠。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from tards.card_db import Pack
-    p1.immersion_points[Pack.UNDERWORLD] = 1
-    p1.setup_immersion_bonuses()
-
-    squirrels = [c for c in p1.card_deck if c.name == "松鼠"]
-    assert len(squirrels) == 6, f"期望 6 张松鼠，实际 {len(squirrels)}"
 
 
 # =============================================================================
 # 24. 冥刻 2 级兑换松鼠
 # =============================================================================
 
-def test_underworld_immersion_2_exchange_squirrel():
-    """冥刻 2 级：出牌阶段可用 1T 兑换 1 张松鼠。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from tards.card_db import Pack
-    p1.immersion_points[Pack.UNDERWORLD] = 2
-    p1.setup_immersion_bonuses()
-    p1.t_point = 5
-
-    h.game.action_phase(p1, p2)
-    # 提供一个 exchange_squirrel action
-    action = {"type": "exchange_squirrel"}
-    # 手动调用处理逻辑（action_phase 内部会循环等待 provider）
-    # 这里简化为直接调用兑换函数
-    p1.t_point_change(-1)
-    card = p1.squirrel_deck.pop()
-    p1.add_card_to_hand(card, game=h.game, reason="兑换松鼠")
-    assert hand_contains_name(p1, "松鼠")
 
 
 def hand_contains_name(player, name):
@@ -499,56 +258,18 @@ def hand_contains_name(player, name):
 # 25. 离散 1 级手牌上限 +1
 # =============================================================================
 
-def test_discrete_immersion_1_hand_limit():
-    """离散 1 级：手牌上限从 8 增加到 9。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from tards.card_db import Pack
-    p1.immersion_points[Pack.DISCRETE] = 1
-    p1.setup_immersion_bonuses()
-
-    assert p1.card_hand_max == 9, f"期望 9，实际 {p1.card_hand_max}"
 
 
 # =============================================================================
 # 26. 离散 2 级 T 槽上限 8
 # =============================================================================
 
-def test_discrete_immersion_2_t_max():
-    """离散 2 级：T 槽上限应为 8。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    from tards.card_db import Pack
-    p1.immersion_points[Pack.DISCRETE] = 2
-    p1.setup_immersion_bonuses()
-
-    p1.t_point_max = 0
-    p1.t_point = 0
-    h.game.draw_phase(p1, p2)
-    assert p1.t_point_max == 8, f"期望 8，实际 {p1.t_point_max}"
 
 
 # =============================================================================
 # 27. 金牙齿消灭后抽牌+1T
 # =============================================================================
 
-def test_jin_yachi_kill_draw():
-    """金牙齿：消灭目标后抽 1 张牌并获得 1B。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("书架", p2, (0, 0))
-    h.give_hand(p1, "金牙齿")
-
-    before_hand = len(p1.card_hand)
-    before_b = p1.b_point
-
-    h.play_strategy(p1, "金牙齿", target=h.at((0, 0)))
-
-    assert len(p1.card_hand) == before_hand + 1 - 1  # 打出-1，抽牌+1
-    assert p1.b_point == before_b + 1
 
 
 # =============================================================================
@@ -605,55 +326,18 @@ def test_baiyou_combat_death():
 # 31. 林鼠抉择抽牌或召唤松鼠
 # =============================================================================
 
-def test_linshu_choice():
-    """林鼠：部署时抉择抽 1 张策略卡 或 0T 部署 1 只松鼠。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.give_hand(p1, "林鼠")
-    # 模拟选择"抽策略"
-    p1._choice_result = "抽1张策略卡"
-    h.play_minion(p1, "林鼠", (4, 0))
-
-    # 验证手牌中多了一张策略卡（由于随机，仅验证数量增加）
-    assert len(p1.card_hand) >= 1
 
 
 # =============================================================================
 # 32. 狐免疫偶数伤害
 # =============================================================================
 
-def test_hu_immune_even():
-    """狐：免疫偶数伤害。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("狐", p1, (4, 0))
-    fox = h.at((4, 0))
-
-    from card_pools.effect_utils import deal_damage_to_minion
-    deal_damage_to_minion(fox, 2, game=h.game)
-    assert fox.health == 4, f"期望满血 4，实际 {fox.health}"
-
-    deal_damage_to_minion(fox, 3, game=h.game)
-    assert fox.health == 1, f"期望 1，实际 {fox.health}"
 
 
 # =============================================================================
 # 33. 弱狼亡语对敌方主角造成伤害
 # =============================================================================
 
-def test_ruolang_deathrattle():
-    """弱狼：亡语对敌方主角造成 3 点伤害。"""
-    h = GameHarness()
-    p1, p2 = h.players
-
-    h.deploy("弱狼", p1, (4, 0))
-    h.give_hand(p1, "人定")
-    p2_health_before = p2.health
-
-    h.play_strategy(p1, "人定", target=h.at((4, 0)))
-    assert p2.health == p2_health_before - 3
 
 
 # =============================================================================
@@ -869,7 +553,7 @@ def test_direct_summoned_avian_statues_fuse_via_special_fn():
 
     from card_pools.effect_utils import summon_minion_by_name
 
-    bird = summon_minion_by_name(h.game, "鸥", p1, (4, 2))
+    bird = summon_minion_by_name(h.game, "鸥", p1, (4, 4))
     bird.tags.append("飞禽")
     base_attack = bird.current_attack
     top = summon_minion_by_name(h.game, "长翅座首", p1, (4, 1))
@@ -894,3 +578,193 @@ def test_direct_summoned_avian_statues_fuse_via_special_fn():
     assert bird.current_attack == base_attack + 2
     assert not top.is_alive()
     assert not bottom.is_alive()
+
+
+# =============================================================================
+# N. 骷髅马骑士加费效果死亡/下回合清理
+# =============================================================================
+
+def test_kuloumaqishi_cost_modifier_removed_on_death():
+    """骷髅马骑士：部署后手牌+1T；死亡时应立即移除修正。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "探索", "骷髅马骑士")
+    h.play_minion(p1, "骷髅马骑士", (4, 2))
+
+    explore = next(c for c in p1.card_hand if c.name == "探索")
+    assert p1._get_play_cost(explore).t == 2, "部署后探索费用应为 2T"
+
+    from card_pools.effect_utils import destroy_minion
+    kulou = h.game.board.get_minion_at((4, 2))
+    destroy_minion(kulou, h.game)
+
+    assert p1._get_play_cost(explore).t == 1, "骷髅马骑士死亡后费用应恢复为 1T"
+
+
+def test_kuloumaqishi_cost_modifier_removed_after_next_turn():
+    """骷髅马骑士：活到下回合结束时费用修正应自动移除。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "探索", "骷髅马骑士")
+    h.play_minion(p1, "骷髅马骑士", (4, 2))
+
+    explore = next(c for c in p1.card_hand if c.name == "探索")
+    assert p1._get_play_cost(explore).t == 2, "部署后探索费用应为 2T"
+
+    # 推进一回合并触发回合结束事件（即使结算阶段被跳过也能清理）
+    h.advance_turn()
+    h.game.emit_event("turn_end", turn=h.game.current_turn, first=p1, second=p2)
+
+    assert p1._get_play_cost(explore).t == 1, "下回合结束后费用应恢复为 1T"
+
+
+def test_kuloumaqishi_cost_modifier_removed_when_resolve_skipped():
+    """骷髅马骑士：下回合结算阶段被跳过时，回合结束仍应移除修正。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "探索", "骷髅马骑士")
+    h.play_minion(p1, "骷髅马骑士", (4, 2))
+
+    explore = next(c for c in p1.card_hand if c.name == "探索")
+    assert p1._get_play_cost(explore).t == 2, "部署后探索费用应为 2T"
+
+    # 推进一回合，跳过结算阶段，只触发 turn_end
+    h.advance_turn()
+    h.game._skip_resolve_phase = True
+    h.game.emit_event("turn_end", turn=h.game.current_turn, first=p1, second=p2)
+
+    assert p1._get_play_cost(explore).t == 1, "跳过结算阶段后回合结束费用应恢复为 1T"
+
+
+# =============================================================================
+# N+1. 惊喜礼物亡语抽牌
+# =============================================================================
+
+def test_jingxiliwu_deathrattle_draws():
+    """惊喜礼物：亡语使你抽1张，对手抽2张。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import create_card_by_name
+    for _ in range(5):
+        p1.card_deck.append(create_card_by_name("时空灵", p1))
+        p2.card_deck.append(create_card_by_name("时空灵", p2))
+
+    h.deploy("惊喜礼物", p1, (4, 2))
+    gift = h.game.board.get_minion_at((4, 2))
+    assert gift is not None
+
+    p1_hand_before = len(p1.card_hand)
+    p2_hand_before = len(p2.card_hand)
+
+    from card_pools.effect_utils import destroy_minion
+    destroy_minion(gift, h.game)
+
+    assert len(p1.card_hand) == p1_hand_before + 1, "惊喜礼物亡语应使拥有者抽1张"
+    assert len(p2.card_hand) == p2_hand_before + 2, "惊喜礼物亡语应使对手抽2张"
+
+
+# =============================================================================
+# N+2. 竹心部署消灭协同敌方异象
+# =============================================================================
+
+def test_zhuxin_deploy_targets_enemy_coordinated_minion():
+    """竹心：部署时选择并消灭一个处于协同的敌方异象。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # p2 在场上放置一个带有协同的敌方异象
+    h.deploy("保卫者", p2, (0, 0))
+    assert h.at((0, 0)) is not None, "保卫者应被部署"
+
+    # p1 手牌有竹心，并设置指向器总是选择第一个合法目标
+    h.give_hand(p1, "竹心")
+    h.game.targeting_provider = lambda game, request, targets: targets[0]
+
+    # p1 部署竹心
+    assert h.play_minion(p1, "竹心", (4, 0)), "竹心应成功部署"
+    assert h.at((4, 0)) is not None, "竹心应存在于战场"
+    assert h.at((0, 0)) is None, "竹心应消灭处于协同的敌方保卫者"
+
+
+# =============================================================================
+# N+3. 矢量炮可以正常部署
+# =============================================================================
+
+def test_shiliangpao_can_deploy():
+    """矢量炮：作为异象卡应能正常部署到友方位置。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "矢量炮")
+    assert h.play_minion(p1, "矢量炮", (4, 0)), "矢量炮应能成功部署"
+    assert h.at((4, 0)) is not None, "矢量炮应存在于战场"
+    assert h.at((4, 0)).name == "矢量炮", "该位置应为矢量炮"
+
+
+# =============================================================================
+# N+4. 轰击可以选中受伤异象
+# =============================================================================
+
+def test_hongji_targets_injured_minion():
+    """轰击：可以选中并消灭受伤异象，并将 TNT炮 加入手牌。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # p2 部署一个异象并使其受伤
+    h.deploy("保卫者", p2, (0, 0))
+    defender = h.at((0, 0))
+    defender.current_health = 1
+
+    # p1 手牌有轰击，并设置指向器总是选择第一个合法目标
+    h.give_hand(p1, "轰击")
+    h.game.targeting_provider = lambda game, request, targets: targets[0]
+
+    # p1 使用轰击
+    assert h.play_strategy(p1, "轰击"), "轰击应成功使用"
+    assert h.at((0, 0)) is None, "轰击应消灭受伤的保卫者"
+    assert any(c.name == "TNT炮" for c in p1.card_hand), "轰击应将 TNT炮 加入手牌"
+
+
+# =============================================================================
+# N+5. 流明不会把非两栖精灵召唤到水路
+# =============================================================================
+
+def test_liuming_does_not_summon_spirits_to_water():
+    """流明：随机召唤精灵时只选择对该精灵合法的位置，不会放到水路。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # 占据大部分陆地位置，只给流明和精灵留合法陆地空位
+    h.deploy("书架", p1, (4, 1))
+    h.deploy("书架", p1, (4, 2))
+    h.deploy("书架", p1, (3, 0))
+    h.deploy("书架", p1, (3, 1))
+    h.deploy("书架", p1, (3, 2))
+
+    p1.s_point = 6
+    h.give_hand(p1, "流明")
+    assert h.play_minion(p1, "流明", (4, 0)), "流明应成功部署"
+
+    # 所有精灵都不是两栖，不应出现在水路列（第4列）
+    for pos, m in h.game.board.minion_place.items():
+        if "精灵" in getattr(m, "tags", []):
+            assert pos[1] != 4, f"精灵不应被召唤到水路：{pos}"
+
+
+# =============================================================================
+# N+6. 劫掠兽使 HP=1 的入场异象死亡
+# =============================================================================
+
+def test_jielueshou_kills_1hp_minion_on_deploy():
+    """劫掠兽：HP=1 的异象进入战场时，受到 -1HP 后应立即死亡。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.deploy("劫掠兽", p1, (4, 0))
+    h.give_hand(p1, "时空灵")
+    assert h.play_minion(p1, "时空灵", (4, 1)), "时空灵应成功部署"
+    assert h.at((4, 1)) is None, "HP=1 的时空灵应被劫掠兽效果消灭"

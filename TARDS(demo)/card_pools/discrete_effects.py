@@ -65,7 +65,7 @@ from card_pools.effect_utils import (
 
 @special
 def _diaoyugan_special(minion, player, game, extras=None):
-    """钓鱼竿：回合结束：将1张"书"加入手牌。"""
+    """钓鱼竿：结算阶段结束：将1张"书"加入手牌。"""
 
     def _on_turn_end(event):
         if not minion.is_alive():
@@ -111,7 +111,7 @@ def _gou_special(minion, player, game, extras=None):
 
 @special
 def _yang_special(minion, player, game, extras=None):
-    """羊：回合结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。"""
+    """羊：结算阶段结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。"""
     from card_pools.effect_utils import minions_deployed_this_turn
 
     def _on_turn_end(event):
@@ -480,7 +480,7 @@ def _cunmin2_special(minion, player, game, extras=None):
 
 @special
 def _qianyingbei_special(minion, player, game, extras=None):
-    """潜影贝：敌方异象受到1点伤害后，在回合结束时返回手牌。"""
+    """潜影贝：敌方异象受到1点伤害后，在结算阶段结束时返回手牌。"""
     minion._qianying_targets = set()
 
     def on_after_damage(event):
@@ -511,7 +511,12 @@ def _qianyingbei_special(minion, player, game, extras=None):
 
 @special
 def _huanmozhe_special(minion, player, game, extras=None):
-    """唤魔者：回合开始：将1张精灵异象加入战场，使其具有迅捷。场上有精灵异象时，自身具有虚化。"""
+    """唤魔者：结算阶段开始：将1张精灵异象加入战场，使其具有迅捷。场上有精灵异象时，自身具有虚化。
+
+    采用效果预设目标机制：出牌阶段玩家需为唤魔者预设一个友方空位，
+    结算阶段开始时在该位置召唤随机精灵异象。未预设目标则不召唤。
+    """
+    from card_pools.effect_utils import empty_positions, set_effect_target_scope, get_effect_target
 
     def _has_spirit_on_board():
         return any(
@@ -529,9 +534,8 @@ def _huanmozhe_special(minion, player, game, extras=None):
             minion.temp_keywords.pop("虚化", None)
         minion.recalculate()
 
-    def _summon_spirit():
+    def _summon_spirit(target_pos):
         from tards.card_db import DEFAULT_REGISTRY, CardType
-        from card_pools.effect_utils import empty_positions
         spirits = [
             c for c in DEFAULT_REGISTRY.all_cards()
             if hasattr(c, "tags") and "精灵" in c.tags
@@ -543,11 +547,9 @@ def _huanmozhe_special(minion, player, game, extras=None):
             return
         spirit_def = random.choice(spirits)
         spirit_card = spirit_def.to_game_card(player)
-        empties = empty_positions(player, game.board)
-        if not empties:
-            print(f"  {player.name} 战场已满，无法召唤精灵")
+        if target_pos is None:
+            print(f"  {minion.name} 没有预设召唤位置，跳过召唤")
             return
-        target_pos = empties[0]
         if not game.board.is_valid_deploy(target_pos, player, spirit_card):
             print(f"  {target_pos} 无法部署 {spirit_card.name}")
             return
@@ -555,13 +557,20 @@ def _huanmozhe_special(minion, player, game, extras=None):
         if ok:
             summoned = game.board.get_minion_at(target_pos)
             if summoned:
-                summoned.keywords["迅捷"] = True
+                # 写入 base_keywords 并 recalculate，确保被全场光环刷新后仍保留迅捷
+                summoned.base_keywords["迅捷"] = True
+                summoned.recalculate()
                 print(f"  {summoned.name} 获得迅捷")
+
+    # 出牌阶段可预设目标：友方空位
+    set_effect_target_scope(minion, lambda p, board: empty_positions(p, board))
 
     def _huanmo_turn_start(event):
         if not minion.is_alive():
             return
-        _summon_spirit()
+        # 不传入 game，避免空位元组被解析为当前 occupying minion（None）
+        target_pos = get_effect_target(minion)
+        _summon_spirit(target_pos)
         _update_xuhua()
 
     on_turn_start(minion, game, _huanmo_turn_start)
@@ -587,7 +596,7 @@ def _haitun_special(minion, player, game, extras=None):
 
 @special
 def _jielueduizhang_special(minion, player, game, extras=None):
-    """劫掠队长：回合结束：若本回合对手受到的伤害不小于3，使对手失去2点HP。"""
+    """劫掠队长：结算阶段结束：若本回合对手受到的伤害不小于3，使对手失去2点HP。"""
     from card_pools.effect_utils import damage_dealt_to_players_this_turn, get_opponent
 
     def on_phase_end(event):
@@ -693,7 +702,8 @@ def _jiangshijiqishi_special(minion, player, game, extras=None):
 
 @special
 def _kuloumaqishi_special(minion, player, game, extras=None):
-    """骷髅马骑士：部署：你的手牌具有+1T花费，直到下回合结束。"""
+    """骷髅马骑士：部署：你的手牌具有+1T花费，直到下结算阶段结束。"""
+    from tards.constants import EVENT_DEATH, EVENT_TURN_END
 
     def modifier(card, cost):
         cost.t += 1
@@ -703,18 +713,36 @@ def _kuloumaqishi_special(minion, player, game, extras=None):
 
     deployed_turn = game.current_turn
 
-    def on_phase_end(event):
-        if event.data.get("phase") != game.PHASE_RESOLVE:
-            return
-        if not minion.is_alive():
-            return
-        if game.current_turn <= deployed_turn:
-            return  # 本回合结算阶段结束，不移除
+    def cleanup(source=""):
         if modifier in player._cost_modifiers:
             player._cost_modifiers.remove(modifier)
             print("  骷髅马骑士效果结束：手牌花费恢复")
+        # 注销 GameHistory 监听器
+        for lid in getattr(cleanup, "_listener_ids", []):
+            game.history.unlisten(lid)
+        # 注销 EventBus 死亡监听器
+        eb_listener = getattr(cleanup, "_death_listener", None)
+        if eb_listener:
+            game.event_bus.unregister(EVENT_DEATH, eb_listener)
 
-    on("phase_end", on_phase_end, game, minion)
+    def on_turn_end(event):
+        if game.current_turn <= deployed_turn:
+            return  # 本结算阶段结束，不移除
+        cleanup("turn_end")
+
+    lid_turn = on("turn_end", on_turn_end, game, minion)
+    cleanup._listener_ids = [lid_turn]
+
+    def on_death(event):
+        if event.data.get("minion") is minion:
+            cleanup("death")
+
+    # 死亡监听不能走 GameHistory 的 owner=minion，否则 lifecycle.clear_minion
+    # 会在 EVENT_DEATH 触发前就把它注销掉。
+    game.event_bus.register(EVENT_DEATH, on_death)
+    cleanup._death_listener = on_death
+
+    return True
 
 
 @special
@@ -921,7 +949,7 @@ def _zhong_special(minion, player, game, extras=None):
 
 @special
 def _diaolingpaota_special(minion, player, game, extras=None):
-    """凋灵炮塔：溢出伤害转移至对手。回合结束：若你的手牌数不小于6，随机攻击1个敌方异象。"""
+    """凋灵炮塔：溢出伤害转移至对手。结算阶段结束：若你的手牌数不小于6，随机攻击1个敌方异象。"""
 
     def on_after_damage(event):
         if not minion.is_alive():
@@ -1358,6 +1386,8 @@ def _jielueshou_special(minion, player, game, extras=None):
             deployed.current_health -= 1
             modify_keyword_number(deployed, "坚韧", -1)
             print(f"  {deployed.name} 进入战场，获得-1HP和-1坚韧")
+            if deployed.current_health <= 0:
+                deployed.minion_death()
 
     minion.register_deploy_hook(game, _on_deploy)
 
@@ -1462,7 +1492,7 @@ def _moyingman_special(minion, player, game, extras=None):
 
 @special
 def _beijixiong_special(minion, player, game, extras=None):
-    """北极熊：回合结束：若HP不大于2，获得-1/+2。"""
+    """北极熊：结算阶段结束：若HP不大于2，获得-1/+2。"""
 
     def _on_turn_end(g, event_data, m):
         if m.is_alive() and m.health <= 2:
@@ -1473,7 +1503,7 @@ def _beijixiong_special(minion, player, game, extras=None):
 
 @special
 def _naogui_special(minion, player, game, extras=None):
-    """恼鬼：回合结束时，将其消灭。"""
+    """恼鬼：结算阶段结束时，将其消灭。"""
 
     def _on_turn_end(g, event_data, m):
         if m.is_alive():
@@ -1485,7 +1515,7 @@ def _naogui_special(minion, player, game, extras=None):
 
 @special
 def _liudu_special(minion, player, game, extras=None):
-    """流髑：回合开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。"""
+    """流髑：结算阶段开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。"""
 
     def _on_turn_start(g, event_data, m):
         target = random_enemy_minion(g, player)
@@ -1501,7 +1531,7 @@ def _liudu_special(minion, player, game, extras=None):
 
 @special
 def _shike_special(minion, player, game, extras=None):
-    """尸壳：回合开始：对所有敌方异象造成1点伤害。"""
+    """尸壳：结算阶段开始：对所有敌方异象造成1点伤害。"""
 
     def _on_turn_start(g, event_data, m):
         for enemy in all_enemy_minions(g, player):
@@ -1765,7 +1795,7 @@ def _huli_special(minion, player, game, extras=None):
 
 @special
 def _haigui_special(minion, player, game, extras=None):
-    """海龟：受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下回合结束。"""
+    """海龟：受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下结算阶段结束。"""
 
     def _weaken(event):
         if event.get("target") != minion:
@@ -2588,7 +2618,7 @@ def _hongji_effect(player, target, game, extras=None):
     from tards.targeting import TargetingRequest
 
     def scope(p, b):
-        return [m for m in b.minion_place.values() if m.is_alive() and m.current_health < m.health]
+        return [m for m in b.minion_place.values() if m.is_alive() and m.current_health < m.current_max_health]
 
     req = TargetingRequest()
     req.source = player
@@ -2601,7 +2631,7 @@ def _hongji_effect(player, target, game, extras=None):
     if not hasattr(t, "is_alive") or not t.is_alive():
         print("  轰击：目标无效")
         return True
-    if t.current_health >= t.health:
+    if t.current_health >= t.current_max_health:
         print("  轰击：目标未受伤")
         return True
 
@@ -2672,7 +2702,7 @@ def _hongshifen_strategy(player, target, game, extras=None):
 
 @strategy
 def _jinrenshu_strategy(player, target, game, extras=None):
-    """禁人书：使1个异象及其相邻异象获得眩晕（持续到回合结束）。"""
+    """禁人书：使1个异象及其相邻异象获得眩晕（持续到结算阶段结束）。"""
     from tards.targeting import TargetingRequest
     from tards.cards import Minion
 
@@ -2867,12 +2897,12 @@ def _huosai_feiting_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 异象卡 — 回合结束 / 亡语
+# 异象卡 — 结算阶段结束 / 亡语
 # =============================================================================
 
 @special
 def _lv_special(minion, player, game, extras=None):
-    """驴：回合结束：若处于协同，抽1张牌。"""
+    """驴：结算阶段结束：若处于协同，抽1张牌。"""
 
     def _on_turn_end(g, event_data, m):
         if not m.is_alive():
@@ -2981,10 +3011,10 @@ def _zhenceqi_special(minion, player, game, extras=None):
 
 @strategy
 def _zisongguo_strategy(player, target, game, extras=None):
-    """紫颂果：抽2张牌。回合结束时，将其弃掉。"""
+    """紫颂果：抽2张牌。结算阶段结束时，将其弃掉。"""
     drawn = draw_cards(player, 2, game)
     if drawn > 0:
-        # 记录本回合抽到的牌，回合结束时弃掉
+        # 记录本回合抽到的牌，结算阶段结束时弃掉
         drawn_cards = player.card_hand[-drawn:]
 
         def _discard_drawn(g, event_data, p):
@@ -3237,7 +3267,7 @@ SPECIAL_MAP = {
 
 @strategy
 def _tiegao_effect(player, target, game, extras=None):
-    """铁镐：获得2个额外的C槽。回合结束：抽一张牌。（一次性）"""
+    """铁镐：获得2个额外的C槽。结算阶段结束：抽一张牌。（一次性）"""
     player.c_point_max_change(2)
     print(f"  {player.name} 获得2个额外C槽")
 
@@ -3245,7 +3275,7 @@ def _tiegao_effect(player, target, game, extras=None):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
         player.draw_card(1, game=game)
-        print(f"  铁镐：{player.name} 回合结束抽1张牌")
+        print(f"  铁镐：{player.name} 结算阶段结束抽1张牌")
 
     on("phase_end", on_phase_end, game, once=True)
     return True
@@ -3677,7 +3707,7 @@ def _yelian_effect(player, target, game, extras=None):
 
 @strategy
 def _cuiruotongmeng_effect(player, target, game, extras=None):
-    """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，回合结束时，将其移除。"""
+    """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，结算阶段结束时，将其移除。"""
     from tards.cards import MinionCard, Minion
     from tards.cost import Cost
     import random
@@ -3730,7 +3760,7 @@ def _cuiruotongmeng_effect(player, target, game, extras=None):
         print(f"  {player.name} 在 {pos} 召唤了恶魂")
         ghasts.append(minion)
 
-    # 3. 回合结束时移除
+    # 3. 结算阶段结束时移除
     def _remove_self(g, event_data, m):
         if m.is_alive():
             remove_minion_no_death(m, g)
@@ -3893,15 +3923,11 @@ def _yuguwajue_effect(player, target, game, extras=None):
         print("  鱼骨挖掘：找不到符合条件的非友好生物异象")
         return True
 
-    # 2. 随机3选1
-    pool = random.sample(candidates, min(3, len(candidates)))
-    options = [d.name for d in pool]
-    choice = game.request_choice(player, options, title="鱼骨挖掘：开发1张异象")
-    if choice is None or choice not in options:
+    # 2. 开发1张异象并加入手牌（触发附魔台等开发回调）
+    card = game.develop_card(player, candidates, count=3, return_card=True)
+    if not card:
         print("  鱼骨挖掘：未选择")
         return True
-
-    chosen_def = next(d for d in pool if d.name == choice)
 
     # 3. 让玩家选择放置位置
     from tards.targeting import TargetingRequest
@@ -3925,22 +3951,21 @@ def _yuguwajue_effect(player, target, game, extras=None):
         print("  鱼骨挖掘：未选择位置")
         return True
 
-    # 4. 复制加入战场（不触发部署效果）
-    minion_card = chosen_def.to_game_card(player)
+    # 4. 复制加入战场（不触发部署效果），但给予休眠
     minion = Minion(
-        name=minion_card.name,
+        name=card.name,
         owner=player,
         position=pos,
-        attack=minion_card.attack,
-        health=minion_card.health,
-        source_card=minion_card,
+        attack=card.attack,
+        health=card.health,
+        source_card=card,
         board=game.board,
-        keywords=minion_card.keywords.copy() if minion_card.keywords else {},
-        tags=list(minion_card.tags) if hasattr(minion_card, "tags") else [],
-        hidden_keywords=getattr(minion_card, "hidden_keywords", None),
+        keywords=card.keywords.copy() if card.keywords else {},
+        tags=list(card.tags) if hasattr(card, "tags") else [],
+        hidden_keywords=getattr(card, "hidden_keywords", None),
     )
     game.board.place_minion(minion, pos)
-    print(f"  鱼骨挖掘：将 {minion_card.name} 加入战场 ({pos})")
+    print(f"  鱼骨挖掘：将 {card.name} 复制加入战场 ({pos})")
     return True
 
 
@@ -4324,7 +4349,7 @@ def _ehan_special(minion, player, game, extras=None):
 @special
 @special
 def _diaolingkulou_special(minion, player, game, extras=None):
-    """凋零骷髅：受到伤害的目标在回合结束时获得-1/1。
+    """凋零骷髅：受到伤害的目标在结算阶段结束时获得-1/1。
     若是对手（玩家），移除其卡组顶的1张牌。
     亡语：将1张"凋零骷髅头"加入手牌。
     """
@@ -4332,7 +4357,7 @@ def _diaolingkulou_special(minion, player, game, extras=None):
     from tards.constants import EVENT_DAMAGED, EVENT_PLAYER_DAMAGE, EVENT_TURN_END
 
     def _apply_debuff(target, turn):
-        """在回合结束时对目标施加凋零骷髅的 debuff。"""
+        """在结算阶段结束时对目标施加凋零骷髅的 debuff。"""
         def _apply_at_turn_end(event2):
             if game.current_turn != turn:
                 return
@@ -4828,7 +4853,7 @@ def _yanhuozhixing_effect(player, target, game, extras=None):
 
 @strategy
 def _jinxiguapian_effect(player, target, game, extras=None):
-    """金西瓜片：使1个异象获得：回合开始：获得+1/1。"""
+    """金西瓜片：使1个异象获得：结算阶段开始：获得+1/1。"""
     from tards.targeting import TargetingRequest
     from tards.cards import Minion
 
@@ -4857,16 +4882,16 @@ def _jinxiguapian_effect(player, target, game, extras=None):
             return
         buff_minion(target, atk_delta=1, hp_delta=1, permanent=True)
         target.current_health += 1
-        print(f"  {target.name} 回合开始：获得+1/+1")
+        print(f"  {target.name} 结算阶段开始：获得+1/+1")
 
     on_turn_start(target, game, _on_turn_start)
-    print(f"  金西瓜片：{target.name} 获得「回合开始：+1/+1」")
+    print(f"  金西瓜片：{target.name} 获得「结算阶段开始：+1/+1」")
     return True
 
 
 @strategy
 def _yinyu_effect(player, target, game, extras=None):
-    """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。"""
+    """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到结算阶段结束。"""
     from tards.targeting import TargetingRequest
 
     def scope(p, b):
@@ -4891,7 +4916,7 @@ def _yinyu_effect(player, target, game, extras=None):
     if t.is_alive():
         t.temp_attack_bonus -= t.attack
         t.recalculate()
-        print(f"  {t.name} 攻击力被设为0（直到回合结束）")
+        print(f"  {t.name} 攻击力被设为0（直到结算阶段结束）")
 
     return True
 
@@ -4992,7 +5017,7 @@ def _poxi_effect(player, target, game, extras=None):
 
 @strategy
 def _huozhai_effect(player, target, game, extras=None):
-    """火灾：你和对手轮流抽牌至手牌数量为7张，下回合开始时弃掉本次抽到的牌。"""
+    """火灾：你和对手轮流抽牌至手牌数量为7张，下结算阶段开始时弃掉本次抽到的牌。"""
     opponent = game.p2 if player == game.p1 else game.p1
 
     drawn_records = []  # [(owner, card), ...]
@@ -5017,7 +5042,7 @@ def _huozhai_effect(player, target, game, extras=None):
     if drawn_records:
         print(f"  火灾：本次共抽到 {len(drawn_records)} 张牌")
 
-    # 注册下回合开始时弃牌（跳过当前回合的结算阶段）
+    # 注册下结算阶段开始时弃牌（跳过当前回合的结算阶段）
     turn_played = game.current_turn
 
     def _on_phase_start(event, g):
@@ -5236,7 +5261,7 @@ def _yanhuaqiaochi_effect(player, target, game, extras=None):
 
 @strategy
 def _menchuanchuansuo_effect(player, target, game, extras=None):
-    """门船穿梭：使1个友方异象返回手牌，将其花费设为1I直到回合结束。
+    """门船穿梭：使1个友方异象返回手牌，将其花费设为1I直到结算阶段结束。
     然后若其上回合在场上，使其部署时具有迅捷。
     """
     from tards.targeting import TargetingRequest
@@ -5276,7 +5301,7 @@ def _menchuanchuansuo_effect(player, target, game, extras=None):
         target_card.cost = Cost(minerals={"I": 1})
         print(f"  门船穿梭：{target_card.name} 的花费设为1I")
 
-        # 注册回合结束恢复花费
+        # 注册结算阶段结束恢复花费
         def restore_cost(event):
             if event.data.get("phase") == game.PHASE_RESOLVE:
                 if target_card and hasattr(target_card, 'cost'):

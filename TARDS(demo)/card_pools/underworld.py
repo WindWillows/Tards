@@ -256,7 +256,7 @@ register_card(
     attack=0,
     health=4,
     keywords={"协同": True, "丰饶": 2},
-    description="回合结束：消灭友方场上的“松鼠”。每消灭一只，献祭等级+1。",
+    description="结算阶段结束：消灭友方场上的“松鼠”。每消灭一只，献祭等级+1。",
     targets_fn=target("position", friendly=True),
 )
 
@@ -424,7 +424,7 @@ register_card(
     immersion_level=1,
     attack=4,
     health=4,
-    description="攻击时跳过HP不大于2的异象。回合开始：对本列除自身外的一个异象造成2点伤害。（内置指向）",
+    description="攻击时跳过HP不大于2的异象。结算阶段开始：对本列除自身外的一个异象造成2点伤害。（内置指向）",
     targets_fn=target("position", friendly=True),
     special_fn=_lang_special,
 )
@@ -534,7 +534,7 @@ register_card(
     health=2,
     keywords={"协同": True, "两栖": True},
     tags=['两栖'],
-    description="部署时：将其复制加入战场。回合结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）",
+    description="部署时：将其复制加入战场。结算阶段结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）",
     targets_fn=target("position", friendly=True),
     special_fn=_que_special,
 )
@@ -581,7 +581,7 @@ register_card(
     attack=0,
     health=3,
     keywords={"丰饶": 2},
-    description="无法攻击对手。回合结束：若本回合未受到伤害，获得+1/1并对对手造成等同于其攻击力的伤害。",
+    description="无法攻击对手。结算阶段结束：若本回合未受到伤害，获得+1/1并对对手造成等同于其攻击力的伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_xionglu_special,
 )
@@ -660,7 +660,7 @@ register_card(
     keywords={"两栖": True, "潜水": True},
     tags=['两栖'],
     evolve_to="河坝",
-    description="回合开始：将一张“河坝”加入对方手牌。",
+    description="结算阶段开始：将一张“河坝”加入对方手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_heli_special,
 )
@@ -677,7 +677,7 @@ register_card(
     keywords={"水生": True},
     tags=['水生', '两栖', '生物'],
     is_token=True,
-    description="回合开始：将其消灭。",
+    description="结算阶段开始：将其消灭。",
     targets_fn=target("position", friendly=True),
     special_fn=_heba_special,
 )
@@ -692,7 +692,7 @@ register_card(
     attack=0,
     health=6,
     keywords={"协同": True, "尖刺": 1, "坚韧": 1},
-    description="如可能，移动以承担指向友方目标的伤害。回合结束：将HP改为6。",
+    description="如可能，移动以承担指向友方目标的伤害。结算阶段结束：将HP改为6。",
     targets_fn=target("position", friendly=True),
     special_fn=_dishu_special,
 )
@@ -771,7 +771,7 @@ register_card(
     keywords={"潜水": True, "两栖": True, "亡语": True},
     tags=['两栖'],
     evolve_to="西瓜",
-    description="回合结束：场上异象更少的一方抽一张牌。亡语：将一张“西瓜”加入原位。",
+    description="结算阶段结束：场上异象更少的一方抽一张牌。亡语：将一张“西瓜”加入原位。",
     targets_fn=target("position", friendly=True),
     special_fn=_cha_special,
 )
@@ -819,7 +819,7 @@ register_card(
     attack=3,
     health=8,
     keywords={"坚韧": 1, "先攻": -1},
-    description="部署：对所有异象造成1点伤害。回合开始时，随机眩晕一个敌方异象。",
+    description="部署：对所有异象造成1点伤害。结算阶段开始时，随机眩晕一个敌方异象。",
     targets_fn=target("position", friendly=True),
     special_fn=_xiangqun_special,
 )
@@ -835,7 +835,7 @@ register_card(
     health=1,
     keywords={"两栖": True, "迅捷": True},
     tags=['两栖'],
-    description="回合结束：返回手牌，抽一张牌。",
+    description="结算阶段结束：返回手牌，抽一张牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_xinge_special,
 )
@@ -885,7 +885,7 @@ register_card(
     statue_top=True,
     statue_bottom=False,
     statue_pair="arthropod",
-    description="（雕像激活后将在回合结束时移除 保留增益） 激活时：所有友方昆虫异象具有亡语；对对手造成1点伤害。",
+    description="（雕像激活后将在结算阶段结束时移除 保留增益） 激活时：所有友方昆虫异象具有亡语；对对手造成1点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_arthropod_top_special,
 )
@@ -1213,7 +1213,7 @@ register_card(
     health=6,
     keywords={"两栖": True,"协同": True},
     tags=['两栖'],
-    description="回合开始：重置一个异象的攻击力与防御力，你获得+1HP。",
+    description="结算阶段开始：重置一个异象的攻击力与防御力，你获得+1HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_he_special,
 )
@@ -1429,7 +1429,7 @@ register_card(
     immersion_level=2,
     attack=3,
     health=3,
-    description="你的手牌花费-1B。 回合结束：若本回合对手受到的伤害累计不小于3，你获得1B。",
+    description="你的手牌花费-1B。 结算阶段结束：若本回合对手受到的伤害累计不小于3，你获得1B。",
     targets_fn=target("position", friendly=True),
     special_fn=_muque_special,
 )
@@ -1445,7 +1445,7 @@ register_card(
     health=4,
     keywords={"协同": True},
     tags=['昆虫'],
-    description="敌方目标被指向后，也算作是被本异象指向。 回合开始：使所有被本异象指向的目标失去1点HP。 部署：指向一个目标。",
+    description="敌方目标被指向后，也算作是被本异象指向。 结算阶段开始：使所有被本异象指向的目标失去1点HP。 部署：指向一个目标。",
     targets_fn=target("position", friendly=True),
     special_fn=_niufeng_special,
 )
@@ -1522,7 +1522,7 @@ register_card(
     attack=1,
     health=4,
     keywords={"协同": True, "串击": True},
-    description="回合结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌。",
+    description="结算阶段结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_tianniu_special,
 )
@@ -1538,7 +1538,7 @@ register_card(
     health=4,
     keywords={"水生": True, "防空": True, "视野": 2},
     tags=['水生'],
-    description="对空袭与昆虫异象伤害翻倍。受到本异象伤害的异象本回合改为在回合结束时 攻击。",
+    description="对空袭与昆虫异象伤害翻倍。受到本异象伤害的异象本回合改为在结算阶段结束时 攻击。",
     targets_fn=target("position", friendly=True),
     special_fn=_sheshei_special,
 )
@@ -1584,7 +1584,7 @@ register_card(
     health=4,
     keywords={"坚韧": 1, "两栖": True, "协同": True},
     tags=['两栖'],
-    description="回合结束：向相邻方向移动一格。 将受到其伤害的异象的回响加入手牌，回合开始时弃掉。",
+    description="结算阶段结束：向相邻方向移动一格。 将受到其伤害的异象的回响加入手牌，结算阶段开始时弃掉。",
     targets_fn=target("position", friendly=True),
     special_fn=_jijuxie_special,
 )
@@ -1599,7 +1599,7 @@ register_card(
     attack=0,
     health=5,
     keywords={"协同": True, "坚韧": 1},
-    description="相邻异象受到伤害时，改为由本异象承受。 回合结束：若本异象本回合未受到伤害，对对手造成2点伤害。",
+    description="相邻异象受到伤害时，改为由本异象承受。 结算阶段结束：若本异象本回合未受到伤害，对对手造成2点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_shelie_special,
 )
@@ -1661,7 +1661,7 @@ register_card(
     keywords={"水生": True, "成长": True, "亡语": True},
     tags=['水生'],
     evolve_to="水螅群",
-    description="亡语：若是由于异象效果被消灭，改为在回合结束时成长。",
+    description="亡语：若是由于异象效果被消灭，改为在结算阶段结束时成长。",
     targets_fn=target("position", friendly=True),
     special_fn=_shuishiyan_special,
 )
@@ -1789,7 +1789,7 @@ register_card(
     keywords={"协同": True},
     tags=['生物', '陆生'],
     is_token=True,
-    description="回合结束：转换为“石钱子”。",
+    description="结算阶段结束：转换为“石钱子”。",
     targets_fn=target("position", friendly=True),
     special_fn=_duanwei_special,
 )
@@ -1804,7 +1804,7 @@ register_card(
     attack=0,
     health=6,
     keywords={"坚韧": 1},
-    description="场上有昆虫类异象时，HP无法降至1以下。 回合开始：将1张“兵蚁”加入战场。",
+    description="场上有昆虫类异象时，HP无法降至1以下。 结算阶段开始：将1张“兵蚁”加入战场。",
     targets_fn=target("position", friendly=True),
     special_fn=_yixue_special,
 )
@@ -2003,7 +2003,7 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    description="使一个异象具有空袭直到回合结束。抽1张牌。",
+    description="使一个异象具有空袭直到结算阶段结束。抽1张牌。",
     targets_fn=target_none,
     effect_fn=_shanzi_strategy
 )
@@ -2087,7 +2087,7 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=2,
-    description="你的所有异象具有+1攻击力和坚韧1，直到回合结束。",
+    description="你的所有异象具有+1攻击力和坚韧1，直到结算阶段结束。",
     targets_fn=target_none,
     effect_fn=_xueyue_effect,
 )
@@ -2231,7 +2231,7 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=2,
-    description="回合结束时，使一列陆地算作水路直到下回合结束。你失去1个T槽。",
+    description="结算阶段结束时，使一列陆地算作水路直到下结算阶段结束。你失去1个T槽。",
     targets_fn=target_none,
     effect_fn=_shanhong_effect
 )
@@ -2499,7 +2499,7 @@ register_card(
     pack=Pack.UNDERWORLD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    description="对方部署异象前，将其移除，在下回合开始后将其加入原位。",
+    description="对方部署异象前，将其移除，在下结算阶段开始后将其加入原位。",
     targets_fn=target_none,
     condition_fn=_ruhe_condition,
     effect_fn=_ruhe_effect,

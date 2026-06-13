@@ -79,7 +79,7 @@ register_card(
     attack=0,
     health=6,
     tags=['生物'],
-    description="回合开始：将1个“溴化银”加入本异象前方。",
+    description="结算阶段开始：将1个“溴化银”加入本异象前方。",
     targets_fn=target("position", friendly=True),
     special_fn=_xianyingshi_special,
 )
@@ -124,7 +124,7 @@ register_card(
     attack=3,
     health=6,
     tags=['生物'],
-    description="回合结束：场上每有1个具有恐惧的异象，你获得1点HP。",
+    description="结算阶段结束：场上每有1个具有恐惧的异象，你获得1点HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_bishop_special,
 )
@@ -407,7 +407,7 @@ register_card(
     keywords={"协同": True},
     tags=['生物'],
     description="部署：消灭一个处于协同的敌方异象。",
-    targets_fn=target("minion", alive=True, enemy=True, custom_filter=lambda m: m.keywords.get("协同", False)),
+    targets_fn=target("position", friendly=True),
     special_fn=_zhuxin_special,
 )
 
@@ -452,7 +452,7 @@ register_card(
     attack=3,
     health=3,
     tags=['纯净'],
-    description="场上有异象具有恐惧时，无法被异象指向。 回合开始：随机使1个敌方异象具有恐惧。",
+    description="场上有异象具有恐惧时，无法被异象指向。 结算阶段开始：随机使1个敌方异象具有恐惧。",
     targets_fn=target("position", friendly=True),
     special_fn=_sanfuhualu_special,
 )
@@ -657,7 +657,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.SILVER,
     immersion_level=2,
-    description="使对方手牌中的“胶片”数量翻倍。所有“胶片”具有+1T花费，直到回合结束。",
+    description="使对方手牌中的“胶片”数量翻倍。所有“胶片”具有+1T花费，直到结算阶段结束。",
     targets_fn=target_none,
     effect_fn=_zhongying_effect
 )
@@ -840,7 +840,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=2,
-    description="随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。",
+    description="随机对1个敌方异象失去1点HP。若场上有敌方异象的HP为偶数，重复此操作。",
     targets_fn=target_none,
     effect_fn=_tianxiawushuang_effect,
 )
@@ -858,7 +858,7 @@ register_card(
 )
 
 register_card(
-    name="占位符1",
+    name="阳炎",
     cost_str="4T",
     card_type=CardType.STRATEGY,
     pack=Pack.BLOOD,

@@ -199,6 +199,15 @@ class Board:
             )
         return True
 
+    def _apply_summoning_sickness(self, minion: "Minion") -> None:
+        """为刚加入战场的异象应用休眠（召唤 sickness）。"""
+        if self.game_ref is None:
+            return
+        minion.summon_turn = self.game_ref.current_turn
+        if "迅捷" not in minion.keywords and "休眠" not in minion.base_keywords:
+            minion.base_keywords["休眠"] = 1
+            minion.recalculate()
+
     def place_minion(self, minion: "Minion", target: Tuple[int, int]) -> bool:
         existing = self.minion_place.get(target)
 
@@ -213,6 +222,7 @@ class Board:
             minion.position = target
             minion.vine_host = existing
             self._register_sync_id(minion)
+            self._apply_summoning_sickness(minion)
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
             if self.game_ref:
@@ -236,6 +246,7 @@ class Board:
             minion.position = target
             minion.float_host = existing
             self._register_sync_id(minion)
+            self._apply_summoning_sickness(minion)
             if self.game_ref and not self.game_ref.effect_queue.is_resolving():
                 self.game_ref.refresh_all_auras()
             if self.game_ref:
@@ -255,6 +266,7 @@ class Board:
         self.minion_place[target] = minion
         minion.position = target
         self._register_sync_id(minion)
+        self._apply_summoning_sickness(minion)
         if self.game_ref and not self.game_ref.effect_queue.is_resolving():
             self.game_ref.refresh_all_auras()
         if self.game_ref:

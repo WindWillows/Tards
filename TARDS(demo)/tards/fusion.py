@@ -114,7 +114,7 @@ class FusionSystem:
             state = "配对" if edge.matched else "未配对"
             print(
                 f"  {edge.label}{edge.start_verb}：{edge.first.name} + {edge.second.name}，"
-                f"{state}，将于第 {edge.ready_turn} 回合结束时生效"
+                f"{state}，将于第 {edge.ready_turn} 结算阶段结束时生效"
             )
 
     def rebuild_graph(self) -> None:

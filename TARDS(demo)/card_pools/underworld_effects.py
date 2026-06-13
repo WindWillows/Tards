@@ -617,10 +617,10 @@ def _songshuqiu_special(minion, player, game, extras=None):
     add_deathrattle(minion, _dr)
 
 
-# 寄居蟹(铁) - 回合结束向相邻移动一格；记录被其伤害异象的回响，回合开始时加入手牌再弃掉
+# 寄居蟹(铁) - 结算阶段结束向相邻移动一格；记录被其伤害异象的回响，结算阶段开始时加入手牌再弃掉
 @special
 def _jijuxie_special(minion, player, game, extras=None):
-    """寄居蟹：回合结束：向相邻方向移动一格。将受到其伤害的异象的回响加入手牌，回合开始时弃掉。"""
+    """寄居蟹：结算阶段结束：向相邻方向移动一格。将受到其伤害的异象的回响加入手牌，结算阶段开始时弃掉。"""
     from card_pools.effect_utils import get_adjacent_positions, move, create_echo_card
     import random
 
@@ -641,7 +641,7 @@ def _jijuxie_special(minion, player, game, extras=None):
             _recorded_minions.append(target)
             print(f"  寄居蟹记录了 {target.name} 的回响")
 
-    # 回合结束（结算阶段结束）：移动 + 加入回响
+    # 结算阶段结束（结算阶段结束）：移动 + 加入回响
     def on_phase_end(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
             return
@@ -654,7 +654,7 @@ def _jijuxie_special(minion, player, game, extras=None):
         if candidates:
             new_pos = random.choice(candidates)
             if move(minion, new_pos, g):
-                print(f"  寄居蟹回合结束移动至 {new_pos}")
+                print(f"  寄居蟹结算阶段结束移动至 {new_pos}")
 
         # 将记录的异象回响加入手牌
         for target in list(_recorded_minions):
@@ -669,7 +669,7 @@ def _jijuxie_special(minion, player, game, extras=None):
             echo._jijuxie_echo = True
             player.add_card_to_hand(echo, game=game, emit_events=False)
 
-    # 回合开始（结算阶段开始）：弃掉寄居蟹生成的回响
+    # 结算阶段开始（结算阶段开始）：弃掉寄居蟹生成的回响
     def on_phase_start(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
             return
@@ -678,7 +678,7 @@ def _jijuxie_special(minion, player, game, extras=None):
             player.card_hand.remove(card)
             player.card_dis.append(card)
             card.move_to("discard", game)
-            print(f"  寄居蟹：{card.name} 的回响在回合开始时被弃掉")
+            print(f"  寄居蟹：{card.name} 的回响在结算阶段开始时被弃掉")
 
     game.history.listen("after_damage", on_after_damage, owner=minion)
     game.history.listen(EVENT_PHASE_END, on_phase_end, owner=minion)
@@ -688,7 +688,7 @@ def _jijuxie_special(minion, player, game, extras=None):
 
 @special
 def _shelie_special(minion, player, game, extras=None):
-    """猞猁：相邻异象受到伤害时，改为由本异象承受。回合结束：若本异象本回合未受到伤害，对对手造成2点伤害。"""
+    """猞猁：相邻异象受到伤害时，改为由本异象承受。结算阶段结束：若本异象本回合未受到伤害，对对手造成2点伤害。"""
     from card_pools.effect_utils import get_adjacent_positions
 
     minion._shelie_damaged_this_turn = False
@@ -747,7 +747,7 @@ def _shelie_special(minion, player, game, extras=None):
     return True
 
 
-# 天牛(铁) - 回合结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌
+# 天牛(铁) - 结算阶段结束：使同列敌方前排异象移动至后排，后排异象返回对方手牌
 def _tianniu_special(minion, player, game, extras=None):
     from card_pools.effect_utils import move, return_minion_to_hand
 
@@ -803,16 +803,16 @@ def _xigua_special(minion, player, game, extras=None):
     add_deathrattle(minion, _dr)
 
 
-# 信鸽(铁)(I) — 回合结束：返回手牌，抽一张牌。
+# 信鸽(铁)(I) — 结算阶段结束：返回手牌，抽一张牌。
 @special
 def _xinge_special(minion, player, game, extras=None):
-    """信鸽(铁)(I)：回合结束：返回手牌，抽一张牌。"""
+    """信鸽(铁)(I)：结算阶段结束：返回手牌，抽一张牌。"""
     def on_turn_end(g, event_data, source=minion):
         if not source.is_alive():
             return
         return_minion_to_hand(source, g)
         draw_cards(player, 1, game=g)
-        print(f"  信鸽回合结束：返回手牌并抽1张牌")
+        print(f"  信鸽结算阶段结束：返回手牌并抽1张牌")
     minion.on_turn_end = on_turn_end
 
 
@@ -962,7 +962,7 @@ def _hu_special(minion, player, game, extras=None):
 
 @special
 def _cha_special(minion, player, game, extras=None):
-    """"猹"：回合结束：场上异象更少的一方抽一张牌。亡语：将一张"西瓜"加入原位。"""
+    """"猹"：结算阶段结束：场上异象更少的一方抽一张牌。亡语：将一张"西瓜"加入原位。"""
 
     def _on_turn_end_fn(event):
         if not minion.is_alive():
@@ -973,10 +973,10 @@ def _cha_special(minion, player, game, extras=None):
 
         if friendly_count < enemy_count:
             draw_cards(player, 1, game)
-            print(f'  "猹"回合结束：友方异象更少，{player.name} 抽1张牌')
+            print(f'  "猹"结算阶段结束：友方异象更少，{player.name} 抽1张牌')
         elif enemy_count < friendly_count:
             draw_cards(opponent, 1, game)
-            print(f'  "猹"回合结束：敌方异象更少，{opponent.name} 抽1张牌')
+            print(f'  "猹"结算阶段结束：敌方异象更少，{opponent.name} 抽1张牌')
         # 相等时不触发
 
     from card_pools.effect_utils import on_turn_end
@@ -1020,7 +1020,7 @@ def _bingyi_special(minion, player, game, extras=None):
 
 @special
 def _dishu_special(minion, player, game, extras=None):
-    """地鼠：如可能，移动以承担指向友方目标的伤害。回合结束：将HP改为6。"""
+    """地鼠：如可能，移动以承担指向友方目标的伤害。结算阶段结束：将HP改为6。"""
     friendly_rows = player.get_friendly_rows()
     front_row = friendly_rows[0]  # 靠近敌方的那一行
 
@@ -1073,7 +1073,7 @@ def _dishu_special(minion, player, game, extras=None):
 
     on("before_attack", on_before_attack, game, minion=minion)
 
-    # 回合结束：HP重置为6
+    # 结算阶段结束：HP重置为6
     def on_turn_end_fn(event):
         if not minion.is_alive():
             return
@@ -1083,7 +1083,7 @@ def _dishu_special(minion, player, game, extras=None):
         minion.current_max_health = minion.base_max_health
         minion.current_health = minion.base_max_health
         minion.recalculate()
-        print(f"  地鼠回合结束：HP重置为 {minion.current_health}/{minion.current_max_health}")
+        print(f"  地鼠结算阶段结束：HP重置为 {minion.current_health}/{minion.current_max_health}")
 
     from card_pools.effect_utils import on_turn_end
     on_turn_end(minion, game, on_turn_end_fn)
@@ -1118,7 +1118,7 @@ def _yexiao_special(minion, player, game, extras=None):
 
 @special
 def _lang_special(minion, player, game, extras=None):
-    """狼：攻击时跳过HP不大于2的异象。回合开始：对本列除自身外的一个异象造成2点伤害。（效果预设）"""
+    """狼：攻击时跳过HP不大于2的异象。结算阶段开始：对本列除自身外的一个异象造成2点伤害。（效果预设）"""
     from card_pools.effect_utils import set_effect_target_scope, get_effect_target
     from tards.cards import Minion
 
@@ -1128,7 +1128,7 @@ def _lang_special(minion, player, game, extras=None):
     minion._attack_target_filter = _filter
     print("  狼：攻击时跳过HP不大于2的异象")
 
-    # 回合开始：对本列除自身外的一个异象造成2点伤害
+    # 结算阶段开始：对本列除自身外的一个异象造成2点伤害
     def _scope(p, board):
         col = minion.position[1] if minion.position else -1
         return [m for m in board.minion_place.values()
@@ -1144,7 +1144,7 @@ def _lang_special(minion, player, game, extras=None):
             return
         if isinstance(target, Minion) and target.is_alive():
             target.take_damage(2, source_minion=minion, source_type="effect")
-            print(f"  狼回合开始：对 {target.name} 造成 2 点伤害")
+            print(f"  狼结算阶段开始：对 {target.name} 造成 2 点伤害")
 
     from card_pools.effect_utils import on_turn_start
     on_turn_start(minion, game, on_turn_start_fn)
@@ -1263,7 +1263,7 @@ def _ying_special(minion, player, game, extras=None):
 
 @special
 def _que_special(minion, player, game, extras=None):
-    """雀：部署时：将其复制加入战场。回合结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）"""
+    """雀：部署时：将其复制加入战场。结算阶段结束：将其复制加入战场。（需本结算阶段开始时存在，玩家指定位置）"""
     from card_pools.effect_utils import empty_positions, summon_minion_by_name, set_effect_target_scope, get_effect_target
 
     def _summon_copy(target_pos):
@@ -1283,7 +1283,7 @@ def _que_special(minion, player, game, extras=None):
         pos = game.targeting_system.request_target(req)
         _summon_copy(pos)
 
-    # 回合结束复制：采用效果预设机制（出牌阶段预设空位）
+    # 结算阶段结束复制：采用效果预设机制（出牌阶段预设空位）
     set_effect_target_scope(minion, lambda p, board: empty_positions(p, board))
 
     def on_turn_start(g, event_data, m):
@@ -1295,7 +1295,7 @@ def _que_special(minion, player, game, extras=None):
         m._existed_at_resolve_start = False
         if not m.is_alive():
             return
-        # 仅拥有者回合结束触发
+        # 仅拥有者结算阶段结束触发
         if event_data.get("first") is not player:
             return
         target_pos = get_effect_target(m, game=g)
@@ -1381,7 +1381,7 @@ def _ou_special(minion, player, game, extras=None):
 
 @special
 def _xionglu_special(minion, player, game, extras=None):
-    """雄鹿：无法攻击对手。回合结束：若本回合未受到伤害，获得+1/1并对对手造成等同于其攻击力的伤害。"""
+    """雄鹿：无法攻击对手。结算阶段结束：若本回合未受到伤害，获得+1/1并对对手造成等同于其攻击力的伤害。"""
     # 无法攻击对手
     def on_before_attack(event):
         if not minion.is_alive():
@@ -1404,11 +1404,11 @@ def _xionglu_special(minion, player, game, extras=None):
 
     on("damaged", on_damaged, game, minion=minion)
 
-    # 回合结束效果
+    # 结算阶段结束效果
     def on_turn_end(g, event_data, m):
         if not m.is_alive():
             return
-        # 仅拥有者回合结束触发
+        # 仅拥有者结算阶段结束触发
         if event_data.get("first") is not m.owner:
             return
         took_damage = getattr(m, "_took_damage_this_turn", False)
@@ -1420,7 +1420,7 @@ def _xionglu_special(minion, player, game, extras=None):
             m.recalculate()
             opponent = g.p1 if m.owner == g.p2 else g.p2
             opponent.health_change(-m.current_attack, source=m)
-            print(f"  雄鹿回合结束：+1/1，对 {opponent.name} 造成 {m.current_attack} 点伤害")
+            print(f"  雄鹿结算阶段结束：+1/1，对 {opponent.name} 造成 {m.current_attack} 点伤害")
 
     minion.on_turn_end = on_turn_end
     return True
@@ -1523,7 +1523,7 @@ def _linwa_special(minion, player, game, extras=None):
 
 @special
 def _heli_special(minion, player, game, extras=None):
-    """河狸：回合开始：将一张"河坝"加入对方手牌。"""
+    """河狸：结算阶段开始：将一张"河坝"加入对方手牌。"""
     opponent = game.p1 if player == game.p2 else game.p2
 
     def on_turn_start(g, event_data, m):
@@ -1543,13 +1543,13 @@ def _heli_special(minion, player, game, extras=None):
 
 @special
 def _heba_special(minion, player, game, extras=None):
-    """河坝：回合开始：将其消灭。"""
+    """河坝：结算阶段开始：将其消灭。"""
     def on_turn_start(g, event_data, m):
         if not m.is_alive():
             return
         from card_pools.effect_utils import destroy_minion
         destroy_minion(m, game)
-        print(f"  河坝回合开始：自我消灭")
+        print(f"  河坝结算阶段开始：自我消灭")
 
     minion.on_turn_start = on_turn_start
     return True
@@ -1731,7 +1731,7 @@ def _tanglang_special(minion, player, game, extras=None):
 
 @special
 def _xiangqun_special(minion, player, game, extras=None):
-    """象群：部署：对所有异象造成1点伤害。回合开始时，随机眩晕一个敌方异象。"""
+    """象群：部署：对所有异象造成1点伤害。结算阶段开始时，随机眩晕一个敌方异象。"""
     import random
     from card_pools.effect_utils import deal_damage_to_minion
 
@@ -1741,13 +1741,13 @@ def _xiangqun_special(minion, player, game, extras=None):
             deal_damage_to_minion(m, 1, source=minion, game=game)
     print(f"  {minion.name} 部署：对所有异象造成1点伤害")
 
-    # 2. 回合开始时，随机眩晕一个敌方异象
+    # 2. 结算阶段开始时，随机眩晕一个敌方异象
     def on_turn_start(m, p, g):
         enemies = [x for x in g.board.minion_place.values() if x.owner != p and x.is_alive()]
         if enemies:
             target = random.choice(enemies)
             target._stun_layers = getattr(target, '_stun_layers', 0) + 1
-            print(f"  {m.name} 回合开始：{target.name} 获得1层眩晕（当前 {target._stun_layers} 层）")
+            print(f"  {m.name} 结算阶段开始：{target.name} 获得1层眩晕（当前 {target._stun_layers} 层）")
 
     minion.on_turn_start = on_turn_start
 
@@ -2117,7 +2117,7 @@ def _qunyuan_special(minion, player, game, extras=None):
 
 @special
 def _he_special(minion, player, game, extras=None):
-    """鹤：回合开始：重置一个异象的攻击力与防御力，你获得+1HP。
+    """鹤：结算阶段开始：重置一个异象的攻击力与防御力，你获得+1HP。
 
     采用提前指向（预设目标）机制：出牌阶段通过 set_effect_target action
     为鹤预设目标，结算阶段开始时自动执行效果。
@@ -2494,7 +2494,7 @@ def _jin_yachi_strategy(player, target, game, extras=None):
 
 @strategy
 def _shanzi_strategy(player, target, game, extras=None):
-    """扇子：使一个异象具有空袭直到回合结束。抽1张牌。"""
+    """扇子：使一个异象具有空袭直到结算阶段结束。抽1张牌。"""
     from tards.targeting import TargetingRequest
     from tards.cards import Minion
 
@@ -2521,7 +2521,7 @@ def _shanzi_strategy(player, target, game, extras=None):
         return False
     gain_keyword(target, "空袭", value=True, permanent=False)
     draw_cards(player, 1, game)
-    print(f"  扇子：{target.name} 获得空袭直到回合结束，{player.name} 抽1张牌")
+    print(f"  扇子：{target.name} 获得空袭直到结算阶段结束，{player.name} 抽1张牌")
     return True
 # =============================================================================
 # =============================================================================
@@ -2606,7 +2606,7 @@ def _liqun_effect(game, event_data, player):
     print(f"  阴谋 [离群] 消灭了 {len(to_destroy)} 个进入协同状态的异象")
 
 def _ruhe_effect(game, event_data, player):
-    """对方部署异象前，将其移除，在下回合开始后将其加入原位。"""
+    """对方部署异象前，将其移除，在下结算阶段开始后将其加入原位。"""
     frame = event_data.get("frame")
     if not frame:
         print(f"  [警告] 阴谋 [入河] 未找到堆栈帧")
@@ -2639,7 +2639,7 @@ def _ruhe_effect(game, event_data, player):
 
     print(f"  阴谋 [入河] 将 [{card.name}] 移除，下回合重新部署至 {pos}")
 
-    # 注册回合开始监听器
+    # 注册结算阶段开始监听器
     listener_id = id(card)
 
     def _redeploy_listener(event):
@@ -3739,7 +3739,7 @@ def _hanji_effect(player, target, game, extras=None):
     return True
 
 def _shanhong_effect(player, target, game, extras=None):
-    """山洪：使一列陆地算作水路直到下回合结束。失去1个T槽。"""
+    """山洪：使一列陆地算作水路直到下结算阶段结束。失去1个T槽。"""
     from card_pools.effect_utils import register_terrain_enforcement
 
     # 选择列
@@ -3750,7 +3750,7 @@ def _shanhong_effect(player, target, game, extras=None):
     col = int(chosen.split('.')[0])
 
     register_terrain_enforcement(game, col, "水路", game.current_turn + 1)
-    print(f"  山洪：第 {col} 列（{game.board.COL_NAMES[col]}）被视为水路，直到下回合结束")
+    print(f"  山洪：第 {col} 列（{game.board.COL_NAMES[col]}）被视为水路，直到下结算阶段结束")
 
     player.t_point_max_change(-1)
     print(f"  山洪：{player.name} 失去1个T槽")
@@ -3844,9 +3844,9 @@ def _kuangfeng_effect(player, target, game, extras=None):
         return True
 
     game._global_deploy_restrictions.append(_restriction_fn)
-    print(f"  狂风：{opponent.name} 无法部署异象，直到下回合结束")
+    print(f"  狂风：{opponent.name} 无法部署异象，直到下结算阶段结束")
 
-    # 下回合结束时移除限制
+    # 下结算阶段结束时移除限制
     def _cleanup():
         if _restriction_fn in game._global_deploy_restrictions:
             game._global_deploy_restrictions.remove(_restriction_fn)
@@ -3964,7 +3964,7 @@ def _tudao_effect(player, target, game, extras=None):
 
     owner_id = game.event_bus.register(EVENT_SACRIFICE, on_sacrifice)
 
-    # 本回合结束时注销
+    # 本结算阶段结束时注销
     def cleanup():
         game.event_bus.unregister_by_owner(owner_id)
         print(f"  屠刀：献祭抽牌效果结束")
@@ -4963,7 +4963,7 @@ def _zhuiliezhe_special(minion, player, game, extras=None):
 
 @special
 def _muque_special(minion, player, game, extras=None):
-    """木鹊：你的手牌花费-1B。回合结束：若本回合对手受到的伤害累计不小于3，你获得1B。"""
+    """木鹊：你的手牌花费-1B。结算阶段结束：若本回合对手受到的伤害累计不小于3，你获得1B。"""
 
     # === 效果1：手牌花费-1B ===
     def cost_modifier(card, cost):
@@ -4990,7 +4990,7 @@ def _muque_special(minion, player, game, extras=None):
     on("death", on_death, game, minion=minion)
     on("removed", on_removed, game, minion=minion)
 
-    # === 效果2：回合结束时检查对手本回合受到的伤害 ===
+    # === 效果2：结算阶段结束时检查对手本回合受到的伤害 ===
     def on_turn_end_fn(event):
         if not minion.is_alive():
             return
@@ -5026,7 +5026,7 @@ def _muque_special(minion, player, game, extras=None):
 @special
 def _niufeng_special(minion, player, game, extras=None):
     """牛虻：敌方目标被指向后，也算作是被本异象指向。
-    回合开始：使所有被本异象指向的目标失去1点HP。
+    结算阶段开始：使所有被本异象指向的目标失去1点HP。
     部署：指向一个目标。
     """
     opponent = game.p1 if player == game.p2 else game.p2
@@ -5071,7 +5071,7 @@ def _niufeng_special(minion, player, game, extras=None):
     minion._niufeng_targets.add(target)
     print(f"  牛虻：部署指向 {getattr(target, 'name', target)}")
 
-    # === 回合开始：所有被指向的目标失去1点HP ===
+    # === 结算阶段开始：所有被指向的目标失去1点HP ===
     def on_turn_start_fn(event, g):
         if not minion.is_alive():
             return
@@ -5173,7 +5173,7 @@ def _tiaozhu_special(minion, player, game, extras=None):
 
 @special
 def _sheshei_special(minion, player, game, extras=None):
-    """射水鱼：对空袭与昆虫异象伤害翻倍。受到本异象伤害的异象本回合改为在回合结束时攻击。"""
+    """射水鱼：对空袭与昆虫异象伤害翻倍。受到本异象伤害的异象本回合改为在结算阶段结束时攻击。"""
     from tards.cards import Minion
     from card_pools.effect_utils import perform_attack_action
 
@@ -5224,7 +5224,7 @@ def _sheshei_special(minion, player, game, extras=None):
             target._sheshei_delayed = True
             target._skip_resolve_attack = True
             _delayed_targets.append(target)
-            print(f"  射水鱼：{target.name} 的攻击被推迟至回合结束")
+            print(f"  射水鱼：{target.name} 的攻击被推迟至结算阶段结束")
 
     def on_phase_end(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
@@ -5398,7 +5398,7 @@ def _xuebao_special(minion, player, game, extras=None):
 
 @special
 def _shuishiyan_special(minion, player, game, extras=None):
-    """水螅岩：亡语：若是由于异象效果被消灭，改为在回合结束时成长。"""
+    """水螅岩：亡语：若是由于异象效果被消灭，改为在结算阶段结束时成长。"""
     from tards.cards import Minion
 
     minion._shuishiyan_last_damage_from_minion = False
@@ -5422,7 +5422,7 @@ def _shuishiyan_special(minion, player, game, extras=None):
             return
         event.cancelled = True
         minion.keywords["成长"] = True
-        print(f"  水螅岩：被异象效果消灭，阻止死亡并将在回合结束时成长")
+        print(f"  水螅岩：被异象效果消灭，阻止死亡并将在结算阶段结束时成长")
 
     game.history.listen("before_damage", on_before_damage, owner=minion)
     game.history.listen(EVENT_PHASE_START, on_phase_start, owner=minion)
@@ -5653,7 +5653,7 @@ def _shiqianzi_special(minion, player, game, extras=None):
 
 @special
 def _duanwei_special(minion, player, game, extras=None):
-    """断尾：回合结束：转换为"石钱子"。"""
+    """断尾：结算阶段结束：转换为"石钱子"。"""
     def on_phase_end(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
             return
@@ -5674,7 +5674,7 @@ def _duanwei_special(minion, player, game, extras=None):
                         next_card.special(new_minion, player, g, [])
                     else:
                         next_card.special(new_minion, player, g)
-            print("  断尾：回合结束转换为石钱子")
+            print("  断尾：结算阶段结束转换为石钱子")
 
     game.history.listen(EVENT_PHASE_END, on_phase_end, owner=minion)
     return True
@@ -5682,7 +5682,7 @@ def _duanwei_special(minion, player, game, extras=None):
 
 @special
 def _yixue_special(minion, player, game, extras=None):
-    """蚁穴：场上有昆虫类异象时，HP无法降至1以下。回合开始：将1张"兵蚁"加入战场。"""
+    """蚁穴：场上有昆虫类异象时，HP无法降至1以下。结算阶段开始：将1张"兵蚁"加入战场。"""
 
     # 效果1：场上有昆虫时，HP无法降至1以下
     def on_before_damage(event):
@@ -5719,7 +5719,7 @@ def _yixue_special(minion, player, game, extras=None):
 
     game.history.listen(EVENT_BEFORE_DAMAGE, on_before_damage, owner=minion)
 
-    # 效果2：回合开始（拥有者回合）召唤兵蚁
+    # 效果2：结算阶段开始（拥有者回合）召唤兵蚁
     def on_phase_start(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
             return

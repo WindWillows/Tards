@@ -20,7 +20,7 @@ class CostModifier:
         apply_fn: 实际修正逻辑 (card, cost) -> None
         source: 来源对象（Minion/Card/Game），用于追踪和批量清理
         expires_on: 过期时机。None=不过期。常用值：
-            - "turn_end": 回合结束时自动清理
+            - "turn_end": 结算阶段结束时自动清理
             - "phase_end": 阶段结束时自动清理
             - "card_leave_hand": 卡牌离开手牌时自动清理
             - "minion_death": 异象死亡时自动清理

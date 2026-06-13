@@ -481,7 +481,7 @@ class Minion:
         self.perm_max_health_bonus = 0
         self.perm_keywords: Dict[str, Any] = {}
 
-        # 临时修饰（直到回合结束等）
+        # 临时修饰（直到结算阶段结束等）
         self.temp_attack_bonus = 0
         self.temp_health_bonus = 0
         self.temp_max_health_bonus = 0
@@ -675,7 +675,7 @@ class Minion:
         self.recalculate()
 
     def clear_temp_effects(self):
-        """回合结束时调用：清除所有临时修饰。"""
+        """结算阶段结束时调用：清除所有临时修饰。"""
         if self.temp_attack_bonus or self.temp_health_bonus or self.temp_max_health_bonus or self.temp_keywords:
             self.temp_attack_bonus = 0
             self.temp_health_bonus = 0

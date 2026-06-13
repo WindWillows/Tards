@@ -39,6 +39,7 @@ def _ensure_dependencies():
 
 _ensure_dependencies()
 import random
+import re
 import socket
 import sys
 import threading
@@ -61,6 +62,7 @@ from tards import (
     target_self,
     target_none,
 )
+from tards.constants import EVENT_DISCARDED, EVENT_MILLED, EVENT_CARD_PLAYED
 from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY, Pack, CardType, Rarity
 from tards.deck import Deck
@@ -78,7 +80,7 @@ try:
 except Exception:
     _PIL_AVAILABLE = False
 
-from tards.game_logger import BattleLogWriter
+from tards.game_logger import GameLogger
 from tards.net_game import NetworkDuel
 from tards.targeting import (
     TargetingRequest,
@@ -157,6 +159,290 @@ import threading
 gui_refresh_event = threading.Event()
 
 
+# =============================================================================
+# 统一视觉主题色板
+# =============================================================================
+UI_THEME = {
+    # 基础背景与文字
+    "bg_main": "#f5f5f7",
+    "bg_panel": "#ffffff",
+    "bg_canvas": "#f9fafb",
+    "bg_card": "#ffffff",
+    "text_primary": "#1f2937",
+    "text_secondary": "#6b7280",
+    "text_muted": "#9ca3af",
+    "border": "#e5e7eb",
+    "border_strong": "#d1d5db",
+
+    # 阵营与交互
+    "friendly": "#3b82f6",
+    "friendly_dark": "#1d4ed8",
+    "enemy": "#ef4444",
+    "enemy_dark": "#b91c1c",
+    "accent": "#2563eb",
+    "accent_dark": "#1e40af",
+    "success": "#10b981",
+    "success_dark": "#059669",
+    "warning": "#f59e0b",
+    "warning_dark": "#d97706",
+    "danger": "#dc2626",
+    "danger_dark": "#b91c1c",
+
+    # 资源
+    "res_t": "#0ea5e9",
+    "res_c": "#22c55e",
+    "res_b": "#a855f7",
+    "res_s": "#f97316",
+    "res_mineral": "#eab308",
+
+    # 按钮
+    "btn_primary_bg": "#2563eb",
+    "btn_primary_fg": "#ffffff",
+    "btn_primary_active": "#1d4ed8",
+    "btn_secondary_bg": "#f3f4f6",
+    "btn_secondary_fg": "#374151",
+    "btn_secondary_active": "#e5e7eb",
+    "btn_danger_bg": "#fee2e2",
+    "btn_danger_fg": "#991b1b",
+    "btn_danger_active": "#fecaca",
+    "btn_warning_bg": "#fef3c7",
+    "btn_warning_fg": "#92400e",
+    "btn_warning_active": "#fde68a",
+
+    # 棋盘
+    "board_line": "#d1d5db",
+    "board_enemy_top": "#dbeafe",
+    "board_enemy_bottom": "#eff6ff",
+    "board_neutral": "#ffffff",
+    "board_friendly_top": "#fef3c7",
+    "board_friendly_bottom": "#fffbeb",
+    "board_label_bg": ["#e7e5e4", "#f3f4f6", "#f9fafb", "#e0f2fe", "#f0f9ff"],
+    "board_label_text": "#4b5563",
+    "deploy_preview": "#10b981",
+
+    # 卡牌状态
+    "card_border_default": "#e5e7eb",
+    "card_border_selected": "#2563eb",
+    "card_border_target": "#f59e0b",
+    "card_border_playable": "#10b981",
+    "card_tab_default": "#4b5563",
+    "card_tab_playable": "#10b981",
+    "card_text_name": "#1f2937",
+    "card_text_type": "#6b7280",
+    "card_stack_bg": "#ef4444",
+
+    # 稀有度渐变（更协调、低饱和）
+    "rarity_gold": ("#fffbeb", "#fcd34d"),
+    "rarity_silver": ("#f8fafc", "#cbd5e1"),
+    "rarity_bronze": ("#fff7ed", "#fdba74"),
+    "rarity_iron": ("#f1f5f9", "#94a3b8"),
+    "rarity_none": ("#ffffff", "#f3f4f6"),
+
+    # 折痕颜色
+    "fold_gold": ("#f59e0b", "#fffbeb", "#b45309"),
+    "fold_silver": ("#64748b", "#f8fafc", "#334155"),
+    "fold_bronze": ("#9a3412", "#fff7ed", "#7c2d12"),
+    "fold_iron": ("#475569", "#f1f5f9", "#1e293b"),
+    "fold_none": ("#9ca3af", "#f3f4f6", "#6b7280"),
+
+    # 异象
+    "minion_friendly_fill": "#60a5fa",
+    "minion_friendly_shadow": "#2563eb",
+    "minion_enemy_fill": "#f87171",
+    "minion_enemy_shadow": "#dc2626",
+    # 新版异象方块 1/2/3/4 区域色
+    "minion_bg": "#e5e7eb",          # 3号区域背景（fallback）
+    # 统一淡暖象牙色：与棋盘蓝/黄/白都有区分度，观感自然
+    "minion_bg_top": "#faf9f6",
+    "minion_bg_bottom": "#f0eee6",
+    "minion_bar_bg": "#d4d2cb",       # 4号区域背景（暖灰）
+    "minion_atk_eq": "#fde047",       # 攻击力等于初始：明黄
+    "minion_atk_low": "#fca5a5",      # 攻击力低于初始：浅红
+    "minion_atk_boost": "#86efac",    # 攻击力高于初始：浅绿
+    "minion_hp_eq": "#fde047",        # HP满且等于初始：明黄
+    "minion_hp_injured": "#f87171",   # HP低于最大HP：亮红
+    "minion_hp_boost": "#4ade80",     # HP满且最大HP高于初始：亮绿
+    # 旧版兼容（保留，避免其他地方引用报错）
+    "minion_atk_high": "#facc15",
+    "minion_atk_normal": "#ffffff",
+    "minion_hp_low": "#f87171",
+    "minion_hp_normal": "#86efac",
+
+    # 关键词（统一为柔和色板）
+    "kw_fear": "#9333ea",
+    "kw_frozen": "#06b6d4",
+    "kw_stun": "#f97316",
+    "kw_dormant": "#92400e",
+    "kw_deathrattle": "#475569",
+    "kw_swift": "#2563eb",
+    "kw_dive": "#0ea5e9",
+    "kw_stealth": "#6b7280",
+    "kw_grow": "#16a34a",
+    "kw_vision": "#eab308",
+    "kw_multi": "#dc2626",
+    "kw_anti_air": "#0891b2",
+    "kw_thorns": "#65a30d",
+    "kw_pierce": "#ea580c",
+    "kw_chain": "#ea580c",
+    "kw_sweep": "#f97316",
+    "kw_fertility": "#f97316",
+    "kw_sacrifice": "#92400e",
+    "kw_synergy": "#2563eb",
+    "kw_solo": "#f97316",
+    "kw_default": "#475569",
+
+    # 日志
+    "log_death": "#dc2626",
+    "log_damage": "#ea580c",
+    "log_victory": "#16a34a",
+    "log_phase": "#2563eb",
+    "log_event": "#7c3aed",
+}
+
+# 中文关键词集合，用于详情文本加粗（与 battlefield 图标一致）
+_KEYWORD_NAMES = frozenset({
+    "恐惧", "冰冻", "眩晕", "休眠", "亡语", "迅捷", "潜水", "潜行",
+    "成长", "视野", "高频", "防空", "尖刺", "穿刺", "串击", "横扫",
+    "丰饶", "献祭", "协同", "独行",
+})
+
+# 游戏规则术语集合，用于规则书文本加粗
+_RULE_KEYWORDS = frozenset({
+    "通用点数槽", "通用点数", "抽牌阶段", "出牌阶段", "结算阶段",
+    "疲劳伤害", "沉浸等级", "沉浸增益", "手牌上限", "友方区域",
+    "异象", "策略", "阴谋", "卡包", "沉浸点", "稀有度",
+    "部署", "指向", "攻击", "献祭", "拍铃", "拉闸", "抽牌",
+    "回合", "费用", "T槽", "T点", "HP", "鲜血",
+    "棋盘", "高地", "山脊", "中路", "河岸", "水路", "前排", "后排", "敌方",
+    "平局",
+    "迅捷", "协同", "独行", "藤蔓", "水生", "两栖", "亡语",
+    "串击", "穿刺", "空袭", "防空", "潜行", "绝缘",
+    "尖刺", "回响", "坚韧", "视野", "横扫", "高频", "先攻", "休眠", "成长", "丰饶",
+})
+_RULE_TERM_PATTERN = re.compile(
+    "(" + "|".join(re.escape(k) for k in sorted(_RULE_KEYWORDS, key=len, reverse=True)) + ")"
+)
+
+
+# 游戏规则文本
+_RULES_TEXT = """Tards 游戏规则
+
+一、游戏目标
+双方玩家使用自己组建的卡组进行对抗。通过部署异象、使用策略、激活阴谋，努力取得场面优势，使对手的HP降至0或以下即可获得胜利。若双方HP同时降至0或以下，则判定为平局。
+
+二、卡牌种类
+卡牌分为三类：
+· 异象：花费相应的费用，可以将手牌中的异象部署至友方区域。
+· 策略：花费相应的费用，可以打出手牌中的策略，触发其效果后移除。
+· 阴谋：在你的出牌阶段，花费相应的费用，可以激活手牌中的阴谋。若一方满足卡面记述的条件，触发其效果并将其移除。
+
+三、词条
+异象可能具有一个或多个词条，常见词条如下：
+迅捷：在部署本异象的回合的结算阶段即可攻击。
+协同：若试图使2个友方异象处于同一列，其中至少一个异象需要具有协同。
+独行：本异象无法与友方异象处于同一列。
+藤蔓：本异象必须部署在友方异象上。
+水生：本异象只能部署在水路。
+两栖：本异象可以部署在水路。
+部署：部署本异象时，触发相应效果。
+亡语：本异象被消灭时，触发相应效果。
+串击：本异象攻击时，指向本列的所有敌方异象。
+穿刺：本异象攻击时，也会指向对手。
+空袭：本异象无法选中非防空异象。
+防空：本异象将优先被具有空袭和视野的异象指向；在场时，所有敌方异象失去串击和穿刺。
+潜行：本异象攻击后，具有无法选中直到结算阶段开始。
+绝缘：本异象无法受到敌方策略影响。
+尖刺X：本异象受到战斗伤害时，对伤害来源造成X点伤害。
+回响X：若是异象，将其花费设为2T，面板设为1/1；若是策略，将其打出后返回手牌并使回响等级-1。
+坚韧X：本异象受到的战斗伤害与策略伤害-X（X可以是负数）。
+视野X：具有本词条的异象需要在出牌阶段由玩家手动指向目标，可以攻击本列及相邻X列的异象。只有在场上没有敌方异象时，才能指向对手。
+横扫X：本异象同时攻击本列及相邻X列的目标；对手受到横扫的多路攻击时，只计算一次伤害。
+高频X：本异象在结算阶段可以攻击X次，每攻击一次先攻等级-1直到结算阶段结束。
+先攻X：同列异象结算时，优先结算先攻等级更高的异象。
+休眠X：结算结算阶段结束时，若本异象试图攻击且X＞0，改为将X减1。
+成长X：若满足卡面记述条件，本异象将在X回合后转换为卡面记述的下一个形态；若无X，则在满足条件时立刻成长。
+献祭X：本异象可以被献祭X次。冥刻卡包异象默认具有献祭1。
+丰饶X：本异象被献祭时，提供X点鲜血。冥刻卡包异象默认具有丰饶1。
+
+四、卡组组建
+1. 沉浸度分配
+目前共有6个机制各有特色的卡包：通用卡包、植物卡包、奇迹卡包、离散卡包、冥刻卡包、血祭卡包。
+在组建卡组前，你需要通过分配沉浸点的方式确定卡组由哪些卡包组成。
+一个卡组最多具有3点沉浸点。你可以将任意沉浸点分配至一个卡包，此时你将可以选择本卡包中沉浸等级不高于你所分配给此卡包的沉浸点数量的卡牌，并获得相应的沉浸增益。
+2. 卡牌数量
+一套有效的卡组由40张牌组成。
+若某非通用卡包拥有X点沉浸点，你至多可以将10(X+1)张此卡包的卡牌加入卡组，至少加入10X张。通用卡包没有数量下限限制。
+卡牌的稀有度决定此卡牌可携带的数量上限。
+
+五、对局流程
+对局由若干回合构成，一个回合由抽牌阶段、出牌阶段、结算阶段组成。
+1. 游戏盘
+棋盘为5×5的方形区域，分为五列：高地、山脊、中路、河岸、水路。
+靠近自己的两行用于部署和加入异象；中间一行双方都无法进行操作；靠近对手的两行属于敌方区域。
+玩家手牌上限为8。
+2. 对局开始
+双方各抽4张牌，将HP及其上限设为30。
+3. 抽牌阶段
+第一回合，先手方跳过抽牌阶段。除此以外，进入此阶段时：
+· 轮流抽一张牌，本回合的先手方后抽牌。
+· 然后若通用点数槽（T槽）小于10，增加1个T槽。
+· 获得等同于T槽数目的通用点数（T点）。
+4. 出牌阶段
+第一回合的先手方在所有奇数回合中处于先手。轮到你出牌时，你可以：
+· 出若干张牌，进行部署、指向、触发、激活等操作。
+· 拍铃，轮到对方出牌。若你本轮次没有通过出牌的方式变化T点，你在拍铃时失去一个T点。
+· 拉闸，结束自己的出牌阶段。一方拉闸后，对方无法拍铃。
+5. 结算阶段
+结算的逻辑顺序是：先发效果——对战——后发效果。
+先/后发效果按高地→山脊→中路→河岸→水路的顺序结算，对战相反。
+同列结算时，先结算前排，再结算后排。一方在本列只有一个异象时，总是算作前排。
+拥有横扫X的异象在结算本列时开始攻击，伤害按照对战结算顺序结算。
+异象攻击时，默认选中敌方前排异象；若无法选中异象，则攻击对手。
+一个先/后发效果若选中了多个目标，结算顺序为：你→高地→山脊→中路→河岸→水路→对手。
+任何效果一旦开始结算，默认不会被由此效果引发的其他效果打断；由此效果引发的其他效果在此效果结算完毕后，按照触发顺序结算。
+结算阶段结束后，便完成了一个回合。
+
+六、其他规则
+疲劳伤害：你的卡组被抽空后，若你第X次尝试从卡组中抽牌，你将会失去X点HP。
+平局判定：双方HP同时降至0或以下时，判定为平局。
+"""
+
+
+def _insert_rule_text(text_widget: tk.Text, content: str, clear: bool = True) -> None:
+    """向文本控件插入游戏规则内容，自动加粗游戏术语。"""
+    if clear:
+        text_widget.delete("1.0", tk.END)
+    if not content:
+        return
+    text_widget.tag_config("rule_term", font=("Microsoft YaHei", 11, "bold"))
+    for part in _RULE_TERM_PATTERN.split(content):
+        if not part:
+            continue
+        if _RULE_TERM_PATTERN.fullmatch(part):
+            text_widget.insert(tk.END, part, ("rule_term",))
+        else:
+            text_widget.insert(tk.END, part)
+# 匹配关键词（优先长词避免短词误截断）或整数值
+_DETAIL_TERM_PATTERN = re.compile(
+    "(" + "|".join(re.escape(k) for k in sorted(_KEYWORD_NAMES, key=len, reverse=True)) + "|-?\\d+)"
+)
+
+
+def _insert_rich_detail(text_widget: tk.Text, content: str) -> None:
+    """向详情文本控件插入内容，自动加粗关键词与数字。"""
+    text_widget.delete("1.0", tk.END)
+    if not content:
+        return
+    text_widget.tag_config("detail_term", font=("Microsoft YaHei", 10, "bold"))
+    for part in _DETAIL_TERM_PATTERN.split(content):
+        if not part:
+            continue
+        if _DETAIL_TERM_PATTERN.fullmatch(part):
+            text_widget.insert(tk.END, part, ("detail_term",))
+        else:
+            text_widget.insert(tk.END, part)
+
+
 class Tooltip:
     """浮动提示框。"""
     def __init__(self, parent, text: str, x: int, y: int):
@@ -164,8 +450,8 @@ class Tooltip:
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry(f"+{x + 15}+{y + 15}")
         label = tk.Label(self.tw, text=text, justify=tk.LEFT,
-                         background="#ffffe0", relief=tk.SOLID, borderwidth=1,
-                         font=("Microsoft YaHei", 10))
+                         background=UI_THEME["btn_warning_bg"], relief=tk.SOLID, borderwidth=1,
+                         font=("Microsoft YaHei", 10), fg=UI_THEME["text_primary"])
         label.pack()
         self.tw.bind("<Leave>", lambda e: self.destroy())
 
@@ -217,7 +503,7 @@ class LocalDuel:
         self._mulligan_indices: Optional[List[int]] = None
         self._mulligan_event = threading.Event()
 
-    def run_game(self, opponent: Player):
+    def run_game(self, opponent: Player, logger=None):
         self.game = Game(
             self.local_player,
             opponent,
@@ -225,6 +511,7 @@ class LocalDuel:
             discover_provider=self._make_discover_provider(),
             targeting_provider=self._make_targeting_provider(),
             mulligan_provider=self._make_mulligan_provider(),
+            logger=logger,
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -385,13 +672,227 @@ class MenuFrame(tk.Frame):
         self._build()
 
     def _build(self):
-        tk.Label(self, text="Tards", font=("Microsoft YaHei", 32, "bold")).pack(pady=40)
-        tk.Button(self, text="构筑新卡组", font=("Microsoft YaHei", 16), width=20, command=self.app.show_deck_builder).pack(pady=10)
-        tk.Button(self, text="编辑已有卡组", font=("Microsoft YaHei", 16), width=20, command=self._edit_existing_deck).pack(pady=10)
-        tk.Button(self, text="本地测试", font=("Microsoft YaHei", 16), width=20, command=self._start_local_test).pack(pady=10)
-        tk.Button(self, text="创建房间 (Host)", font=("Microsoft YaHei", 16), width=20, command=lambda: self.app.show_lobby(is_host=True)).pack(pady=10)
-        tk.Button(self, text="加入房间 (Client)", font=("Microsoft YaHei", 16), width=20, command=lambda: self.app.show_lobby(is_host=False)).pack(pady=10)
-        tk.Button(self, text="退出", font=("Microsoft YaHei", 16), width=20, command=self.app.root.quit).pack(pady=10)
+        self.config(bg=UI_THEME["bg_main"])
+        tk.Label(self, text="Tards", font=("Microsoft YaHei", 36, "bold"),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["accent"]).pack(pady=(60, 30))
+        tk.Label(self, text="战术式卡牌对战", font=("Microsoft YaHei", 12),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_secondary"]).pack(pady=(0, 50))
+
+        btn_specs = [
+            ("开始对战", self._show_battle_dialog, "primary"),
+            ("你的卡组", self._show_deck_dialog, "secondary"),
+            ("关于游戏", self._show_about_dialog, "secondary"),
+            ("退出游戏", self._on_exit, "danger"),
+        ]
+        for text, cmd, style in btn_specs:
+            if style == "primary":
+                btn = tk.Button(self, text=text, font=("Microsoft YaHei", 14), width=18,
+                                bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                                activebackground=UI_THEME["btn_primary_active"],
+                                activeforeground=UI_THEME["btn_primary_fg"],
+                                relief=tk.RAISED, bd=2, command=cmd)
+            elif style == "danger":
+                btn = tk.Button(self, text=text, font=("Microsoft YaHei", 14), width=18,
+                                bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
+                                activebackground=UI_THEME["btn_danger_active"],
+                                activeforeground=UI_THEME["btn_danger_fg"],
+                                relief=tk.RAISED, bd=2, command=cmd)
+            else:
+                btn = tk.Button(self, text=text, font=("Microsoft YaHei", 14), width=18,
+                                bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                activebackground=UI_THEME["btn_secondary_active"],
+                                relief=tk.RAISED, bd=1, command=cmd)
+            btn.pack(pady=10)
+
+    def _center_window(self, window, width, height):
+        window.update_idletasks()
+        x = (window.winfo_screenwidth() // 2) - (width // 2)
+        y = (window.winfo_screenheight() // 2) - (height // 2)
+        window.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _show_menu_dialog(self, title, options):
+        win = tk.Toplevel(self)
+        win.title(title)
+        win.transient(self)
+        win.grab_set()
+        win.resizable(False, False)
+        win.config(bg=UI_THEME["bg_main"])
+        self._center_window(win, 300, 140 + len(options) * 50)
+        tk.Label(win, text=title, font=("Microsoft YaHei", 14, "bold"),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=(15, 10))
+        for text, cmd, style in options:
+            if style == "primary":
+                bg, fg, active = UI_THEME["btn_primary_bg"], UI_THEME["btn_primary_fg"], UI_THEME["btn_primary_active"]
+            elif style == "danger":
+                bg, fg, active = UI_THEME["btn_danger_bg"], UI_THEME["btn_danger_fg"], UI_THEME["btn_danger_active"]
+            else:
+                bg, fg, active = UI_THEME["btn_secondary_bg"], UI_THEME["btn_secondary_fg"], UI_THEME["btn_secondary_active"]
+
+            def make_command(c=cmd, w=win):
+                w.destroy()
+                c()
+
+            tk.Button(win, text=text, font=("Microsoft YaHei", 12), width=16,
+                      bg=bg, fg=fg, activebackground=active,
+                      activeforeground=fg,
+                      relief=tk.RAISED, bd=1,
+                      command=make_command).pack(pady=5)
+        return win
+
+    def _show_battle_dialog(self):
+        self._show_menu_dialog("开始对战", [
+            ("创建房间", lambda: self.app.show_lobby(is_host=True), "primary"),
+            ("加入游戏", lambda: self.app.show_lobby(is_host=False), "primary"),
+            ("本地测试", self._start_local_test, "secondary"),
+        ])
+
+    def _show_deck_dialog(self):
+        self._show_menu_dialog("你的卡组", [
+            ("创建卡组", self.app.show_deck_builder, "primary"),
+            ("修改卡组", self._edit_existing_deck, "secondary"),
+        ])
+
+    def _show_about_dialog(self):
+        """打开关于游戏弹窗：左侧目录 + 右侧内容。"""
+        win = tk.Toplevel(self)
+        win.title("关于游戏")
+        win.transient(self)
+        win.grab_set()
+        win.resizable(False, False)
+        win.config(bg=UI_THEME["bg_main"])
+        self._center_window(win, 920, 620)
+
+        tk.Label(win, text="关于 Tards", font=("Microsoft YaHei", 16, "bold"),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=(15, 10))
+
+        main = tk.PanedWindow(win, orient=tk.HORIZONTAL, bg=UI_THEME["bg_main"])
+        main.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+
+        # ===== 左侧目录 =====
+        toc_outer = tk.Frame(main, bg=UI_THEME["bg_main"], width=210)
+        main.add(toc_outer, minsize=180)
+        toc_outer.pack_propagate(False)
+        toc_canvas = tk.Canvas(toc_outer, bg=UI_THEME["bg_main"], highlightthickness=0, bd=0)
+        toc_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        toc_scroll = tk.Scrollbar(toc_outer, orient=tk.VERTICAL, command=toc_canvas.yview)
+        toc_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        toc_canvas.config(yscrollcommand=toc_scroll.set)
+        toc_inner = tk.Frame(toc_canvas, bg=UI_THEME["bg_main"])
+        toc_inner_id = toc_canvas.create_window((0, 0), window=toc_inner, anchor="nw", width=190)
+        toc_inner.bind("<Configure>", lambda e: toc_canvas.configure(scrollregion=toc_canvas.bbox("all")))
+        toc_canvas.bind("<Configure>", lambda e, iid=toc_inner_id: toc_canvas.itemconfig(iid, width=e.width))
+        toc_canvas.bind("<MouseWheel>", lambda e: toc_canvas.yview_scroll(int(-e.delta / 120), "units"))
+
+        # ===== 右侧内容 =====
+        content_frame = tk.Frame(main, bg=UI_THEME["bg_main"])
+        main.add(content_frame, minsize=560)
+
+        # 规则文本
+        rules_text = scrolledtext.ScrolledText(
+            content_frame, wrap=tk.WORD, state=tk.DISABLED,
+            bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+            font=("Microsoft YaHei", 11), relief=tk.FLAT, bd=0,
+        )
+        rules_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # 开发团队页
+        team_frame = tk.Frame(content_frame, bg=UI_THEME["bg_main"])
+        tk.Label(team_frame, text="开发人员名单", font=("Microsoft YaHei", 16, "bold"),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=(40, 15))
+        tk.Label(team_frame, text="（等待完善中……）", font=("Microsoft YaHei", 12),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_muted"]).pack()
+
+        # 解析并插入规则内容
+        rules_text.config(state=tk.NORMAL)
+        sections = []
+        line_no = 1
+        for para in _RULES_TEXT.split("\n"):
+            stripped = para.strip()
+            if not stripped:
+                rules_text.insert(tk.END, "\n")
+                line_no += 1
+                continue
+            if re.match(r"^[一二三四五六七八九十]+、", stripped):
+                sections.append((stripped, line_no, 1))
+                rules_text.insert(tk.END, stripped + "\n", ("h1",))
+            elif re.match(r"^\d+\\.", stripped):
+                sections.append((stripped, line_no, 2))
+                rules_text.insert(tk.END, stripped + "\n", ("h2",))
+            else:
+                _insert_rule_text(rules_text, stripped + "\n", clear=False)
+            line_no += 1
+        rules_text.config(state=tk.DISABLED)
+
+        rules_text.tag_config("h1", font=("Microsoft YaHei", 14, "bold"),
+                              foreground=UI_THEME["accent"], spacing1=12, spacing3=6)
+        rules_text.tag_config("h2", font=("Microsoft YaHei", 12, "bold"),
+                              foreground=UI_THEME["text_primary"], spacing1=8, spacing3=4)
+
+        # 生成目录按钮
+        current_btn = [None]
+
+        def goto_section(idx, line):
+            team_frame.pack_forget()
+            rules_text.pack(fill=tk.BOTH, expand=True)
+            rules_text.update_idletasks()
+            rules_text.config(state=tk.NORMAL)
+            # 按行号比例滚动，避免 see 在布局未完成时失效
+            total = int(rules_text.index("end-1c").split(".")[0])
+            if total > 0:
+                fraction = max(0.0, (line - 1) / total)
+                rules_text.yview_moveto(fraction)
+            rules_text.config(state=tk.DISABLED)
+            _highlight_toc(idx)
+
+        def show_team(idx):
+            rules_text.pack_forget()
+            team_frame.pack(fill=tk.BOTH, expand=True)
+            team_frame.update_idletasks()
+            _highlight_toc(idx)
+
+        def _highlight_toc(idx):
+            for i, b in enumerate(toc_buttons):
+                if i == idx:
+                    b.config(bg=UI_THEME["accent"], fg=UI_THEME["btn_primary_fg"])
+                else:
+                    b.config(bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+            current_btn[0] = toc_buttons[idx]
+
+        toc_buttons = []
+        for idx, (title, line, level) in enumerate(sections):
+            btn = tk.Button(toc_inner, text=title, anchor="w",
+                            bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                            activebackground=UI_THEME["btn_secondary_active"],
+                            relief=tk.FLAT, bd=0, cursor="hand2",
+                            command=lambda i=idx, l=line: goto_section(i, l))
+            btn.pack(fill=tk.X, pady=1, padx=(0 if level == 1 else 14, 0))
+            btn.config(font=("Microsoft YaHei", 11, "bold") if level == 1 else ("Microsoft YaHei", 10))
+            toc_buttons.append(btn)
+
+        # 开发团队目录按钮
+        team_idx = len(toc_buttons)
+        team_btn = tk.Button(toc_inner, text="开发团队", anchor="w",
+                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                             activebackground=UI_THEME["btn_secondary_active"],
+                             relief=tk.FLAT, bd=0, cursor="hand2",
+                             command=lambda i=team_idx: show_team(i))
+        team_btn.pack(fill=tk.X, pady=(8, 1), padx=(0, 0))
+        team_btn.config(font=("Microsoft YaHei", 11, "bold"))
+        toc_buttons.append(team_btn)
+
+        # 默认定位到第一个章节
+        win.update_idletasks()
+        win.update()
+        if sections:
+            goto_section(0, sections[0][1])
+
+        tk.Button(win, text="关闭", font=("Microsoft YaHei", 11), width=12,
+                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
+                  command=win.destroy).pack(pady=(0, 15))
+
+    def _on_exit(self):
+        self.app.root.quit()
 
     def _edit_existing_deck(self):
         win = tk.Toplevel(self)
@@ -496,6 +997,7 @@ class DeckBuilderFrame(tk.Frame):
     def __init__(self, parent, app: TardsApp, deck_name: Optional[str] = None):
         super().__init__(parent)
         self.app = app
+        self._original_deck_name = deck_name or ""
         if deck_name:
             loaded = load_deck(deck_name, DEFAULT_REGISTRY)
             self.deck = loaded if loaded else Deck(name="新卡组", registry=DEFAULT_REGISTRY)
@@ -509,75 +1011,208 @@ class DeckBuilderFrame(tk.Frame):
             self._refresh_deck_list()
 
     def _build(self):
-        top = tk.Frame(self)
+        self.config(bg=UI_THEME["bg_main"])
+
+        # ===== 顶部工具栏 =====
+        top = tk.Frame(self, bg=UI_THEME["bg_main"])
         top.pack(fill=tk.X, padx=10, pady=5)
-        tk.Button(top, text="← 返回主菜单", command=self.app.show_menu).pack(side=tk.LEFT)
-        tk.Label(top, text="卡组名:").pack(side=tk.LEFT, padx=5)
-        self.name_entry = tk.Entry(top, width=20)
+        tk.Button(top, text="← 返回主菜单", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
+                  command=self.app.show_menu).pack(side=tk.LEFT)
+        tk.Label(top, text="卡组名:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT, padx=5)
+        self.name_entry = tk.Entry(top, width=20, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                   insertbackground=UI_THEME["text_primary"])
         self.name_entry.insert(0, self.deck.name)
         self.name_entry.pack(side=tk.LEFT, padx=5)
-        tk.Button(top, text="保存卡组", command=self._save_deck).pack(side=tk.LEFT, padx=10)
-        tk.Button(top, text="删除卡组", fg="red", command=self._delete_deck).pack(side=tk.RIGHT, padx=10)
+        tk.Button(top, text="保存卡组", bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                  activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=1,
+                  command=self._save_deck).pack(side=tk.LEFT, padx=10)
+        tk.Button(top, text="删除卡组", bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
+                  activebackground=UI_THEME["btn_danger_active"], relief=tk.RAISED, bd=1,
+                  command=self._delete_deck).pack(side=tk.RIGHT, padx=10)
         self.is_test_var = tk.BooleanVar(value=self.deck.is_test_deck)
-        self.test_check = tk.Checkbutton(top, text="测试卡组", variable=self.is_test_var, fg="orange", font=("Microsoft YaHei", 10, "bold"), command=self._on_test_mode_change)
+        self.test_check = tk.Checkbutton(top, text="测试卡组", variable=self.is_test_var,
+                                         bg=UI_THEME["bg_main"], fg=UI_THEME["warning_dark"],
+                                         selectcolor=UI_THEME["bg_panel"],
+                                         font=("Microsoft YaHei", 10, "bold"), command=self._on_test_mode_change)
         self.test_check.pack(side=tk.LEFT, padx=10)
 
-        immersion_frame = tk.LabelFrame(self, text="沉浸点分配 (每卡包 0-3)")
-        immersion_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.validation_label = tk.Label(self, text="", fg=UI_THEME["danger"], bg=UI_THEME["bg_main"])
+        self.validation_label.pack(fill=tk.X, padx=10)
+
+        # ===== 主三栏布局 =====
+        main_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        main_frame.columnconfigure(0, weight=3, uniform="main")
+        main_frame.columnconfigure(1, weight=3, uniform="main")
+        main_frame.columnconfigure(2, weight=4, uniform="main")
+        main_frame.rowconfigure(0, weight=1)
+
+        # ===== 左列：当前卡组（可滚动按钮列表）=====
+        deck_frame = tk.LabelFrame(main_frame, text="当前卡组",
+                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+        deck_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        deck_frame.rowconfigure(0, weight=1)
+        deck_frame.columnconfigure(0, weight=1)
+
+        self.deck_list_canvas = tk.Canvas(deck_frame, bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
+        self.deck_list_canvas.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        deck_scroll = tk.Scrollbar(deck_frame, orient=tk.VERTICAL, command=self.deck_list_canvas.yview)
+        deck_scroll.grid(row=0, column=1, sticky="ns", pady=5)
+        self.deck_list_canvas.config(yscrollcommand=deck_scroll.set)
+
+        self.deck_list_inner = tk.Frame(self.deck_list_canvas, bg=UI_THEME["bg_panel"])
+        inner_id = self.deck_list_canvas.create_window((0, 0), window=self.deck_list_inner, anchor="nw")
+        self.deck_list_inner.bind(
+            "<Configure>",
+            lambda e: self.deck_list_canvas.configure(scrollregion=self.deck_list_canvas.bbox("all"))
+        )
+        self.deck_list_canvas.bind(
+            "<Configure>",
+            lambda e, iid=inner_id: self.deck_list_canvas.itemconfig(iid, width=e.width)
+        )
+        self.deck_list_canvas.bind(
+            "<MouseWheel>",
+            lambda e: self.deck_list_canvas.yview_scroll(int(-e.delta / 120), "units")
+        )
+
+        self.deck_count_label = tk.Label(deck_frame, text="0 张", font=("Microsoft YaHei", 10, "bold"),
+                                         bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+        self.deck_count_label.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=(0, 5))
+
+        self._selected_deck_row = None
+        self._selected_deck_row_bg = None
+        self._selected_deck_card = None
+
+        # ===== 中列：卡组属性 + 卡牌详情 =====
+        center_frame = tk.Frame(main_frame, bg=UI_THEME["bg_main"])
+        center_frame.grid(row=0, column=1, sticky="nsew", padx=5)
+        center_frame.rowconfigure(0, weight=0)
+        center_frame.rowconfigure(1, weight=1)
+        center_frame.columnconfigure(0, weight=1)
+
+        # 1. 卡组属性栏（沉浸度 + 统计 + 操作）
+        attr_frame = tk.LabelFrame(center_frame, text="卡组属性",
+                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+        attr_frame.grid(row=0, column=0, sticky="new", pady=(0, 5))
+
+        # 沉浸度调节（2 行 3 列）
+        immersion_inner = tk.Frame(attr_frame, bg=UI_THEME["bg_panel"])
+        immersion_inner.pack(fill=tk.X, padx=5, pady=2)
         self.imm_sliders = {}
-        for pack in Pack:
-            f = tk.Frame(immersion_frame)
-            f.pack(side=tk.LEFT, padx=10)
-            tk.Label(f, text=pack.value).pack()
+        for i, pack in enumerate(Pack):
+            f = tk.Frame(immersion_inner, bg=UI_THEME["bg_panel"])
+            f.grid(row=i // 3, column=i % 3, padx=8, pady=2, sticky="n")
+            tk.Label(f, text=pack.value, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"]).pack()
             var = tk.IntVar(value=0)
-            sc = tk.Scale(f, from_=0, to=3, orient=tk.HORIZONTAL, variable=var, command=lambda _, p=pack: self._on_imm_change(p))
+            sc = tk.Scale(f, from_=0, to=3, orient=tk.HORIZONTAL, variable=var,
+                          bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                          highlightthickness=0, command=lambda _, p=pack: self._on_imm_change(p))
             sc.pack()
             self.imm_sliders[pack] = var
 
-        self.validation_label = tk.Label(self, text="", fg="red")
-        self.validation_label.pack(fill=tk.X, padx=10)
+        # 分隔线
+        tk.Frame(attr_frame, height=1, bg=UI_THEME["border"]).pack(fill=tk.X, padx=10, pady=2)
 
-        filter_frame = tk.Frame(self)
-        filter_frame.pack(fill=tk.X, padx=10, pady=2)
-        tk.Label(filter_frame, text="筛选:").pack(side=tk.LEFT)
+        # 统计信息与操作
+        stats_inner = tk.Frame(attr_frame, bg=UI_THEME["bg_panel"])
+        stats_inner.pack(fill=tk.X, padx=5, pady=2)
+        bold = ("Microsoft YaHei", 10, "bold")
+        self.deck_stats_type = tk.Label(stats_inner, text="类型: -", font=bold, anchor="w",
+                                        bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+        self.deck_stats_type.pack(fill=tk.X, pady=1)
+        self.deck_stats_pack = tk.Label(stats_inner, text="卡包: -", font=bold, anchor="w",
+                                        bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+        self.deck_stats_pack.pack(fill=tk.X, pady=1)
+        self.deck_stats_cost = tk.Label(stats_inner, text="平均费用: -", font=bold, anchor="w",
+                                        bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+        self.deck_stats_cost.pack(fill=tk.X, pady=1)
+        btn_frame = tk.Frame(stats_inner, bg=UI_THEME["bg_panel"])
+        btn_frame.pack(fill=tk.X, pady=(6, 2))
+        tk.Button(btn_frame, text="移除所选", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
+                  command=self._remove_selected).pack(side=tk.LEFT, padx=2)
+        tk.Button(btn_frame, text="清空卡组", bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
+                  activebackground=UI_THEME["btn_danger_active"], relief=tk.RAISED, bd=1,
+                  command=self._clear_deck).pack(side=tk.LEFT, padx=2)
+
+        # 2. 卡牌详情
+        detail_frame = tk.LabelFrame(center_frame, text="卡牌详情",
+                                     bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+        detail_frame.grid(row=1, column=0, sticky="nsew", pady=5)
+        detail_frame.rowconfigure(0, weight=1)
+        detail_frame.columnconfigure(0, weight=1)
+        self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
+                                   font=("Microsoft YaHei", 10), state=tk.DISABLED,
+                                   bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], relief=tk.FLAT, bd=0)
+        self.detail_text.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.detail_text.config(state=tk.NORMAL)
+        _insert_rich_detail(self.detail_text, "单击左侧或右侧卡牌查看详情\n双击右侧卡牌加入卡组")
+        self.detail_text.config(state=tk.DISABLED)
+
+        self.related_btn = tk.Button(detail_frame, text="📎 相关卡牌索引", state=tk.DISABLED,
+                                      bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                                      activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
+                                      command=self._show_related_cards_in_tab)
+        self.related_btn.grid(row=1, column=0, sticky="se", padx=5, pady=(0, 5))
+        self._current_detail_card = None
+
+        # ===== 右列：卡池与检索 =====
+        pool_frame = tk.LabelFrame(main_frame, text="可用卡牌 (单击查看详情，双击加入卡组)",
+                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+        pool_frame.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        pool_frame.rowconfigure(2, weight=1)
+        pool_frame.columnconfigure(0, weight=1)
+
+        # 筛选
+        filter_frame = tk.Frame(pool_frame, bg=UI_THEME["bg_panel"])
+        filter_frame.pack(fill=tk.X, padx=5, pady=(5, 2))
+        tk.Label(filter_frame, text="筛选:", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT)
         self.show_minion = tk.BooleanVar(value=True)
         self.show_strategy = tk.BooleanVar(value=True)
         self.show_conspiracy = tk.BooleanVar(value=True)
         self.hide_unimplemented = tk.BooleanVar(value=False)
-        tk.Checkbutton(filter_frame, text="异象", variable=self.show_minion, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
-        tk.Checkbutton(filter_frame, text="策略", variable=self.show_strategy, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
-        tk.Checkbutton(filter_frame, text="阴谋", variable=self.show_conspiracy, command=self._refresh_available).pack(side=tk.LEFT, padx=2)
-        tk.Checkbutton(filter_frame, text="隐藏未实现", variable=self.hide_unimplemented, command=self._refresh_available).pack(side=tk.LEFT, padx=(10, 0))
-        tk.Label(filter_frame, text="排序:").pack(side=tk.LEFT, padx=(10, 0))
+        tk.Checkbutton(filter_frame, text="异象", variable=self.show_minion, command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=2)
+        tk.Checkbutton(filter_frame, text="策略", variable=self.show_strategy, command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=2)
+        tk.Checkbutton(filter_frame, text="阴谋", variable=self.show_conspiracy, command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=2)
+        tk.Checkbutton(filter_frame, text="隐藏未实现", variable=self.hide_unimplemented, command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=(10, 0))
+        tk.Label(filter_frame, text="排序:", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT, padx=(10, 0))
         self.sort_by = tk.StringVar(value="immersion")
-        tk.Radiobutton(filter_frame, text="沉浸度", variable=self.sort_by, value="immersion", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
-        tk.Radiobutton(filter_frame, text="费用", variable=self.sort_by, value="cost", command=self._refresh_available).pack(side=tk.LEFT, padx=2)
+        tk.Radiobutton(filter_frame, text="沉浸度", variable=self.sort_by, value="immersion", command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=2)
+        tk.Radiobutton(filter_frame, text="费用", variable=self.sort_by, value="cost", command=self._refresh_available,
+                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"]).pack(side=tk.LEFT, padx=2)
 
-        # ===== 搜索框 =====
-        search_frame = tk.Frame(self)
-        search_frame.pack(fill=tk.X, padx=10, pady=2)
-        tk.Label(search_frame, text="搜索:").pack(side=tk.LEFT)
+        # 搜索
+        search_frame = tk.Frame(pool_frame, bg=UI_THEME["bg_panel"])
+        search_frame.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(search_frame, text="搜索:", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT)
         self.search_var = tk.StringVar()
-        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var, width=30)
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var, width=24,
+                                     bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                     insertbackground=UI_THEME["text_primary"])
         self.search_entry.pack(side=tk.LEFT, padx=5)
         self.search_entry.bind("<KeyRelease>", lambda e: self._refresh_available())
-        tk.Label(search_frame, text="#词条 按关键词/标签搜索", fg="gray", font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="#词条 按关键词/标签搜索",
+                 fg=UI_THEME["text_muted"], bg=UI_THEME["bg_panel"], font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=5)
 
-        # ===== 左侧：可用卡牌列表 =====
-        cards_frame = tk.LabelFrame(self, text="可用卡牌 (单击查看详情，双击加入卡组)")
-        cards_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=5)
-        self.notebook = ttk.Notebook(cards_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        # 卡池 Notebook
+        self.notebook = ttk.Notebook(pool_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.pack_tabs = {}
         self.pack_canvases = {}
         self._button_pools = {}
         self._empty_labels = {}
         for pack in Pack:
-            tab = tk.Frame(self.notebook)
+            tab = tk.Frame(self.notebook, bg=UI_THEME["bg_panel"])
             self.notebook.add(tab, text=pack.value)
-            canvas = tk.Canvas(tab)
+            canvas = tk.Canvas(tab, bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
             scrollbar = tk.Scrollbar(tab, orient=tk.VERTICAL, command=canvas.yview)
-            inner = tk.Frame(canvas)
+            inner = tk.Frame(canvas, bg=UI_THEME["bg_panel"])
             inner.bind("<Configure>", lambda e, c=canvas: c.configure(scrollregion=c.bbox("all")))
             # 两列布局：列权重 10，间距权重 7（间距 = 0.7 × 列宽）
             inner.columnconfigure(0, weight=10, uniform="col")
@@ -592,16 +1227,17 @@ class DeckBuilderFrame(tk.Frame):
             # 绑定鼠标滚轮
             canvas.bind("<MouseWheel>", lambda e, c=canvas: c.yview_scroll(int(-e.delta / 120), "units"))
             # 预创建空提示标签（缓存）
-            lbl = tk.Label(inner, text="无可用卡牌（请分配沉浸点）")
+            lbl = tk.Label(inner, text="无可用卡牌（请分配沉浸点）",
+                           bg=UI_THEME["bg_panel"], fg=UI_THEME["text_muted"])
             lbl.grid_remove()
             self._empty_labels[pack] = lbl
 
         # ===== 衍生卡 Tab（只读展示）=====
-        token_tab = tk.Frame(self.notebook)
+        token_tab = tk.Frame(self.notebook, bg=UI_THEME["bg_panel"])
         self.notebook.add(token_tab, text="衍生卡")
-        token_canvas = tk.Canvas(token_tab)
+        token_canvas = tk.Canvas(token_tab, bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
         token_scroll = tk.Scrollbar(token_tab, orient=tk.VERTICAL, command=token_canvas.yview)
-        token_inner = tk.Frame(token_canvas)
+        token_inner = tk.Frame(token_canvas, bg=UI_THEME["bg_panel"])
         token_inner.bind("<Configure>", lambda e, c=token_canvas: c.configure(scrollregion=c.bbox("all")))
         token_inner.columnconfigure(0, weight=10, uniform="col")
         token_inner.columnconfigure(1, weight=7)
@@ -613,16 +1249,17 @@ class DeckBuilderFrame(tk.Frame):
         self.pack_tabs["__token__"] = token_inner
         self.pack_canvases["__token__"] = token_canvas
         token_canvas.bind("<MouseWheel>", lambda e, c=token_canvas: c.yview_scroll(int(-e.delta / 120), "units"))
-        token_lbl = tk.Label(token_inner, text="无可用卡牌（请分配沉浸点）")
+        token_lbl = tk.Label(token_inner, text="无可用卡牌（请分配沉浸点）",
+                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_muted"])
         token_lbl.grid_remove()
         self._empty_labels["__token__"] = token_lbl
 
         # ===== 关联 Tab（动态填充）=====
-        assoc_tab = tk.Frame(self.notebook)
+        assoc_tab = tk.Frame(self.notebook, bg=UI_THEME["bg_panel"])
         self.notebook.add(assoc_tab, text="关联")
-        assoc_canvas = tk.Canvas(assoc_tab)
+        assoc_canvas = tk.Canvas(assoc_tab, bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
         assoc_scroll = tk.Scrollbar(assoc_tab, orient=tk.VERTICAL, command=assoc_canvas.yview)
-        assoc_inner = tk.Frame(assoc_canvas)
+        assoc_inner = tk.Frame(assoc_canvas, bg=UI_THEME["bg_panel"])
         assoc_inner.bind("<Configure>", lambda e, c=assoc_canvas: c.configure(scrollregion=c.bbox("all")))
         assoc_inner.columnconfigure(0, weight=10, uniform="col")
         assoc_inner.columnconfigure(1, weight=7)
@@ -636,65 +1273,6 @@ class DeckBuilderFrame(tk.Frame):
         assoc_canvas.bind("<MouseWheel>", lambda e, c=assoc_canvas: c.yview_scroll(int(-e.delta / 120), "units"))
         self._association_mode = False
         self._last_normal_tab = None
-
-        # ===== 右侧：卡牌详情 + 当前卡组 =====
-        right_frame = tk.Frame(self)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        # 卡牌详情面板（非浮窗，固定显示）
-        detail_frame = tk.LabelFrame(right_frame, text="卡牌详情")
-        detail_frame.pack(fill=tk.X, pady=5)
-        self.detail_text = tk.Text(detail_frame, height=10, wrap=tk.WORD,
-                                   font=("Microsoft YaHei", 10), state=tk.DISABLED,
-                                   bg="#fafafa", fg="#333")
-        self.detail_text.pack(fill=tk.X, padx=5, pady=5)
-        self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
-        self.detail_text.config(state=tk.DISABLED)
-
-        # 相关卡牌索引按钮
-        self.related_btn = tk.Button(detail_frame, text="📎 相关卡牌索引", state=tk.DISABLED,
-                                      command=self._show_related_cards_in_tab)
-        self.related_btn.pack(anchor="se", padx=5, pady=(0, 5))
-        self._current_detail_card = None  # 当前详情面板显示的卡
-
-        deck_frame = tk.LabelFrame(right_frame, text="当前卡组")
-        deck_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-
-        # 左右分栏：左侧卡牌列表，右侧统计信息
-        deck_content = tk.Frame(deck_frame)
-        deck_content.pack(fill=tk.BOTH, expand=True)
-
-        # 左侧：卡牌列表（约占 40% 宽度）
-        list_frame = tk.Frame(deck_content, width=180)
-        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
-        list_frame.pack_propagate(False)
-        self.deck_listbox = tk.Listbox(list_frame, height=8, font=("Microsoft YaHei", 10))
-        self.deck_listbox.pack(fill=tk.BOTH, expand=True)
-        self.deck_listbox.bind("<<ListboxSelect>>", self._on_deck_list_select)
-
-        # 右侧：统计信息 + 操作按钮
-        stats_frame = tk.Frame(deck_content)
-        stats_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0))
-
-        # 统计标签（粗体）
-        bold = ("Microsoft YaHei", 10, "bold")
-        self.deck_stats_type = tk.Label(stats_frame, text="类型: -", font=bold, anchor="w")
-        self.deck_stats_type.pack(fill=tk.X, pady=2)
-        self.deck_stats_pack = tk.Label(stats_frame, text="卡包: -", font=bold, anchor="w")
-        self.deck_stats_pack.pack(fill=tk.X, pady=2)
-        self.deck_stats_cost = tk.Label(stats_frame, text="平均费用: -", font=bold, anchor="w")
-        self.deck_stats_cost.pack(fill=tk.X, pady=2)
-
-        # 操作按钮
-        btn_frame = tk.Frame(stats_frame)
-        btn_frame.pack(fill=tk.X, pady=(10, 2))
-        tk.Button(btn_frame, text="移除所选", command=self._remove_selected).pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text="清空卡组", command=self._clear_deck).pack(side=tk.LEFT, padx=2)
-
-        # 底部计数
-        self.deck_count_label = tk.Label(deck_frame, text="0 张", font=("Microsoft YaHei", 10, "bold"))
-        self.deck_count_label.pack(side=tk.BOTTOM, fill=tk.X)
 
     def _on_test_mode_change(self):
         """切换测试卡组模式时更新 Deck 对象和界面。"""
@@ -712,17 +1290,6 @@ class DeckBuilderFrame(tk.Frame):
             self.imm_sliders[pack].set(pts)
         self._refresh_available()
         self._refresh_deck_list()
-
-    def _on_deck_list_select(self, event):
-        """卡组列表选中时显示卡牌详情。"""
-        sel = self.deck_listbox.curselection()
-        if not sel:
-            return
-        text = self.deck_listbox.get(sel[0])
-        name = text.split(" x")[0]
-        card = DEFAULT_REGISTRY.get(name)
-        if card:
-            self._show_card_detail(card)
 
     def _fmt_keywords(self, keywords: dict, minion_name: str = "") -> str:
         """格式化关键词字典为人类可读字符串。"""
@@ -760,8 +1327,7 @@ class DeckBuilderFrame(tk.Frame):
                 lines.append("\n【效果】\n（暂无描述）")
             text = "\n".join(lines)
             self.detail_text.config(state=tk.NORMAL)
-            self.detail_text.delete("1.0", tk.END)
-            self.detail_text.insert(tk.END, text)
+            _insert_rich_detail(self.detail_text, text)
             self.detail_text.config(state=tk.DISABLED)
             # 根据是否有相关卡牌启用/禁用按钮
             related = self._get_related_cards(card)
@@ -774,8 +1340,7 @@ class DeckBuilderFrame(tk.Frame):
 
     def _clear_card_detail(self):
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, "单击左侧卡牌查看详情\n双击加入卡组")
+        _insert_rich_detail(self.detail_text, "单击左侧卡牌查看详情\n双击加入卡组")
         self.detail_text.config(state=tk.DISABLED)
         self._current_detail_card = None
         self.related_btn.config(state=tk.DISABLED)
@@ -964,16 +1529,14 @@ class DeckBuilderFrame(tk.Frame):
 
         text = "\n".join(lines)
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, text)
+        _insert_rich_detail(self.detail_text, text)
         self.detail_text.config(state=tk.DISABLED)
 
     def _clear_detail_text(self):
         if not hasattr(self, "detail_text"):
             return
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        _insert_rich_detail(self.detail_text, "悬停卡牌查看详情")
         self.detail_text.config(state=tk.DISABLED)
 
     def _on_imm_change(self, pack: Pack):
@@ -1120,22 +1683,116 @@ class DeckBuilderFrame(tk.Frame):
         self._refresh_deck_list()
 
     def _remove_selected(self):
-        sel = self.deck_listbox.curselection()
-        if not sel:
+        name = getattr(self, "_selected_deck_card", None)
+        if not name:
             return
-        text = self.deck_listbox.get(sel[0])
-        name = text.split(" x")[0]
         self.deck.remove_card(name, 1)
+        self._selected_deck_card = None
         self._refresh_deck_list()
+
+    def _create_deck_row(self, name: str, count: int, indent: bool = False):
+        """在当前卡组列表中创建一个可点击的卡牌行。"""
+        card_def = self.deck.registry.get(name)
+        bg = self._rarity_bg(getattr(card_def, "rarity", None))
+        fg = UI_THEME["text_primary"]
+
+        row = tk.Frame(self.deck_list_inner, bg=bg, relief=tk.FLAT, bd=0, cursor="hand2")
+        row.pack(fill=tk.X, pady=1)
+
+        # 左侧选中指示条（默认与面板背景融合，选中时显示强调色）
+        indicator = tk.Frame(row, width=4, bg=UI_THEME["bg_panel"])
+        indicator.pack(side=tk.LEFT, fill=tk.Y)
+        indicator.pack_propagate(False)
+        row.indicator = indicator
+
+        def on_click(event, n=name, r=row):
+            self._select_deck_row(n, r)
+
+        def on_double(event, n=name):
+            self.deck.remove_card(n, 1)
+            self._selected_deck_card = None
+            self._refresh_deck_list()
+
+        row.bind("<Button-1>", on_click)
+        row.bind("<Double-Button-1>", on_double)
+
+        pad_left = 15 if indent else 5
+        name_lbl = tk.Label(row, text=name, bg=bg, fg=fg, cursor="hand2")
+        name_lbl.pack(side=tk.LEFT, padx=(pad_left, 5))
+        count_lbl = tk.Label(row, text=f"x{count}", bg=bg, fg=fg,
+                             font=("Microsoft YaHei", 10, "bold"), cursor="hand2")
+        count_lbl.pack(side=tk.RIGHT, padx=5)
+
+        for w in (name_lbl, count_lbl):
+            w.bind("<Button-1>", on_click)
+            w.bind("<Double-Button-1>", on_double)
+
+        return row
+
+    def _select_deck_row(self, name: str, row: tk.Frame):
+        """选中卡组列表中的一行并显示详情。"""
+        prev = getattr(self, "_selected_deck_row", None)
+        if prev and prev.winfo_exists():
+            prev.indicator.config(bg=UI_THEME["bg_panel"])
+        self._selected_deck_row = row
+        self._selected_deck_row_bg = row.cget("bg")
+        self._selected_deck_card = name
+        row.indicator.config(bg=UI_THEME["accent"])
+        card = DEFAULT_REGISTRY.get(name)
+        if card:
+            self._show_card_detail(card)
+
+    def _rarity_bg(self, rarity) -> str:
+        """根据稀有度返回按钮背景色（取渐变浅色端）。"""
+        mapping = {
+            "GOLD": UI_THEME["rarity_gold"][0],
+            "SILVER": UI_THEME["rarity_silver"][0],
+            "BRONZE": UI_THEME["rarity_bronze"][0],
+            "IRON": UI_THEME["rarity_iron"][0],
+        }
+        return mapping.get(getattr(rarity, "name", "NONE"), UI_THEME["rarity_none"][0])
 
     def _clear_deck(self):
         self.deck.card_entries.clear()
         self._refresh_deck_list()
 
     def _refresh_deck_list(self):
-        self.deck_listbox.delete(0, tk.END)
-        for name, count in sorted(self.deck.card_entries.items()):
-            self.deck_listbox.insert(tk.END, f"{name} x{count}")
+        # 清空旧行并重置选中状态
+        for w in self.deck_list_inner.winfo_children():
+            w.destroy()
+        self._selected_deck_row = None
+        self._selected_deck_row_bg = None
+        self._selected_deck_card = None
+
+        # 按卡包分组；仅当卡组包含多个卡包时插入虚线分隔
+        entries = list(self.deck.card_entries.items())
+        if not entries:
+            empty_lbl = tk.Label(self.deck_list_inner, text="卡组为空，双击右侧卡牌加入",
+                                 bg=UI_THEME["bg_panel"], fg=UI_THEME["text_muted"])
+            empty_lbl.pack(pady=10)
+
+        groups: dict[str, list[tuple[str, int]]] = {}
+        for name, count in entries:
+            card_def = self.deck.registry.get(name)
+            pname = card_def.pack.value if card_def and card_def.pack else "未知"
+            groups.setdefault(pname, []).append((name, count))
+
+        from tards.card_db import Pack
+        pack_order = {p.value: i for i, p in enumerate(Pack)}
+        sorted_groups = sorted(groups.items(), key=lambda x: pack_order.get(x[0], 999))
+        multi_pack = len(sorted_groups) > 1
+
+        for idx, (pname, items) in enumerate(sorted_groups):
+            if multi_pack:
+                if idx > 0:
+                    tk.Label(self.deck_list_inner, text="───────────────",
+                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_muted"]).pack(fill=tk.X, pady=2)
+                tk.Label(self.deck_list_inner, text=f"【{pname}】",
+                         bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                         font=("Microsoft YaHei", 10, "bold")).pack(fill=tk.X, pady=(4, 0))
+            for name, count in sorted(items):
+                self._create_deck_row(name, count, indent=multi_pack)
+
         prefix = "[测试] " if self.deck.is_test_deck else ""
         total = self.deck.total_cards()
         self.deck_count_label.config(text=f"{prefix}{total} 张")
@@ -1182,12 +1839,12 @@ class DeckBuilderFrame(tk.Frame):
         # 验证信息
         errors = self.deck.validate()
         if errors:
-            self.validation_label.config(text=" | ".join(errors), fg="red")
+            self.validation_label.config(text=" | ".join(errors), fg=UI_THEME["danger"])
         else:
             if self.deck.is_test_deck:
-                self.validation_label.config(text="测试卡组（无构筑限制）", fg="orange")
+                self.validation_label.config(text="测试卡组（无构筑限制）", fg=UI_THEME["warning_dark"])
             else:
-                self.validation_label.config(text="卡组合法", fg="green")
+                self.validation_label.config(text="卡组合法", fg=UI_THEME["success"])
 
     def _save_deck(self):
         name = self.name_entry.get().strip()
@@ -1200,13 +1857,27 @@ class DeckBuilderFrame(tk.Frame):
             messagebox.showwarning("校验失败", "\n".join(errors))
             return
         self.deck.name = name
-        # 检查是否覆盖已有文件
         from tards.deck_io import DECKS_DIR
         existing = [f[:-5] for f in os.listdir(DECKS_DIR) if f.endswith(".json")]
+
+        # 如果修改了卡组名，询问是否覆盖原卡组文件
+        original = getattr(self, "_original_deck_name", "")
+        if original and original != name and original in existing:
+            if messagebox.askyesno("覆盖原卡组", f"已将卡组名从 [{original}] 改为 [{name}]，是否覆盖原卡组 [{original}]？"):
+                old_path = os.path.join(DECKS_DIR, f"{original}.json")
+                try:
+                    os.remove(old_path)
+                except Exception as e:
+                    messagebox.showwarning("提示", f"删除原卡组失败: {e}")
+                    return
+                existing.remove(original)
+
+        # 检查是否覆盖已有文件
         if name in existing:
             if not messagebox.askyesno("覆盖确认", f"卡组 [{name}] 已存在，是否覆盖？"):
                 return
         path = save_deck(self.deck)
+        self._original_deck_name = name
         msg = f"已保存到 {path}"
         if self.deck.is_test_deck:
             msg += "\n（测试卡组，仅可用于本地测试）"
@@ -1239,51 +1910,69 @@ class LobbyFrame(tk.Frame):
         self._build()
 
     def _build(self):
-        tk.Button(self, text="← 返回主菜单", command=self.app.show_menu).pack(anchor="nw", padx=10, pady=5)
+        self.config(bg=UI_THEME["bg_main"])
+        tk.Button(self, text="← 返回主菜单", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
+                  command=self.app.show_menu).pack(anchor="nw", padx=10, pady=5)
 
-        tk.Label(self, text="选择卡组:").pack(anchor="w", padx=10, pady=5)
+        tk.Label(self, text="选择卡组:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(anchor="w", padx=10, pady=5)
         self.deck_combo = ttk.Combobox(self, values=list_saved_decks(), state="readonly", width=30)
         self.deck_combo.pack(anchor="w", padx=10)
         if self.deck_combo["values"]:
             self.deck_combo.current(0)
 
-        tk.Label(self, text="玩家名:").pack(anchor="w", padx=10, pady=5)
-        self.name_entry = tk.Entry(self, width=20)
+        tk.Label(self, text="玩家名:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(anchor="w", padx=10, pady=5)
+        self.name_entry = tk.Entry(self, width=20, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                   insertbackground=UI_THEME["text_primary"])
         self.name_entry.insert(0, "玩家A" if self.is_host else "玩家B")
         self.name_entry.pack(anchor="w", padx=10)
 
         if self.is_host:
-            tk.Label(self, text="端口:").pack(anchor="w", padx=10, pady=5)
-            self.port_entry = tk.Entry(self, width=10)
+            tk.Label(self, text="端口:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(anchor="w", padx=10, pady=5)
+            self.port_entry = tk.Entry(self, width=10, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                       insertbackground=UI_THEME["text_primary"])
             self.port_entry.insert(0, "9876")
             self.port_entry.pack(anchor="w", padx=10)
 
             self.ngrok_var = tk.BooleanVar(value=False)
             tk.Checkbutton(self, text="使用内网穿透（跨网络联机）", variable=self.ngrok_var,
+                           bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], selectcolor=UI_THEME["bg_panel"],
                            command=self._toggle_ngrok).pack(anchor="w", padx=10, pady=5)
 
-            self.ngrok_frame = tk.Frame(self)
+            self.ngrok_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
             self.ngrok_frame.pack(anchor="w", padx=10, fill="x")
-            tk.Label(self.ngrok_frame, text="ngrok Authtoken（可选，首次使用需填写）:").pack(anchor="w")
-            self.ngrok_token_entry = tk.Entry(self.ngrok_frame, width=40, show="*")
+            tk.Label(self.ngrok_frame, text="ngrok Authtoken（可选，首次使用需填写）:",
+                     bg=UI_THEME["bg_main"], fg=UI_THEME["text_secondary"]).pack(anchor="w")
+            self.ngrok_token_entry = tk.Entry(self.ngrok_frame, width=40, show="*",
+                                              bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                              insertbackground=UI_THEME["text_primary"])
             self.ngrok_token_entry.pack(anchor="w")
-            self.ngrok_url_label = tk.Label(self.ngrok_frame, text="", fg="green", wraplength=400)
+            self.ngrok_url_label = tk.Label(self.ngrok_frame, text="", fg=UI_THEME["success"], wraplength=400,
+                                            bg=UI_THEME["bg_main"])
             self.ngrok_url_label.pack(anchor="w", pady=5)
             self.ngrok_frame.pack_forget()  # 默认隐藏
 
-            tk.Button(self, text="创建房间并等待", font=("Microsoft YaHei", 14), command=self._start_host).pack(pady=20)
+            tk.Button(self, text="创建房间并等待", font=("Microsoft YaHei", 14),
+                      bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                      activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=1,
+                      command=self._start_host).pack(pady=20)
         else:
-            tk.Label(self, text="Host 地址（IP 或 ngrok 地址）:").pack(anchor="w", padx=10, pady=5)
-            self.ip_entry = tk.Entry(self, width=30)
+            tk.Label(self, text="Host 地址（IP 或 ngrok 地址）:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(anchor="w", padx=10, pady=5)
+            self.ip_entry = tk.Entry(self, width=30, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                     insertbackground=UI_THEME["text_primary"])
             self.ip_entry.insert(0, "127.0.0.1")
             self.ip_entry.pack(anchor="w", padx=10)
-            tk.Label(self, text="端口:").pack(anchor="w", padx=10, pady=5)
-            self.port_entry = tk.Entry(self, width=10)
+            tk.Label(self, text="端口:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(anchor="w", padx=10, pady=5)
+            self.port_entry = tk.Entry(self, width=10, bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                       insertbackground=UI_THEME["text_primary"])
             self.port_entry.insert(0, "9876")
             self.port_entry.pack(anchor="w", padx=10)
-            tk.Button(self, text="加入房间", font=("Microsoft YaHei", 14), command=self._start_client).pack(pady=20)
+            tk.Button(self, text="加入房间", font=("Microsoft YaHei", 14),
+                      bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                      activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=1,
+                      command=self._start_client).pack(pady=20)
 
-        self.status_label = tk.Label(self, text="", fg="blue")
+        self.status_label = tk.Label(self, text="", fg=UI_THEME["accent"], bg=UI_THEME["bg_main"])
         self.status_label.pack(pady=10)
 
     def _get_selected_deck(self) -> Optional[Deck]:
@@ -1337,10 +2026,10 @@ class LobbyFrame(tk.Frame):
             if ok:
                 if use_ngrok:
                     url = self.duel.get_ngrok_url()
-                    self.after(0, lambda: self.ngrok_url_label.config(text=f"公网地址: {url}", fg="green"))
+                    self.after(0, lambda: self.ngrok_url_label.config(text=f"公网地址: {url}", fg=UI_THEME["success"]))
                 self.after(0, lambda: self._on_connected(deck, local_player, opponent))
             else:
-                self.after(0, lambda: self.status_label.config(text="连接失败", fg="red"))
+                self.after(0, lambda: self.status_label.config(text="连接失败", fg=UI_THEME["danger"]))
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
@@ -1385,7 +2074,7 @@ class LobbyFrame(tk.Frame):
             if ok:
                 self.after(0, lambda: self._on_connected(deck, local_player, opponent))
             else:
-                self.after(0, lambda: self.status_label.config(text="连接失败", fg="red"))
+                self.after(0, lambda: self.status_label.config(text="连接失败", fg=UI_THEME["danger"]))
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
@@ -1407,7 +2096,7 @@ class LobbyFrame(tk.Frame):
             except ValueError:
                 pass
         opponent.immersion_points = opp_imm
-        self.status_label.config(text=f"已连接！对手: {opponent.name}", fg="green")
+        self.status_label.config(text=f"已连接！对手: {opponent.name}", fg=UI_THEME["success"])
         self.after(500, lambda: self.app.start_battle(self.duel, local_player, opponent))
 
 
@@ -1453,11 +2142,13 @@ class SacrificeDialog(tk.Toplevel):
         self.card_frames = []
         self.card_canvases = []
 
-        tk.Label(self, text=f"需要献祭 {required_blood} 点鲜血", font=("Microsoft YaHei", 12, "bold"), fg="#c62828").pack(pady=5)
-        self.status_label = tk.Label(self, text="已选: 0 / 0", fg="red")
+        self.config(bg=UI_THEME["bg_main"])
+        tk.Label(self, text=f"需要献祭 {required_blood} 点鲜血", font=("Microsoft YaHei", 12, "bold"),
+                 fg=UI_THEME["danger"], bg=UI_THEME["bg_main"]).pack(pady=5)
+        self.status_label = tk.Label(self, text="已选: 0 / 0", fg=UI_THEME["danger"], bg=UI_THEME["bg_main"])
         self.status_label.pack(pady=5)
 
-        card_frame = tk.Frame(self)
+        card_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
         card_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
         cw, ch = 90, 144
@@ -1484,7 +2175,7 @@ class SacrificeDialog(tk.Toplevel):
             if rarity and not is_token:
                 bg_colors = parent._RARITY_GRADIENTS.get(rarity)
             if not bg_colors:
-                bg_colors = ("#FFFFFF", "#FFFFFF")
+                bg_colors = UI_THEME["rarity_none"]
 
             if _PIL_AVAILABLE:
                 photo = parent._create_tab_gradient_photo(
@@ -1507,7 +2198,7 @@ class SacrificeDialog(tk.Toplevel):
                 card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
                 card_x1, card_y1 + TAB_H,
             ]
-            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+            cvs.create_polygon(label_points, fill=UI_THEME["card_tab_default"], outline="", tags="cost_tab")
 
             # 卡面图（在费用文字之前绘制，避免覆盖）
             asset_id = defn.asset_id if defn else None
@@ -1524,14 +2215,14 @@ class SacrificeDialog(tk.Toplevel):
                             font=("Microsoft YaHei", 8, "bold"), tags="card_text")
 
             # 卡名
-            cvs.create_text(cw // 2, 20 + TAB_H, text=m.name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=m.name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
 
             # 攻防 + 丰饶 + 位置
             feng_rang = m.keywords.get("丰饶", 1)
             pos_str = f"{m.position}" if getattr(m, "position", None) else ""
             bottom = f"{m.attack}/{m.health} 丰饶{feng_rang} {pos_str}".strip()
-            cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+            cvs.create_text(cw // 2, ch - 12, text=bottom, fill=UI_THEME["card_text_type"],
                             font=("Microsoft YaHei", 8), tags="card_text")
 
             self.card_frames.append(frame)
@@ -1543,7 +2234,9 @@ class SacrificeDialog(tk.Toplevel):
             cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
 
         self.confirm_btn = tk.Button(self, text="确认献祭", font=("Microsoft YaHei", 10, "bold"),
-                                      bg="#ffcdd2", activebackground="#ef9a9a",
+                                      bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
+                                      activebackground=UI_THEME["btn_danger_active"],
+                                      relief=tk.RAISED, bd=1,
                                       command=self._confirm, state=tk.DISABLED)
         self.confirm_btn.pack(pady=5)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -1579,16 +2272,16 @@ class SacrificeDialog(tk.Toplevel):
                 card_x1, card_y2 - r,
                 card_x1, body_y1,
             ]
-            border_color = "#4caf50" if i in self.selected else "#cfd8dc"
+            border_color = UI_THEME["success"] if i in self.selected else UI_THEME["card_border_default"]
             border_width = 2 if i in self.selected else 1
             cvs.delete("card_border")
             cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
-                               tags="card_border")
+                               joinstyle=tk.MITER, tags="card_border")
 
     def _update(self):
         total = sum(self.minions[i].keywords.get("丰饶", 1) for i in self.selected)
         enough = total >= self.required_blood
-        self.status_label.config(text=f"已选: {total} / {self.required_blood}", fg="green" if enough else "red")
+        self.status_label.config(text=f"已选: {total} / {self.required_blood}", fg=UI_THEME["success"] if enough else UI_THEME["danger"])
         self.confirm_btn.config(state=tk.NORMAL if enough else tk.DISABLED)
 
     def _confirm(self):
@@ -1618,9 +2311,11 @@ class DiscoverDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        tk.Label(self, text="选择一张卡牌加入手牌:", font=("Microsoft YaHei", 12)).pack(pady=10)
+        self.config(bg=UI_THEME["bg_main"])
+        tk.Label(self, text="选择一张卡牌加入手牌:", font=("Microsoft YaHei", 12),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=10)
 
-        card_frame = tk.Frame(self)
+        card_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
         card_frame.pack(pady=10)
 
         cw, ch = 90, 144
@@ -1647,7 +2342,7 @@ class DiscoverDialog(tk.Toplevel):
             if rarity and not is_token:
                 bg_colors = parent._RARITY_GRADIENTS.get(rarity)
             if not bg_colors:
-                bg_colors = ("#FFFFFF", "#FFFFFF")
+                bg_colors = UI_THEME["rarity_none"]
 
             if _PIL_AVAILABLE:
                 photo = parent._create_tab_gradient_photo(
@@ -1670,7 +2365,7 @@ class DiscoverDialog(tk.Toplevel):
                 card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
                 card_x1, card_y1 + TAB_H,
             ]
-            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+            cvs.create_polygon(label_points, fill=UI_THEME["card_tab_default"], outline="", tags="cost_tab")
 
             # 整体外形边框
             r = 2
@@ -1687,7 +2382,8 @@ class DiscoverDialog(tk.Toplevel):
                 card_x1, card_y2 - r,
                 card_x1, body_y1,
             ]
-            cvs.create_polygon(shape_points, fill="", outline="#cfd8dc", width=1, tags="card_border")
+            cvs.create_polygon(shape_points, fill="", outline=UI_THEME["card_border_default"], width=1,
+                               joinstyle=tk.MITER, tags="card_border")
 
             # 费用文字（标签内，白色）
             cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
@@ -1704,7 +2400,7 @@ class DiscoverDialog(tk.Toplevel):
                     cvs.image = img
 
             # 卡名
-            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
 
             # 类型/攻防
@@ -1722,7 +2418,7 @@ class DiscoverDialog(tk.Toplevel):
                 elif defn.card_type == CardType.MINERAL:
                     type_str = "【矿物】"
             bottom = f"{type_str}{stats}"
-            cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+            cvs.create_text(cw // 2, ch - 12, text=bottom, fill=UI_THEME["card_text_type"],
                             font=("Microsoft YaHei", 8), tags="card_text")
 
             # 点击事件
@@ -1762,8 +2458,10 @@ class ChoiceDialog(tk.Toplevel):
 
         if all_cards:
             self.geometry("600x280")
-            tk.Label(self, text=title, font=("Microsoft YaHei", 12)).pack(pady=10)
-            card_frame = tk.Frame(self)
+            self.config(bg=UI_THEME["bg_main"])
+            tk.Label(self, text=title, font=("Microsoft YaHei", 12),
+                     bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=10)
+            card_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
             card_frame.pack(pady=10)
 
             cw, ch = 90, 144
@@ -1788,7 +2486,7 @@ class ChoiceDialog(tk.Toplevel):
                 if rarity and not is_token:
                     bg_colors = parent._RARITY_GRADIENTS.get(rarity)
                 if not bg_colors:
-                    bg_colors = ("#FFFFFF", "#FFFFFF")
+                    bg_colors = UI_THEME["rarity_none"]
 
                 if _PIL_AVAILABLE:
                     photo = parent._create_tab_gradient_photo(
@@ -1810,7 +2508,7 @@ class ChoiceDialog(tk.Toplevel):
                     card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
                     card_x1, card_y1 + TAB_H,
                 ]
-                cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+                cvs.create_polygon(label_points, fill=UI_THEME["card_tab_default"], outline="", tags="cost_tab")
 
                 r = 2
                 body_y1 = card_y1 + TAB_H
@@ -1826,7 +2524,8 @@ class ChoiceDialog(tk.Toplevel):
                     card_x1, card_y2 - r,
                     card_x1, body_y1,
                 ]
-                cvs.create_polygon(shape_points, fill="", outline="#cfd8dc", width=1, tags="card_border")
+                cvs.create_polygon(shape_points, fill="", outline=UI_THEME["card_border_default"], width=1,
+                               joinstyle=tk.MITER, tags="card_border")
 
                 cost_cx = card_x1 + (TAB_W + TAB_SLANT) // 2
                 cost_cy = card_y1 + TAB_H // 2
@@ -1840,7 +2539,7 @@ class ChoiceDialog(tk.Toplevel):
                         cvs.create_image(cw // 2, ch // 2, image=img, tags="card_img")
                         cvs.image = img
 
-                cvs.create_text(cw // 2, 20 + TAB_H, text=opt, fill="#212121",
+                cvs.create_text(cw // 2, 20 + TAB_H, text=opt, fill=UI_THEME["card_text_name"],
                                 font=("Microsoft YaHei", 9, "bold"), tags="card_text")
 
                 type_str = ""
@@ -1857,19 +2556,23 @@ class ChoiceDialog(tk.Toplevel):
                     elif defn.card_type == CardType.MINERAL:
                         type_str = "【矿物】"
                 bottom = f"{type_str}{stats}"
-                cvs.create_text(cw // 2, ch - 12, text=bottom, fill="#455a64",
+                cvs.create_text(cw // 2, ch - 12, text=bottom, fill=UI_THEME["card_text_type"],
                                 font=("Microsoft YaHei", 8), tags="card_text")
 
                 cvs.bind("<Button-1>", lambda e, o=opt: self._choose(o))
                 cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
                 cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
         else:
-            tk.Label(self, text="请选择一项：", font=("Microsoft YaHei", 12)).pack(pady=10)
-            btn_frame = tk.Frame(self)
+            self.config(bg=UI_THEME["bg_main"])
+            tk.Label(self, text="请选择一项：", font=("Microsoft YaHei", 12),
+                     bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=10)
+            btn_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
             btn_frame.pack(pady=10)
             for opt in options:
                 btn = tk.Button(btn_frame, text=opt, width=14, height=2, font=("Microsoft YaHei", 10),
-                                bg="#fff3e0", activebackground="#ffe0b2",
+                                bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                                activebackground=UI_THEME["btn_primary_active"],
+                                relief=tk.RAISED, bd=1,
                                 command=lambda o=opt: self._choose(o))
                 btn.pack(side=tk.LEFT, padx=5)
 
@@ -1900,10 +2603,12 @@ class EffectTargetDialog(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.config(bg=UI_THEME["bg_main"])
 
-        tk.Label(self, text=prompt, font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f").pack(pady=10)
+        tk.Label(self, text=prompt, font=("Microsoft YaHei", 12, "bold"),
+                 fg=UI_THEME["danger"], bg=UI_THEME["bg_main"]).pack(pady=10)
 
-        list_frame = tk.Frame(self)
+        list_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
         list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
         for m in minions:
@@ -1911,12 +2616,16 @@ class EffectTargetDialog(tk.Toplevel):
             pos = f" 位置{m.position}" if hasattr(m, 'position') and m.position else ""
             text = f"{m.name} ({m.attack}/{m.health}) [{owner}]{pos}"
             btn = tk.Button(list_frame, text=text, font=("Microsoft YaHei", 10),
-                            bg="#fff3e0", activebackground="#ffe0b2",
+                            bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                            activebackground=UI_THEME["btn_secondary_active"],
+                            relief=tk.RAISED, bd=1,
                             command=lambda mm=m: self._choose(mm))
             btn.pack(fill=tk.X, pady=3)
 
         cancel_btn = tk.Button(self, text="取消", font=("Microsoft YaHei", 10),
-                               bg="#eeeeee", activebackground="#cccccc",
+                               bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                               activebackground=UI_THEME["btn_secondary_active"],
+                               relief=tk.RAISED, bd=1,
                                command=self._on_close)
         cancel_btn.pack(pady=10)
 
@@ -1950,16 +2659,20 @@ class FeedbackDialog(tk.Toplevel):
         self.focus_force()
 
     def _build_ui(self, player_name: str):
+        self.config(bg=UI_THEME["bg_main"])
         pad = {"padx": 10, "pady": 5}
 
         # 玩家名
-        tk.Label(self, text=f"玩家: {player_name}", anchor="w").pack(fill=tk.X, **pad)
+        tk.Label(self, text=f"玩家: {player_name}", anchor="w",
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(fill=tk.X, **pad)
 
         # 服务器地址
-        addr_frame = tk.Frame(self)
+        addr_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
         addr_frame.pack(fill=tk.X, **pad)
-        tk.Label(addr_frame, text="反馈服务器:").pack(side=tk.LEFT)
-        self.addr_entry = tk.Entry(addr_frame, width=25)
+        tk.Label(addr_frame, text="反馈服务器:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT)
+        self.addr_entry = tk.Entry(addr_frame, width=25,
+                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                   insertbackground=UI_THEME["text_primary"])
         self.addr_entry.pack(side=tk.LEFT, padx=5)
         # 加载上次使用的地址
         config = load_feedback_config()
@@ -1970,23 +2683,31 @@ class FeedbackDialog(tk.Toplevel):
             self.addr_entry.insert(0, "127.0.0.1:9999")
 
         # 问题描述
-        tk.Label(self, text="问题描述:", anchor="w").pack(fill=tk.X, **pad)
-        self.desc_text = scrolledtext.ScrolledText(self, height=8, wrap=tk.WORD)
+        tk.Label(self, text="问题描述:", anchor="w",
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(fill=tk.X, **pad)
+        self.desc_text = scrolledtext.ScrolledText(self, height=8, wrap=tk.WORD,
+                                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
+                                                   relief=tk.FLAT, bd=0)
         self.desc_text.pack(fill=tk.BOTH, expand=True, **pad)
 
         # 日志提示
         tk.Label(
             self,
             text="✓ 将自动附带当前对战的最新日志（尾部500行）",
-            fg="green",
+            fg=UI_THEME["success"],
+            bg=UI_THEME["bg_main"],
             anchor="w",
         ).pack(fill=tk.X, **pad)
 
         # 按钮
-        btn_frame = tk.Frame(self)
+        btn_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
         btn_frame.pack(fill=tk.X, pady=10)
-        tk.Button(btn_frame, text="提交", command=self._on_submit, width=10).pack(side=tk.RIGHT, padx=10)
-        tk.Button(btn_frame, text="取消", command=self.destroy, width=10).pack(side=tk.RIGHT)
+        tk.Button(btn_frame, text="提交", command=self._on_submit, width=10,
+                  bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+                  activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=1).pack(side=tk.RIGHT, padx=10)
+        tk.Button(btn_frame, text="取消", command=self.destroy, width=10,
+                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1).pack(side=tk.RIGHT)
 
         # 绑定回车提交
         self.bind("<Return>", lambda e: self._on_submit())
@@ -2058,6 +2779,12 @@ class NumericChoiceDialog(tk.Toplevel):
 # ========== 对战界面 ==========
 class BattleFrame(tk.Frame):
     CELL_SIZE = 80
+    MINION_SIZE = 59               # 场上异象显示方块边长（约 +5%）
+    MINION_STAT_BAR_HEIGHT = 17    # 攻击/HP 栏高度
+    MINION_STAT_BAR_SLANT = 6      # 攻击/HP 栏斜切宽度
+    MINION_KEYWORD_BOX = 13        # 外部状态小方框边长
+    MINION_KEYWORD_GAP = 1         # 外部状态小方框间距
+    MINION_CORNER_LEG = 10         # 左下角敌我缺角/标记直角边长
     COL_NAMES = ["高地", "山脊", "中路", "河岸", "水路"]
     HAND_CARD_WIDTH = 90
     HAND_CARD_HEIGHT = 144
@@ -2112,6 +2839,7 @@ class BattleFrame(tk.Frame):
         # 手牌/费用变化闪烁追踪
         self._prev_hand_card_ids = set()
         self._prev_res_values = {}
+        self._last_discarded_info = {}  # {player_name: (card_name, color)} 上一张弃牌信息
         self._history_phase = None
         self._history_action_counter = 0
 
@@ -2179,7 +2907,7 @@ class BattleFrame(tk.Frame):
                 self._targeting_on_confirm = None
                 self._targeting_on_cancel = None
                 self._targeting_valid_targets = []
-                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
                 if on_confirm:
                     on_confirm(target)
             return
@@ -2313,12 +3041,13 @@ class BattleFrame(tk.Frame):
         if asset_id:
             img = am.get_thumbnail(asset_id, 80, 110)
         if img:
-            self._drag_label = tk.Label(self, image=img, bg="white", relief=tk.RIDGE, bd=1)
+            self._drag_label = tk.Label(self, image=img, bg=UI_THEME["bg_panel"], relief=tk.RIDGE, bd=1)
             self._drag_label.image = img
         else:
             name = getattr(self._dragging_card, "name", "未知")
             self._drag_label = tk.Label(
-                self, text=name, bg="#fff9c4", font=("Microsoft YaHei", 10, "bold"),
+                self, text=name, bg=UI_THEME["btn_warning_bg"], fg=UI_THEME["btn_warning_fg"],
+                font=("Microsoft YaHei", 10, "bold"),
                 relief=tk.RIDGE, bd=1
             )
         self._drag_label.place(
@@ -2419,95 +3148,110 @@ class BattleFrame(tk.Frame):
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板（紧凑卡片式），返回包含所有 widget 的字典。"""
-        frame = tk.Frame(parent, height=130, bg="white",
-                         highlightthickness=1, highlightbackground="#e0e0e0")
+        frame = tk.Frame(parent, height=155, bg=UI_THEME["bg_panel"],
+                         highlightthickness=1, highlightbackground=UI_THEME["border"])
         frame.pack_propagate(False)
         frame.pack(fill=tk.X, pady=2)
 
-        # 行0：名字（左） + 牌库 badge + 手牌 badge（右）
-        row0 = tk.Frame(frame, bg="white")
+        # 行0：名字（左） + 右侧信息区（手牌/牌库/弃牌堆，垂直排列）
+        panel_bg = UI_THEME["bg_panel"]
+        row0 = tk.Frame(frame, bg=panel_bg)
         row0.pack(fill=tk.X, padx=10, pady=(6, 2))
 
-        dot_color = "#4caf50" if is_local else "#ef5350"
+        dot_color = UI_THEME["success"] if is_local else UI_THEME["enemy"]
         dot = tk.Label(row0, text="●", font=("Microsoft YaHei", 8),
-                       bg="white", fg=dot_color)
+                       bg=panel_bg, fg=dot_color)
         dot.pack(side=tk.LEFT)
 
         name_label = tk.Label(row0, text=player.name, font=("Microsoft YaHei", 13, "bold"),
-                              bg="white", anchor="w")
+                              bg=panel_bg, fg=UI_THEME["text_primary"], anchor="w")
         name_label.pack(side=tk.LEFT, padx=(2, 0))
 
-        # 牌库 badge（和手牌 badge 同风格，灰底）
-        deck_badge = tk.Label(row0, text="牌库 0", font=("Microsoft YaHei", 11, "bold"),
-                              bg="#f5f5f5", fg="#424242", padx=8, pady=2)
-        deck_badge.pack(side=tk.RIGHT, padx=(0, 6))
+        # 右侧信息容器（水平：牌库 / 弃牌堆 / 手牌 + 上一张）
+        right_info = tk.Frame(row0, bg=panel_bg)
+        right_info.pack(side=tk.RIGHT)
 
-        hand_label = tk.Label(row0, text="手牌 0", font=("Microsoft YaHei", 11, "bold"),
-                              bg="#e3f2fd", fg="#1565c0", padx=8, pady=2)
-        hand_label.pack(side=tk.RIGHT)
+        deck_badge = tk.Label(right_info, text="牌库 0", font=("Microsoft YaHei", 11, "bold"),
+                              bg=UI_THEME["bg_main"], fg=UI_THEME["text_secondary"], padx=8, pady=2)
+        deck_badge.pack(side=tk.LEFT, padx=(0, 6))
+
+        discard_badge = tk.Label(right_info, text="弃牌堆 0", font=("Microsoft YaHei", 11, "bold"),
+                                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_secondary"], padx=8, pady=2)
+        discard_badge.pack(side=tk.LEFT, padx=(0, 6))
+        discard_badge.bind("<Button-1>", lambda e, p=player: self._show_discard_pile(p))
+
+        hand_label = tk.Label(right_info, text="手牌 0", font=("Microsoft YaHei", 11, "bold"),
+                              bg="#dbeafe", fg=UI_THEME["accent_dark"], padx=8, pady=2)
+        hand_label.pack(side=tk.LEFT)
+
+        last_dis_label = tk.Label(right_info, text="", font=("Microsoft YaHei", 9),
+                                  bg=panel_bg, fg=UI_THEME["text_primary"], anchor="w")
+        last_dis_label.pack(side=tk.LEFT, padx=(8, 0), fill=tk.X, expand=True)
 
         # 行1：HP 条
-        row1 = tk.Frame(frame, bg="white")
+        row1 = tk.Frame(frame, bg=panel_bg)
         row1.pack(fill=tk.X, padx=10, pady=(2, 2))
 
-        hp_frame = tk.Frame(row1, bg="white")
+        hp_frame = tk.Frame(row1, bg=panel_bg)
         hp_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         hp_bar = ttk.Progressbar(hp_frame, length=140, mode="determinate", maximum=30)
         hp_bar.pack(side=tk.LEFT)
 
         hp_label = tk.Label(hp_frame, text="30/30", font=("Microsoft YaHei", 11, "bold"),
-                            bg="white", fg="#c62828")
+                            bg=panel_bg, fg=UI_THEME["danger"])
         hp_label.pack(side=tk.LEFT, padx=(6, 0))
 
         # 行2：资源圆角彩色方块（带 T/C/B/S 标注）
-        row2 = tk.Frame(frame, bg="white")
+        row2 = tk.Frame(frame, bg=panel_bg)
         row2.pack(fill=tk.X, padx=10, pady=(4, 2))
 
         def _res_badge(parent, color, width=56):
             """返回一个 Canvas，内含圆角矩形背景 + 文字占位。"""
             h = 26
-            cvs = tk.Canvas(parent, width=width, height=h, bg="white", highlightthickness=0, bd=0)
+            cvs = tk.Canvas(parent, width=width, height=h, bg=panel_bg, highlightthickness=0, bd=0)
             BattleFrame._rounded_rect(cvs, 1, 1, width - 1, h - 1, radius=5,
                                        fill=color, outline="", tags="bg")
             text_id = cvs.create_text(width // 2, h // 2, text="-", fill="white",
                                        font=("Microsoft YaHei", 9, "bold"), tags="text")
             return cvs, text_id
 
-        t_cvs, t_text = _res_badge(row2, "#1976d2", width=58)
+        t_cvs, t_text = _res_badge(row2, UI_THEME["res_t"], width=58)
         t_cvs.pack(side=tk.LEFT, padx=(0, 5))
-        c_cvs, c_text = _res_badge(row2, "#388e3c", width=58)
+        c_cvs, c_text = _res_badge(row2, UI_THEME["res_c"], width=58)
         c_cvs.pack(side=tk.LEFT, padx=(0, 5))
-        b_cvs, b_text = _res_badge(row2, "#7b1fa2", width=46)
+        b_cvs, b_text = _res_badge(row2, UI_THEME["res_b"], width=46)
         b_cvs.pack(side=tk.LEFT, padx=(0, 5))
-        s_cvs, s_text = _res_badge(row2, "#f57c00", width=46)
+        s_cvs, s_text = _res_badge(row2, UI_THEME["res_s"], width=46)
         s_cvs.pack(side=tk.LEFT, padx=(0, 10))
 
         # 弃牌、阴谋小字放在资源右侧
         dis_label = tk.Label(row2, text="弃牌 0", font=("Microsoft YaHei", 9),
-                             bg="white", fg="#757575")
+                             bg=panel_bg, fg=UI_THEME["text_secondary"])
         dis_label.pack(side=tk.LEFT, padx=(0, 8))
 
         con_label = tk.Label(row2, text="阴谋 0", font=("Microsoft YaHei", 9),
-                             bg="white", fg="#757575")
+                             bg=panel_bg, fg=UI_THEME["text_secondary"])
         con_label.pack(side=tk.LEFT, padx=(0, 8))
 
         # 行3：已展示给对手的牌
-        row_shown = tk.Frame(frame, bg="white")
+        row_shown = tk.Frame(frame, bg=panel_bg)
         row_shown.pack(fill=tk.X, padx=10, pady=(2, 4))
         shown_label = tk.Label(row_shown, text="", font=("Microsoft YaHei", 8),
-                               bg="white", fg="#e65100", anchor="w")
+                               bg=panel_bg, fg=UI_THEME["warning_dark"], anchor="w")
         shown_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # 点击绑定
         clickable = [frame, row0, row1, row2, row_shown, dot, name_label, hand_label, deck_badge,
                      hp_frame, hp_bar, hp_label,
-                     dis_label, con_label, shown_label]
+                     dis_label, con_label, shown_label, last_dis_label]
         for w in clickable:
             w.bind("<Button-1>", lambda e, p=player: self._on_player_label_click(p))
+        # 按钮本身不绑定点击背景色（已绑定 command）
 
         return {
             "frame": frame, "row0": row0, "row1": row1, "row2": row2, "row_shown": row_shown,
+            "right_info": right_info,
             "name_label": name_label, "hand_label": hand_label, "deck_badge": deck_badge,
             "hp_frame": hp_frame, "hp_bar": hp_bar, "hp_label": hp_label,
             "t_cvs": t_cvs, "t_text": t_text,
@@ -2516,6 +3260,7 @@ class BattleFrame(tk.Frame):
             "s_cvs": s_cvs, "s_text": s_text,
             "dis_label": dis_label,
             "conspiracy_label": con_label, "shown_label": shown_label,
+            "discard_badge": discard_badge, "last_dis_label": last_dis_label,
         }
 
     # ------------------------------------------------------------------
@@ -2561,15 +3306,17 @@ class BattleFrame(tk.Frame):
         return canvas.create_polygon(points, smooth=True, **kwargs)
 
     def _build_ui(self):
+        self.config(bg=UI_THEME["bg_main"])
+
         # 左侧整体（垂直布局：对手信息 + 棋盘 + 本地玩家信息）
-        left = tk.Frame(self)
+        left = tk.Frame(self, bg=UI_THEME["bg_main"])
         left.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.98)
 
         # 对手信息（棋盘上方）
         self.opponent_info = self._build_player_info_panel(left, self.opponent, is_local=False)
 
         # 棋盘（自适应大小）
-        self.canvas = tk.Canvas(left, width=500, height=500, bg="white")
+        self.canvas = tk.Canvas(left, width=500, height=500, bg=UI_THEME["bg_canvas"], highlightthickness=0, bd=0)
         self.canvas.pack(fill=tk.BOTH, expand=True, pady=2)
         self.canvas.bind("<Button-1>", self._on_canvas_click)
         self.canvas.bind("<Configure>", self._on_board_resize)
@@ -2583,12 +3330,27 @@ class BattleFrame(tk.Frame):
         }
 
         # 右侧
-        right = tk.Frame(self)
+        right = tk.Frame(self, bg=UI_THEME["bg_main"])
         right.place(relx=0.50, rely=0.01, relwidth=0.48, relheight=0.98)
 
         # 阶段显示
-        self.phase_label = tk.Label(right, text="等待游戏开始...", font=("Microsoft YaHei", 14, "bold"), fg="#d32f2f")
+        self.phase_label = tk.Label(right, text="等待游戏开始...", font=("Microsoft YaHei", 14, "bold"),
+                                    bg=UI_THEME["bg_main"], fg=UI_THEME["accent"])
         self.phase_label.pack(fill=tk.X, pady=(0, 5))
+
+        # ===== 弃置/移除/磨牌展示面板 =====
+        self.reveal_frame = tk.LabelFrame(right, text="展示", font=("Microsoft YaHei", 10),
+                                          bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+        self.reveal_frame.pack(fill=tk.X, pady=(0, 5))
+        self.reveal_frame.pack_forget()  # 初始隐藏
+        self.reveal_canvas = tk.Canvas(self.reveal_frame, width=90, height=144, highlightthickness=0, bd=0,
+                                       bg=UI_THEME["bg_panel"])
+        self.reveal_canvas.pack(padx=5, pady=5)
+        self.reveal_label = tk.Label(self.reveal_frame, text="", font=("Microsoft YaHei", 10),
+                                     bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
+        self.reveal_label.pack(padx=5, pady=(0, 5))
+        self._reveal_queue: list = []
+        self._is_revealing = False
 
         # ===== 动态手牌区 =====
         # 每个 zone: (label, frame_attr, inner_attr, canvas_attr, player_attr, player_max_attr)
@@ -2596,14 +3358,16 @@ class BattleFrame(tk.Frame):
         self.hand_zones = []
 
         # 1) 普通手牌区（始终显示）
-        self.hand_frame = tk.LabelFrame(right, text="手牌")
+        self.hand_frame = tk.LabelFrame(right, text="手牌",
+                                        bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.hand_frame.pack(fill=tk.X, pady=5)
-        hand_canvas = tk.Canvas(self.hand_frame, height=self.HAND_CARD_HEIGHT + 10)
+        hand_canvas = tk.Canvas(self.hand_frame, height=self.HAND_CARD_HEIGHT + 10,
+                                bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
         hbar = tk.Scrollbar(self.hand_frame, orient=tk.HORIZONTAL, command=hand_canvas.xview)
         hand_canvas.configure(xscrollcommand=hbar.set)
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
         hand_canvas.pack(side=tk.TOP, fill=tk.X, expand=True)
-        self.hand_inner = tk.Frame(hand_canvas)
+        self.hand_inner = tk.Frame(hand_canvas, bg=UI_THEME["bg_panel"])
         hand_canvas.create_window((0, 0), window=self.hand_inner, anchor="nw")
         self.hand_inner.bind("<Configure>", lambda e, c=hand_canvas: c.configure(scrollregion=c.bbox("all")))
         self.hand_zones.append({
@@ -2615,18 +3379,20 @@ class BattleFrame(tk.Frame):
         })
 
         # 2) 附加手牌槽 + 当前玩家资源面板（横向排列）
-        hand_bottom_row = tk.Frame(right)
+        hand_bottom_row = tk.Frame(right, bg=UI_THEME["bg_main"])
         hand_bottom_row.pack(fill=tk.X, pady=5)
 
         # 左侧：附加手牌槽（约占 55%）
-        self.extra_hand_frame = tk.LabelFrame(hand_bottom_row, text="附加手牌槽")
+        self.extra_hand_frame = tk.LabelFrame(hand_bottom_row, text="附加手牌槽",
+                                              bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.extra_hand_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.extra_hand_canvas = tk.Canvas(self.extra_hand_frame, height=self.HAND_CARD_HEIGHT + 10)
+        self.extra_hand_canvas = tk.Canvas(self.extra_hand_frame, height=self.HAND_CARD_HEIGHT + 10,
+                                           bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
         mineral_hbar = tk.Scrollbar(self.extra_hand_frame, orient=tk.HORIZONTAL, command=self.extra_hand_canvas.xview)
         self.extra_hand_canvas.configure(xscrollcommand=mineral_hbar.set)
         mineral_hbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.extra_hand_canvas.pack(side=tk.TOP, fill=tk.X, expand=True)
-        self.extra_hand_inner = tk.Frame(self.extra_hand_canvas)
+        self.extra_hand_inner = tk.Frame(self.extra_hand_canvas, bg=UI_THEME["bg_panel"])
         self.extra_hand_canvas.create_window((0, 0), window=self.extra_hand_inner, anchor="nw")
         self.extra_hand_inner.bind("<Configure>", lambda e, c=self.extra_hand_canvas: c.configure(scrollregion=c.bbox("all")))
         self.hand_zones.append({
@@ -2638,72 +3404,83 @@ class BattleFrame(tk.Frame):
         })
 
         # 右侧：当前玩家资源面板（约占 45%，随 current_player 切换）
-        self.res_panel = tk.LabelFrame(hand_bottom_row, text="当前资源")
+        self.res_panel = tk.LabelFrame(hand_bottom_row, text="当前资源",
+                                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.res_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
-        res_row1 = tk.Frame(self.res_panel)
+        res_row1 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row1.pack(fill=tk.X, padx=5, pady=(5, 2))
-        self.res_t_label = tk.Label(res_row1, text="T: -/-", font=("Microsoft YaHei", 10, "bold"), fg="#1976d2")
+        self.res_t_label = tk.Label(res_row1, text="T: -/-", font=("Microsoft YaHei", 10, "bold"),
+                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_t"])
         self.res_t_label.pack(side=tk.LEFT, padx=(0, 8))
-        self.res_c_label = tk.Label(res_row1, text="C: -/-", font=("Microsoft YaHei", 10, "bold"), fg="#388e3c")
+        self.res_c_label = tk.Label(res_row1, text="C: -/-", font=("Microsoft YaHei", 10, "bold"),
+                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_c"])
         self.res_c_label.pack(side=tk.LEFT, padx=(0, 8))
-        self.res_b_label = tk.Label(res_row1, text="B: 0", font=("Microsoft YaHei", 10, "bold"), fg="#7b1fa2")
+        self.res_b_label = tk.Label(res_row1, text="B: 0", font=("Microsoft YaHei", 10, "bold"),
+                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_b"])
         self.res_b_label.pack(side=tk.LEFT, padx=(0, 8))
-        self.res_sacrifice_label = tk.Label(res_row1, text="可献祭: 0", font=("Microsoft YaHei", 9), fg="#9c27b0")
+        self.res_sacrifice_label = tk.Label(res_row1, text="可献祭: 0", font=("Microsoft YaHei", 9),
+                                            bg=UI_THEME["bg_panel"], fg=UI_THEME["res_b"])
         self.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
-        self.res_s_label = tk.Label(res_row1, text="S: 0", font=("Microsoft YaHei", 10, "bold"), fg="#f57c00")
+        self.res_s_label = tk.Label(res_row1, text="S: 0", font=("Microsoft YaHei", 10, "bold"),
+                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_s"])
         self.res_s_label.pack(side=tk.LEFT, padx=(0, 8))
-        res_row2 = tk.Frame(self.res_panel)
+        res_row2 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row2.pack(fill=tk.X, padx=5, pady=(0, 5))
-        self.res_deck_label = tk.Label(res_row2, text="抽牌堆:0", font=("Microsoft YaHei", 9))
+        self.res_deck_label = tk.Label(res_row2, text="抽牌堆:0", font=("Microsoft YaHei", 9),
+                                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.res_deck_label.pack(side=tk.LEFT, padx=(0, 8))
-        self.res_dis_label = tk.Label(res_row2, text="弃牌堆:0", font=("Microsoft YaHei", 9))
+        self.res_dis_label = tk.Label(res_row2, text="弃牌堆:0", font=("Microsoft YaHei", 9),
+                                      bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.res_dis_label.pack(side=tk.LEFT, padx=(0, 8))
 
-        res_row3 = tk.Frame(self.res_panel)
+        res_row3 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row3.pack(fill=tk.X, padx=5, pady=(0, 5))
-        self.res_conspiracy_label = tk.Label(res_row3, text="阴谋序列:0", font=("Microsoft YaHei", 9))
+        self.res_conspiracy_label = tk.Label(res_row3, text="阴谋序列:0", font=("Microsoft YaHei", 9),
+                                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.res_conspiracy_label.pack(side=tk.LEFT, padx=(0, 8))
 
         # 按钮区分组：主操作 / 兑换 / 系统
-        btn_frame = tk.Frame(right, bg="white")
+        btn_frame = tk.Frame(right, bg=UI_THEME["bg_main"])
         btn_frame.pack(fill=tk.X, pady=5)
 
         # 主操作组（最醒目）
-        main_grp = tk.LabelFrame(btn_frame, text="操作", bg="white", fg="#424242",
+        main_grp = tk.LabelFrame(btn_frame, text="操作", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"],
                                   font=("Microsoft YaHei", 8), padx=4, pady=2)
         main_grp.pack(side=tk.LEFT, padx=(0, 6))
-        self.bell_btn = tk.Button(main_grp, text="拍铃", bg="#ffd600", fg="black",
-                                   activebackground="#ffab00", font=("Microsoft YaHei", 10, "bold"),
-                                   width=6, height=1)
+        self.bell_btn = tk.Button(main_grp, text="拍铃", bg=UI_THEME["btn_warning_bg"], fg=UI_THEME["btn_warning_fg"],
+                                   activebackground=UI_THEME["btn_warning_active"],
+                                   font=("Microsoft YaHei", 10, "bold"),
+                                   width=6, height=1, relief=tk.RAISED, bd=1)
         self.bell_btn.pack(side=tk.LEFT, padx=2)
         self.bell_btn.bind("<Double-Button-1>", lambda e: self._on_bell())
-        self.brake_btn = tk.Button(main_grp, text="拉闸", bg="#757575", fg="white",
-                                    activebackground="#616161", font=("Microsoft YaHei", 10, "bold"),
-                                    width=6, height=1)
+        self.brake_btn = tk.Button(main_grp, text="拉闸", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                                    activebackground=UI_THEME["btn_secondary_active"],
+                                    font=("Microsoft YaHei", 10, "bold"),
+                                    width=6, height=1, relief=tk.RAISED, bd=1)
         self.brake_btn.pack(side=tk.LEFT, padx=2)
         self.brake_btn.bind("<Double-Button-1>", lambda e: self._on_brake())
 
         # 兑换组（中等）
-        ex_grp = tk.LabelFrame(btn_frame, text="兑换", bg="white", fg="#424242",
+        ex_grp = tk.LabelFrame(btn_frame, text="兑换", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"],
                                 font=("Microsoft YaHei", 8), padx=4, pady=2)
         ex_grp.pack(side=tk.LEFT, padx=(0, 6))
-        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#fff9c4", fg="#f57f17",
-                                       activebackground="#fff59d", font=("Microsoft YaHei", 9),
-                                       width=5, command=self._toggle_mineral_bar)
+        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#fef3c7", fg=UI_THEME["res_mineral"],
+                                       activebackground="#fde68a", font=("Microsoft YaHei", 9),
+                                       width=5, relief=tk.RAISED, bd=1, command=self._toggle_mineral_bar)
         self.exchange_btn.pack(side=tk.LEFT, padx=2)
-        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#fff9c4", fg="#f57f17",
-                                                activebackground="#fff59d", font=("Microsoft YaHei", 9),
-                                                width=5, command=self._on_exchange_squirrel)
+        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#fef3c7", fg=UI_THEME["res_mineral"],
+                                                activebackground="#fde68a", font=("Microsoft YaHei", 9),
+                                                width=5, relief=tk.RAISED, bd=1, command=self._on_exchange_squirrel)
         self.exchange_squirrel_btn.pack(side=tk.LEFT, padx=2)
         self.squirrel_draw_var = tk.BooleanVar(value=False)
-        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg="white", fg="#f57f17",
+        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg=UI_THEME["bg_panel"], fg=UI_THEME["res_mineral"],
                                                 variable=self.squirrel_draw_var,
                                                 command=self._on_toggle_squirrel_draw,
-                                                font=("Microsoft YaHei", 9))
+                                                font=("Microsoft YaHei", 9), selectcolor=UI_THEME["bg_panel"])
         self.squirrel_draw_cb.pack(side=tk.LEFT, padx=2)
 
         # 矿物展开面板（点击"矿物"后展开，显示4个快捷兑换按钮）
-        self.mineral_bar = tk.Frame(right, bg="white")
+        self.mineral_bar = tk.Frame(right, bg=UI_THEME["bg_main"])
         self._mineral_buttons: Dict[str, tk.Button] = {}
         mineral_specs = [
             ("I", "铁锭"),
@@ -2713,56 +3490,69 @@ class BattleFrame(tk.Frame):
         ]
         for mtype, mname in mineral_specs:
             btn = tk.Button(self.mineral_bar, text=mname, font=("Microsoft YaHei", 9),
-                            width=6, bg="#fff9c4", fg="#f57f17",
-                            activebackground="#fff59d",
+                            width=6, bg="#fef3c7", fg=UI_THEME["res_mineral"],
+                            activebackground="#fde68a", relief=tk.RAISED, bd=1,
                             command=lambda n=mname: self._do_exchange_mineral(n))
             btn.pack(side=tk.LEFT, padx=3)
             self._mineral_buttons[mtype] = btn
 
         # 系统组（弱化）
-        sys_grp = tk.Frame(btn_frame, bg="white")
+        sys_grp = tk.Frame(btn_frame, bg=UI_THEME["bg_main"])
         sys_grp.pack(side=tk.LEFT)
-        self.cancel_btn = tk.Button(sys_grp, text="取消", bg="#f5f5f5", fg="#616161",
-                                     activebackground="#eeeeee", font=("Microsoft YaHei", 9),
+        self.cancel_btn = tk.Button(sys_grp, text="取消", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                                     activebackground=UI_THEME["btn_secondary_active"],
+                                     font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
                                      width=5, command=self._on_cancel)
         self.cancel_btn.pack(side=tk.LEFT, padx=2)
-        self.terminate_btn = tk.Button(sys_grp, text="终止", bg="#f5f5f5", fg="#d32f2f",
-                                        activebackground="#eeeeee", font=("Microsoft YaHei", 9),
+        self.terminate_btn = tk.Button(sys_grp, text="终止", bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
+                                        activebackground=UI_THEME["btn_danger_active"],
+                                        font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
                                         width=5, command=self._on_terminate_game)
         self.terminate_btn.pack(side=tk.LEFT, padx=2)
-        self.feedback_btn = tk.Button(sys_grp, text="反馈", bg="#f5f5f5", fg="#616161",
-                                       activebackground="#eeeeee", font=("Microsoft YaHei", 9),
+        self.feedback_btn = tk.Button(sys_grp, text="反馈", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                                       activebackground=UI_THEME["btn_secondary_active"],
+                                       font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
                                        width=5, command=self._on_feedback)
         self.feedback_btn.pack(side=tk.LEFT, padx=2)
 
-        self.hint_label = tk.Label(right, text="等待游戏开始...", fg="blue", wraplength=500)
+        self.hint_label = tk.Label(right, text="等待游戏开始...", fg=UI_THEME["accent"],
+                                   bg=UI_THEME["bg_main"], wraplength=500)
         self.hint_label.pack(fill=tk.X, pady=5)
 
         # 卡牌详情文本栏（悬停时显示）
-        detail_frame = tk.LabelFrame(right, text="卡牌详情")
+        detail_frame = tk.LabelFrame(right, text="卡牌详情",
+                                     bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         detail_frame.pack(fill=tk.X, pady=5)
         self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
-                                   bg="#fafafa", fg="#333")
+                                   bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], relief=tk.FLAT, bd=0)
         self.detail_text.pack(fill=tk.X, padx=5, pady=5)
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        _insert_rich_detail(self.detail_text, "悬停卡牌查看详情")
         self.detail_text.config(state=tk.DISABLED)
 
         # 操作历史
-        history_frame = tk.LabelFrame(right, text="操作历史")
+        history_frame = tk.LabelFrame(right, text="操作历史",
+                                      bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         history_frame.pack(fill=tk.X, pady=5)
-        self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9))
+        self.history_list = tk.Listbox(history_frame, height=5, font=("Microsoft YaHei", 9),
+                                       bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"],
+                                       selectbackground=UI_THEME["accent"], selectforeground="white")
         self.history_list.pack(fill=tk.X, padx=5, pady=2)
 
         # 日志
-        log_frame = tk.LabelFrame(right, text="日志")
+        log_frame = tk.LabelFrame(right, text="日志",
+                                  bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-        self.log_text = scrolledtext.ScrolledText(log_frame, state=tk.DISABLED, wrap=tk.WORD)
+        self.log_text = scrolledtext.ScrolledText(log_frame, state=tk.DISABLED, wrap=tk.WORD,
+                                                  bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"],
+                                                  relief=tk.FLAT, bd=0)
         self.log_text.pack(fill=tk.BOTH, expand=True)
-        self.log_text.tag_config("death", foreground="#d32f2f", font=("Microsoft YaHei", 9, "bold"))
-        self.log_text.tag_config("damage", foreground="#ff5722")
-        self.log_text.tag_config("victory", foreground="#4caf50", font=("Microsoft YaHei", 10, "bold"))
+        self.log_text.tag_config("death", foreground=UI_THEME["log_death"], font=("Microsoft YaHei", 9, "bold"))
+        self.log_text.tag_config("damage", foreground=UI_THEME["log_damage"])
+        self.log_text.tag_config("victory", foreground=UI_THEME["log_victory"], font=("Microsoft YaHei", 10, "bold"))
+
+
 
     def _log(self, msg: str):
         self.log_text.config(state=tk.NORMAL)
@@ -2855,7 +3645,7 @@ class BattleFrame(tk.Frame):
                 cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
                 cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
-                                             outline="#4caf50", width=2, dash=(4, 4),
+                                             outline=UI_THEME["deploy_preview"], width=2, dash=(4, 4),
                                              tags="preview_hint")
             elif hasattr(target, "position") and target.position:
                 logic_r, c = target.position
@@ -2863,7 +3653,7 @@ class BattleFrame(tk.Frame):
                 cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
                 cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(cx - 38, cy - 38, cx + 38, cy + 38,
-                                             outline="#4caf50", width=2, dash=(4, 4),
+                                             outline=UI_THEME["deploy_preview"], width=2, dash=(4, 4),
                                              tags="preview_hint")
 
     def _clear_preview(self):
@@ -2882,18 +3672,18 @@ class BattleFrame(tk.Frame):
         # 半场渐变配色（从上到下）：敌方淡蓝、中立纯白、友方暖黄
         GRADIENT_STEPS = 10
         row_top_colors = {
-            0: "#e3f2fd",   # 敌方 - 淡蓝顶
-            1: "#e3f2fd",
-            2: "#ffffff",   # 中立 - 纯白（无渐变）
-            3: "#fff8e1",   # 友方 - 暖黄顶
-            4: "#fff8e1",
+            0: UI_THEME["board_enemy_top"],
+            1: UI_THEME["board_enemy_top"],
+            2: UI_THEME["board_neutral"],
+            3: UI_THEME["board_friendly_top"],
+            4: UI_THEME["board_friendly_top"],
         }
         row_bottom_colors = {
-            0: "#ffffff",
-            1: "#ffffff",
-            2: "#ffffff",
-            3: "#ffffff",
-            4: "#ffffff",
+            0: UI_THEME["board_enemy_bottom"],
+            1: UI_THEME["board_enemy_bottom"],
+            2: UI_THEME["board_neutral"],
+            3: UI_THEME["board_friendly_bottom"],
+            4: UI_THEME["board_friendly_bottom"],
         }
 
         for logic_r in range(5):
@@ -2931,18 +3721,18 @@ class BattleFrame(tk.Frame):
                                                  image=tile, tags=f"cell_{logic_r}_{c}")
 
                 # 格子边框（内阴影感）
-                self.canvas.create_rectangle(x1, y1, x2, y2, outline="#bdbdbd", width=1, tags=f"cell_{logic_r}_{c}")
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline=UI_THEME["board_line"], width=1, tags=f"cell_{logic_r}_{c}")
 
         # 列名标签（带主题色底）
-        col_label_colors = ["#d7ccc8", "#e0e0e0", "#f5f5f5", "#e3f2fd", "#e1f5fe"]
+        col_label_colors = UI_THEME["board_label_bg"]
         for c, name in enumerate(self.COL_NAMES):
             x1 = c * self.cell_size + self.board_offset_x
             x2 = x1 + self.cell_size
             label_y = 5 * self.cell_size + self.board_offset_y
             label_bg = col_label_colors[c % len(col_label_colors)]
-            self.canvas.create_rectangle(x1, label_y, x2, label_y + 22, fill=label_bg, outline="#9e9e9e", width=1, tags="board_grid")
+            self.canvas.create_rectangle(x1, label_y, x2, label_y + 22, fill=label_bg, outline=UI_THEME["border_strong"], width=1, tags="board_grid")
             self.canvas.create_text(x1 + self.cell_size // 2, label_y + 11, text=name, anchor=tk.CENTER,
-                                    font=("Microsoft YaHei", 10, "bold"), fill="#424242", tags="board_grid")
+                                    font=("Microsoft YaHei", 10, "bold"), fill=UI_THEME["board_label_text"], tags="board_grid")
 
     def _get_minion_pending_stars(self, minion):
         """计算异象在行动阶段还需要选择多少次攻击目标。返回 0 表示不需要星号。"""
@@ -2970,74 +3760,174 @@ class BattleFrame(tk.Frame):
             needed = max(0, needed - len(pending))
         return needed
 
-    def _draw_keyword_icons(self, cx, cy, minion, tag):
-        """在异象左下角绘制关键词缩写图标，最多3个。"""
-        keyword_styles = {
-            "恐惧": ("#9c27b0", "white"),
-            "冰冻": ("#00bcd4", "white"),
-            "眩晕": ("#ff9800", "white"),
-            "休眠": ("#795548", "white"),
-            "亡语": ("#607d8b", "white"),
-            "迅捷": ("#2196f3", "white"),
-            "潜水": ("#03a9f4", "white"),
-            "潜行": ("#9e9e9e", "white"),
-            "成长": ("#4caf50", "white"),
-            "视野": ("#ffeb3b", "black"),
-            "高频": ("#f44336", "white"),
-            "防空": ("#009688", "white"),
-            "尖刺": ("#8bc34a", "black"),
-            "穿刺": ("#ff5722", "white"),
-            "串击": ("#ff5722", "white"),
-            "横扫": ("#ff9800", "white"),
-            "丰饶": ("#ff9800", "white"),
-            "献祭": ("#795548", "white"),
-            "协同": ("#2196f3", "white"),
-            "独行": ("#ff9800", "white"),
-        }
+    # ------------------------------------------------------------------
+    # 场上异象新版 1/2/3/4 区域绘制
+    # ------------------------------------------------------------------
 
-        active_keywords = []
-        for k, v in minion.display_keywords.items():
+    def _get_minion_attack_color(self, m: "Minion") -> str:
+        """返回 1 号攻击三角区域背景色。"""
+        if m.current_attack > m.base_attack:
+            return UI_THEME["minion_atk_boost"]
+        if m.current_attack < m.base_attack:
+            return UI_THEME["minion_atk_low"]
+        return UI_THEME["minion_atk_eq"]
+
+    def _get_minion_hp_color(self, m: "Minion") -> str:
+        """返回 2 号 HP 三角区域背景色。"""
+        if m.current_health < m.current_max_health:
+            return UI_THEME["minion_hp_injured"]
+        if m.current_max_health > m.base_max_health:
+            return UI_THEME["minion_hp_boost"]
+        return UI_THEME["minion_hp_eq"]
+
+    def _create_minion_portrait_photo(self, size: int, color1: str, color2: str,
+                                      is_enemy: bool = False, corner_leg: int = 10):
+        """生成异象 3 号区域渐变图。敌方在友方视角下左下角裁掉一个小三角。"""
+        if not _PIL_AVAILABLE or size <= 0:
+            return None
+
+        def _hex_to_rgb(h):
+            h = h.lstrip("#")
+            return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+        c1 = _hex_to_rgb(color1)
+        c2 = _hex_to_rgb(color2)
+
+        grad = Image.new("RGB", (size, size))
+        pixels = grad.load()
+        max_sum = size + size - 2
+        for y in range(size):
+            for x in range(size):
+                t = (x + y) / max_sum if max_sum > 0 else 0
+                r = int(c1[0] + (c2[0] - c1[0]) * t)
+                g = int(c1[1] + (c2[1] - c1[1]) * t)
+                b = int(c1[2] + (c2[2] - c1[2]) * t)
+                pixels[x, y] = (r, g, b)
+
+        mask = Image.new("L", (size, size), 0)
+        draw = ImageDraw.Draw(mask)
+        if is_enemy:
+            points = [
+                (0, 0),
+                (size - 1, 0),
+                (size - 1, size - 1),
+                (corner_leg, size - 1),
+                (0, size - 1 - corner_leg),
+            ]
+        else:
+            points = [
+                (0, 0),
+                (size - 1, 0),
+                (size - 1, size - 1),
+                (0, size - 1),
+            ]
+        draw.polygon(points, fill=255)
+
+        r_band, g_band, b_band = grad.split()
+        img = Image.merge("RGBA", (r_band, g_band, b_band, mask))
+        return ImageTk.PhotoImage(img)
+
+    def _draw_minion_portrait(self, canvas, cx: int, cy: int, m: "Minion",
+                              x1: int, y1: int, x2: int, y2: int, tag: str,
+                              is_enemy: bool = False, display_r: int = 0):
+        """绘制 3 号区域：淡色渐变背景 + 异象名称，后续可替换为正方形美术画幅。
+
+        美术接口约定：只要在这个 bbox 内绘制内容即可；1/2/4 号区域会在上层覆盖。
+        敌方在友方视角下左下角会被裁掉（缺角标记）。
+        """
+        size = x2 - x1
+        bg_colors = (UI_THEME["minion_bg_top"], UI_THEME["minion_bg_bottom"])
+
+        photo = self._create_minion_portrait_photo(
+            size, bg_colors[0], bg_colors[1],
+            is_enemy=is_enemy, corner_leg=self.MINION_CORNER_LEG
+        )
+        if photo:
+            ref_key = f"{tag}_portrait"
+            self._minion_image_refs[ref_key] = photo
+            canvas.create_image((x1 + x2) // 2, (y1 + y2) // 2,
+                                image=photo, tags=(tag, "minion", "portrait"))
+        else:
+            # PIL 不可用时回退：绘制多边形
+            if is_enemy:
+                points = [x1, y1, x2, y1, x2, y2, x1 + self.MINION_CORNER_LEG, y2,
+                          x1, y2 - self.MINION_CORNER_LEG]
+            else:
+                points = [x1, y1, x2, y1, x2, y2, x1, y2]
+            canvas.create_polygon(points, fill=UI_THEME["minion_bg"], outline="",
+                                  tags=(tag, "minion", "portrait"))
+
+        # 名称（自动换行，限制在 3 号区域内）
+        canvas.create_text((x1 + x2) // 2, (y1 + y2) // 2, text=m.name,
+                           fill="black", font=("Microsoft YaHei", 9, "bold"),
+                           width=max(10, size - 8), justify=tk.CENTER,
+                           tags=(tag, "minion", "portrait_text"))
+
+    def _draw_minion_keyword_bar(self, canvas, cx: int, cy: int, m: "Minion", tag: str):
+        """绘制 4 号区域：附着在正方形右侧外部的小方框，每个词条/状态一个字，按词条类型着色。"""
+        r = self.MINION_SIZE // 2
+        box = self.MINION_KEYWORD_BOX
+        gap = self.MINION_KEYWORD_GAP
+        start_x = cx + r + gap
+        start_y = cy - r
+
+        # 词条/状态配色（背景，前景文字）
+        keyword_styles = {
+            "恐惧": (UI_THEME["kw_fear"], "white"),
+            "冰冻": (UI_THEME["kw_frozen"], "white"),
+            "眩晕": (UI_THEME["kw_stun"], "white"),
+            "休眠": (UI_THEME["kw_dormant"], "white"),
+            "亡语": (UI_THEME["kw_deathrattle"], "white"),
+            "迅捷": (UI_THEME["kw_swift"], "white"),
+            "潜水": (UI_THEME["kw_dive"], "white"),
+            "潜行": (UI_THEME["kw_stealth"], "white"),
+            "成长": (UI_THEME["kw_grow"], "white"),
+            "视野": (UI_THEME["kw_vision"], "black"),
+            "高频": (UI_THEME["kw_multi"], "white"),
+            "防空": (UI_THEME["kw_anti_air"], "white"),
+            "尖刺": (UI_THEME["kw_thorns"], "black"),
+            "穿刺": (UI_THEME["kw_pierce"], "white"),
+            "串击": (UI_THEME["kw_chain"], "white"),
+            "横扫": (UI_THEME["kw_sweep"], "white"),
+            "丰饶": (UI_THEME["kw_fertility"], "white"),
+            "献祭": (UI_THEME["kw_sacrifice"], "white"),
+            "协同": (UI_THEME["kw_synergy"], "white"),
+            "独行": (UI_THEME["kw_solo"], "white"),
+        }
+        default_style = (UI_THEME["minion_bar_bg"], "black")
+
+        # 收集有效词条/状态，优先显示控制类状态
+        priority = {
+            "恐惧": 0, "冰冻": 0, "眩晕": 0, "休眠": 0,
+            "亡语": 1, "迅捷": 1, "潜行": 1, "潜水": 1,
+            "成长": 2, "视野": 3, "高频": 3, "先攻": 3,
+        }
+        active = []
+        for k, v in m.display_keywords.items():
             if v is False or v is None:
                 continue
             if isinstance(v, int) and v == 0:
                 continue
+            # 默认值为 1 的“丰饶/献祭”不显示
             if k in ("丰饶", "献祭") and v == 1:
                 continue
-            active_keywords.append((k, v))
+            active.append((k, v))
+        active.sort(key=lambda x: priority.get(x[0], 99))
 
-        if not active_keywords:
-            return
-
-        priority = {
-            "恐惧": 0, "冰冻": 0, "眩晕": 0, "休眠": 0,
-            "亡语": 1, "迅捷": 1, "潜水": 1, "潜行": 1,
-            "成长": 2, "视野": 3, "高频": 3,
-        }
-        active_keywords.sort(key=lambda x: priority.get(x[0], 99))
-
-        am = get_asset_manager()
-        for i, (k, v) in enumerate(active_keywords[:3]):
-            bx = cx - 20 + i * 18
-            by = cy + 24
-            icon = am.get_icon(f"kw_{k}", 16)
-            if icon:
-                ref_key = f"{tag}_kw_{i}"
-                self._minion_image_refs[ref_key] = icon
-                self.canvas.create_image(bx, by, image=icon, tags=(tag, "minion", "kw_icon"))
-                continue
-            # 无图标时回退到色块+文字
-            bg, fg = keyword_styles.get(k, ("#607d8b", "white"))
-            text = k[0]
-            if isinstance(v, int) and v > 1:
-                text += str(v)
-            elif isinstance(v, int) and v == 1 and k in ("视野", "高频", "横扫", "尖刺"):
-                text += "1"
-            self.canvas.create_rectangle(bx - 8, by - 6, bx + 8, by + 6,
-                                         fill=bg, outline="white", width=1,
-                                         tags=(tag, "minion", "kw_icon"))
-            self.canvas.create_text(bx, by, text=text, fill=fg,
-                                    font=("Microsoft YaHei", 7, "bold"),
-                                    tags=(tag, "minion", "kw_icon"))
+        # 按可用高度截断
+        max_boxes = max(1, self.MINION_SIZE // (box + gap))
+        for i, (k, v) in enumerate(active[:max_boxes]):
+            x1 = start_x
+            y1 = start_y + i * (box + gap)
+            x2 = x1 + box
+            y2 = y1 + box
+            bg, fg = keyword_styles.get(k, default_style)
+            canvas.create_rectangle(x1, y1, x2, y2,
+                                    fill=bg, outline=UI_THEME["border"], width=1,
+                                    tags=(tag, "minion", "keyword_box"))
+            canvas.create_text((x1 + x2) // 2, (y1 + y2) // 2, text=k[0],
+                               fill=fg, font=("Microsoft YaHei", 8, "bold"),
+                               tags=(tag, "minion", "keyword_text"))
 
     def _render_board(self):
         # 如果当前浮窗对应的异象已离开战场，自动隐藏浮窗
@@ -3049,73 +3939,68 @@ class BattleFrame(tk.Frame):
         self.canvas.delete("deploy_preview")
         if not self.duel.game:
             return
-        am = get_asset_manager()
         self._minion_image_refs = {}
         for (logic_r, c), m in self.duel.game.board.minion_place.items():
             display_r = self._display_row(logic_r)
             cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
             cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
-            # 异象主色调：柔和 pastel，与半场背景协调且易辨识
-            if m.owner.side == self.local_player.side:
-                color = "#5c8bd6"        # 友方 - 柔和蓝（暖黄背景上清新）
-                shadow_color = "#3b6cb0"
-            else:
-                color = "#d87878"        # 敌方 - 柔和珊瑚（淡蓝背景上温暖）
-                shadow_color = "#b05555"
             tag = f"minion_{logic_r}_{c}"
             # 清除该 tag 上所有旧事件绑定（避免 _render_board 重绘后累积触发）
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
                 self.canvas.tag_unbind(tag, seq)
-            # 根据关键词决定边框颜色
-            outline = "black"
-            width = 2
-            if m.keywords.get("恐惧"):
-                outline = "#9c27b0"  # 紫色
-                width = 3
-            elif m.keywords.get("冰冻"):
-                outline = "#00bcd4"  # 青色
-                width = 3
-            elif m.keywords.get("眩晕"):
-                outline = "#ff9800"  # 橙色
-                width = 3
-            elif m.keywords.get("成长") is not None and m.keywords.get("成长") is not False:
-                outline = "#4caf50"  # 绿色
-                width = 3
-            # 漂浮物/藤蔓宿主：特殊边框色
-            if getattr(m, "float_host", None):
-                outline = "#ffc107"  # 金色
-                width = 4
-            elif getattr(m, "vine_host", None):
-                outline = "#9c27b0"  # 紫色
-                width = 4
-            # 阴影（与异象色调一致，更深）
-            self.canvas.create_rectangle(cx - 28, cy - 23, cx + 32, cy + 27, fill=shadow_color, outline="", tags=(tag, "minion"))
-            # 尝试加载肖像缩略图
-            portrait = None
-            if getattr(m, "asset_id", None):
-                portrait = am.get_thumbnail(m.asset_id, 56, 56)
-            if portrait:
-                self._minion_image_refs[(logic_r, c)] = portrait
-                self.canvas.create_image(cx, cy, image=portrait, tags=(tag, "minion", "portrait"))
-                # 保留边框
-                self.canvas.create_rectangle(cx - 28, cy - 25, cx + 28, cy + 25, fill="", outline=outline, width=width, tags=(tag, "minion"))
-            else:
-                self.canvas.create_rectangle(cx - 30, cy - 25, cx + 30, cy + 25, fill=color, outline=outline, width=width, tags=(tag, "minion"))
-            self.canvas.create_text(cx, cy - 8, text=m.name, fill="white", font=("Microsoft YaHei", 9, "bold"), tags=(tag, "minion"))
-            # 攻击/生命数值颜色：增强=绿，减弱=红，受伤=橙
-            atk_color = "white"
-            if m.current_attack > m.base_attack:
-                atk_color = "#76ff03"
-            elif m.current_attack < m.base_attack:
-                atk_color = "#ff5252"
-            hp_color = "white"
-            if m.current_health < m.current_max_health:
-                hp_color = "#ffab40"
-            elif m.current_health > m.base_health:
-                hp_color = "#76ff03"
-            self.canvas.create_text(cx - 10, cy + 10, text=str(m.attack), fill=atk_color, font=("Microsoft YaHei", 10), tags=(tag, "minion"))
-            self.canvas.create_text(cx, cy + 10, text="/", fill="white", font=("Microsoft YaHei", 10), tags=(tag, "minion"))
-            self.canvas.create_text(cx + 10, cy + 10, text=str(m.health), fill=hp_color, font=("Microsoft YaHei", 10), tags=(tag, "minion"))
+            # 敌我视角：敌方异象在友方视角下左下角缺角
+            is_enemy = (m.owner.side != self.local_player.side)
+
+            r = self.MINION_SIZE // 2
+            bh = self.MINION_STAT_BAR_HEIGHT
+            slant = self.MINION_STAT_BAR_SLANT
+
+            def _stat_bar_width(text) -> int:
+                return max(21, len(str(text)) * 9 + 11)
+
+            # 3 号区域：淡色渐变背景 + 名称（美术接口）
+            self._draw_minion_portrait(self.canvas, cx, cy, m,
+                                       cx - r, cy - r, cx + r, cy + r, tag,
+                                       is_enemy=is_enemy, display_r=display_r)
+
+            # 1 号区域：左上角攻击栏（动态宽度梯形）
+            atk_w = _stat_bar_width(m.attack)
+            atk_color = self._get_minion_attack_color(m)
+            atk_points = [
+                cx - r, cy - r,
+                cx - r + atk_w, cy - r,
+                cx - r + atk_w - slant, cy - r + bh,
+                cx - r, cy - r + bh,
+            ]
+            self.canvas.create_polygon(atk_points, fill=atk_color, outline="",
+                                       tags=(tag, "minion", "atk_bar"))
+            atk_cx = cx - r + atk_w / 2 - slant / 4
+            atk_cy = cy - r + bh / 2 - 1
+            self.canvas.create_text(atk_cx, atk_cy, text=str(m.attack), fill="black",
+                                    font=("Small Fonts", 11, "bold"),
+                                    tags=(tag, "minion", "atk_text"))
+
+            # 2 号区域：右下角 HP 栏（动态宽度梯形）
+            hp_w = _stat_bar_width(m.health)
+            hp_color = self._get_minion_hp_color(m)
+            hp_points = [
+                cx + r - hp_w + slant, cy + r - bh,
+                cx + r, cy + r - bh,
+                cx + r, cy + r,
+                cx + r - hp_w, cy + r,
+            ]
+            self.canvas.create_polygon(hp_points, fill=hp_color, outline="",
+                                       tags=(tag, "minion", "hp_bar"))
+            hp_cx = cx + r - hp_w / 2 + slant / 4
+            hp_cy = cy + r - bh / 2 - 1
+            self.canvas.create_text(hp_cx, hp_cy, text=str(m.health), fill="black",
+                                    font=("Small Fonts", 11, "bold"),
+                                    tags=(tag, "minion", "hp_text"))
+
+            # 4 号区域：附着在正方形右侧外部的词条/状态小方框
+            self._draw_minion_keyword_bar(self.canvas, cx, cy, m, tag)
+
+
             self.canvas.tag_bind(tag, "<Enter>", lambda e, mm=m: (self._show_minion_tooltip(e, mm), self._update_detail_text(mm)))
             self.canvas.tag_bind(tag, "<Leave>", lambda e: self._hide_tooltip())
             self.canvas.tag_bind(tag, "<Motion>", lambda e: self._move_tooltip(e.x_root, e.y_root))
@@ -3125,11 +4010,11 @@ class BattleFrame(tk.Frame):
             if self._in_targeting_mode:
                 is_target = m in self._targeting_valid_targets
                 if is_target:
-                    self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline="yellow", width=4, tags="target_hint")
+                    self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline=UI_THEME["card_border_target"], width=4, tags="target_hint")
             # 献祭选择模式：合法祭品黄框，已选祭品绿框，左上角显示丰饶等级
             if self._in_sacrifice_mode and m in self._sacrifice_candidates:
                 is_selected = m in self._selected_sacrifices
-                color = "#76ff03" if is_selected else "yellow"
+                color = UI_THEME["success"] if is_selected else UI_THEME["card_border_target"]
                 self.canvas.create_rectangle(cx - 32, cy - 27, cx + 32, cy + 27, outline=color, width=4, tags="target_hint")
                 # 左上角显示丰饶等级
                 fertility = m.keywords.get("丰饶", 1)
@@ -3138,7 +4023,7 @@ class BattleFrame(tk.Frame):
                                         tags=(tag, "minion", "sacrifice_fertility"))
                 # 丰饶等级背景小圆
                 self.canvas.create_oval(cx - 30, cy - 26, cx - 18, cy - 14,
-                                        fill="#c62828", outline="white", width=1,
+                                        fill=UI_THEME["danger"], outline="white", width=1,
                                         tags=(tag, "minion", "sacrifice_fertility"))
                 # 重新画文字在最上层
                 self.canvas.create_text(cx - 24, cy - 20, text=str(fertility), fill="white",
@@ -3147,10 +4032,9 @@ class BattleFrame(tk.Frame):
             # 阿拉伯数字：行动阶段中仍需选择攻击目标的次数
             stars = self._get_minion_pending_stars(m)
             if stars > 0:
-                self.canvas.create_text(cx + 22, cy - 18, text=str(stars), fill="yellow",
+                self.canvas.create_text(cx + 22, cy - 18, text=str(stars), fill=UI_THEME["kw_vision"],
                                         font=("Microsoft YaHei", 12, "bold"), tags=(tag, "minion", "pending_star"))
-            # 关键词图标
-            self._draw_keyword_icons(cx, cy, m, tag)
+            # 关键词/状态已改到 4 号区域竖条显示
             # 清除攻击预设按钮（右下角小红叉）
             pending = getattr(m, "_pending_attack_targets", None)
             if pending and isinstance(pending, list) and len(pending) > 0:
@@ -3159,7 +4043,7 @@ class BattleFrame(tk.Frame):
                 clear_tag = f"clear_pending_{logic_r}_{c}"
                 self.canvas.tag_unbind(clear_tag, "<Button-1>")
                 self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
-                                             fill="#ff5252", outline="white", width=1,
+                                             fill=UI_THEME["danger"], outline="white", width=1,
                                              tags=(clear_tag, "minion"))
                 self.canvas.create_text(clear_x, clear_y, text="×", fill="white",
                                         font=("Microsoft YaHei", 8, "bold"),
@@ -3174,7 +4058,7 @@ class BattleFrame(tk.Frame):
                 clear_tag = f"clear_effect_{logic_r}_{c}"
                 self.canvas.tag_unbind(clear_tag, "<Button-1>")
                 self.canvas.create_rectangle(clear_x - 6, clear_y - 6, clear_x + 6, clear_y + 6,
-                                             fill="#448aff", outline="white", width=1,
+                                             fill=UI_THEME["accent"], outline="white", width=1,
                                              tags=(clear_tag, "minion"))
                 self.canvas.create_text(clear_x, clear_y, text="×", fill="white",
                                         font=("Microsoft YaHei", 8, "bold"),
@@ -3189,7 +4073,7 @@ class BattleFrame(tk.Frame):
                 multi = m.keywords.get("高频", 0)
                 if vision > 0 or (isinstance(multi, int) and multi > 0):
                     self.canvas.create_oval(cx + 18, cy - 22, cx + 26, cy - 14,
-                                            fill="#76ff03", outline="white", width=1,
+                                            fill=UI_THEME["success"], outline="white", width=1,
                                             tags=(tag, "minion", "interactive_dot"))
             # 可交互指示器（行动阶段中可设置效果目标的异象）
             if (self.duel.game and self.duel.game.current_phase == "action"
@@ -3197,7 +4081,7 @@ class BattleFrame(tk.Frame):
                 scope_fn = getattr(m, '_effect_target_scope_fn', None)
                 if scope_fn and getattr(m, '_pending_effect_target', None) is None:
                     self.canvas.create_oval(cx - 26, cy - 22, cx - 18, cy - 14,
-                                            fill="#00e5ff", outline="white", width=1,
+                                            fill=UI_THEME["accent"], outline="white", width=1,
                                             tags=(tag, "minion", "interactive_dot"))
         # 绘制攻击预设连线
         for (logic_r, c), m in self.duel.game.board.minion_place.items():
@@ -3214,7 +4098,7 @@ class BattleFrame(tk.Frame):
                     x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
                     y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_line(x1, y1, x2, y2,
-                                            fill="#ffeb3b", dash=(4, 4), width=2,
+                                            fill=UI_THEME["kw_vision"], dash=(4, 4), width=2,
                                             arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 绘制效果预设连线（预输入阶段）
         for (logic_r, c), m in self.duel.game.board.minion_place.items():
@@ -3235,7 +4119,7 @@ class BattleFrame(tk.Frame):
                 x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
                 y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_line(x1, y1, x2, y2,
-                                        fill="#00e5ff", dash=(4, 4), width=2,
+                                        fill=UI_THEME["accent"], dash=(4, 4), width=2,
                                         arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 绘制已完成指向的锁定连线（所有人可见，如鮟鱇）
         for (logic_r, c), m in self.duel.game.board.minion_place.items():
@@ -3252,7 +4136,7 @@ class BattleFrame(tk.Frame):
                 x2 = tc * self.cell_size + self.cell_size // 2 + self.board_offset_x
                 y2 = t_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_line(x1, y1, x2, y2,
-                                        fill="#00e5ff", dash=(4, 4), width=2,
+                                        fill=UI_THEME["accent"], dash=(4, 4), width=2,
                                         arrow=tk.LAST, tags=("target_arrow", "minion"))
         # 献祭模式：实时预览部署合法范围（与部署模式统一黄框样式）
         if self._in_sacrifice_mode and self._sacrifice_card and self._sacrifice_active:
@@ -3262,8 +4146,8 @@ class BattleFrame(tk.Frame):
                 vcx = pc * self.cell_size + self.cell_size // 2 + self.board_offset_x
                 vcy = p_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                 self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
-                                             outline="#ffd600", width=4,
-                                             fill="#fff59d", stipple="gray50",
+                                             outline=UI_THEME["kw_vision"], width=4,
+                                             fill="#fffbeb", stipple="gray50",
                                              tags="deploy_preview")
         # 高亮指向来源异象（金色发光边框）
         if self._targeting_source_minion and self._targeting_source_minion.position:
@@ -3272,7 +4156,7 @@ class BattleFrame(tk.Frame):
             scx = sc * self.cell_size + self.cell_size // 2 + self.board_offset_x
             scy = s_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
             self.canvas.create_rectangle(scx - 34, scy - 29, scx + 34, scy + 29,
-                                         outline="gold", width=4, tags="target_hint")
+                                         outline=UI_THEME["kw_vision"], width=4, tags="target_hint")
         # 高亮合法目标（位置）——黄色方框
         if self.valid_targets:
             for t in self.valid_targets:
@@ -3282,8 +4166,8 @@ class BattleFrame(tk.Frame):
                     vcx = vc * self.cell_size + self.cell_size // 2 + self.board_offset_x
                     vcy = v_display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
                     self.canvas.create_rectangle(vcx - 38, vcy - 38, vcx + 38, vcy + 38,
-                                                 outline="#ffd600", width=4,
-                                                 fill="#fff59d", stipple="gray50",
+                                                 outline=UI_THEME["kw_vision"], width=4,
+                                                 fill="#fffbeb", stipple="gray50",
                                                  tags="target_hint")
 
     def _update_detail_text(self, card):
@@ -3383,11 +4267,11 @@ class BattleFrame(tk.Frame):
             injected_end = getattr(card, "_injected_turn_end", []) or []
             for fn in injected_start:
                 src = getattr(fn, "_source_name", "未知")
-                desc = getattr(fn, "__name__", "回合开始效果")
+                desc = getattr(fn, "__name__", "结算阶段开始效果")
                 lines.append(f"效果【{src}】：{desc}")
             for fn in injected_end:
                 src = getattr(fn, "_source_name", "未知")
-                desc = getattr(fn, "__name__", "回合结束效果")
+                desc = getattr(fn, "__name__", "结算阶段结束效果")
                 lines.append(f"效果【{src}】：{desc}")
 
             # 光环效果（来自其他异象的攻击力/生命/关键词修饰）
@@ -3470,16 +4354,14 @@ class BattleFrame(tk.Frame):
 
         text = "\n".join(lines)
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, text)
+        _insert_rich_detail(self.detail_text, text)
         self.detail_text.config(state=tk.DISABLED)
 
     def _clear_detail_text(self):
         if not hasattr(self, "detail_text"):
             return
         self.detail_text.config(state=tk.NORMAL)
-        self.detail_text.delete("1.0", tk.END)
-        self.detail_text.insert(tk.END, "悬停卡牌查看详情")
+        _insert_rich_detail(self.detail_text, "悬停卡牌查看详情")
         self.detail_text.config(state=tk.DISABLED)
 
     def _flash_widget_bg(self, widget, flash_color, times=2, interval=150):
@@ -3523,7 +4405,7 @@ class BattleFrame(tk.Frame):
         original_fg = widget.cget("fg")
         original_bg = widget.cget("bg")
         # 深色闪色配白字，浅色闪色配黑字
-        flash_fg = "#ffffff" if flash_color == "#f44336" else "#000000"
+        flash_fg = UI_THEME["btn_primary_fg"] if flash_color == UI_THEME["danger"] else UI_THEME["text_primary"]
 
         def step(count=0):
             if not widget.winfo_exists():
@@ -3546,21 +4428,21 @@ class BattleFrame(tk.Frame):
         minions = self.duel.game.board.get_minions_of_player(player)
         return sum(m.keywords.get("丰饶", 1) for m in minions if m.is_alive())
 
-    # ===== 稀有度渐变背景 =====
+    # ===== 稀有度渐变背景（统一引用主题色板） =====
     _RARITY_GRADIENTS = {
-        Rarity.GOLD:   ("#FFF8E1", "#FFD54F"),   # 金：象牙白→柔和金黄（更明亮，减少塑料感）
-        Rarity.SILVER: ("#F5F5F5", "#BDBDBD"),   # 银（偏亮白，与铁区分）
-        Rarity.BRONZE: ("#E6B89C", "#B87333"),   # 铜
-        Rarity.IRON:   ("#B0BEC5", "#78909C"),   # 铁：浅蓝灰→中蓝灰（整体提亮，不再发黑）
+        Rarity.GOLD:   UI_THEME["rarity_gold"],
+        Rarity.SILVER: UI_THEME["rarity_silver"],
+        Rarity.BRONZE: UI_THEME["rarity_bronze"],
+        Rarity.IRON:   UI_THEME["rarity_iron"],
     }
 
     # 折痕颜色（背面, 正面, 折痕线）— 与稀有度主色调协调
     _FOLD_COLORS = {
-        Rarity.GOLD:   ("#f9a825", "#fff9c4", "#f57f17"),   # 深金黄 / 浅金黄 / 深橙黄
-        Rarity.SILVER: ("#757575", "#eeeeee", "#424242"),   # 中灰 / 浅灰 / 深灰
-        Rarity.BRONZE: ("#8d6e63", "#efebe9", "#5d4037"),   # 深棕 / 浅米 / 深棕
-        Rarity.IRON:   ("#546e7a", "#eceff1", "#37474f"),   # 深蓝灰 / 浅灰 / 更深蓝灰
-        None:          ("#bdbdbd", "#f5f5f5", "#757575"),   # 中灰 / 浅灰 / 深灰（无稀有度）
+        Rarity.GOLD:   UI_THEME["fold_gold"],
+        Rarity.SILVER: UI_THEME["fold_silver"],
+        Rarity.BRONZE: UI_THEME["fold_bronze"],
+        Rarity.IRON:   UI_THEME["fold_iron"],
+        None:          UI_THEME["fold_none"],
     }
 
     def _get_card_rarity_gradient_colors(self, card):
@@ -3688,7 +4570,8 @@ class BattleFrame(tk.Frame):
             from tards.player import Player as PlayerCls
             original_b = active.b_point
             active.b_point = original_b + available_blood
-            cost_ok, _ = card.cost.can_afford_detail(active)
+            effective_cost = active._get_play_cost(card)
+            cost_ok, _ = effective_cost.can_afford_detail(active)
             active.b_point = original_b
             can_play_now = (cost_ok and not self._in_targeting_mode
                             and self.duel.game
@@ -3697,7 +4580,7 @@ class BattleFrame(tk.Frame):
             frame = tk.Frame(parent, bd=0)
             frame.pack(side=tk.LEFT, padx=6, pady=2)
             if flash:
-                self._flash_widget_bg(frame, "#ffeb3b", times=2, interval=150)
+                self._flash_widget_bg(frame, UI_THEME["kw_vision"], times=2, interval=150)
 
             # Canvas 尺寸精确贴合卡牌外接矩形，不留空白
             cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
@@ -3708,34 +4591,30 @@ class BattleFrame(tk.Frame):
             card_x2, card_y2 = cw, ch
 
             # 费用与标签参数（动态宽度，防止长费用被截断）
-            cost_str = str(card.cost)
+            cost_str = str(effective_cost)
             TAB_W = self._calc_tab_width(cost_str)
             TAB_H = 16
             TAB_SLANT = max(5, TAB_W // 6)
 
-            # 状态判断 → 边框样式（取消可出牌绿框）
+            # 状态判断 → 边框样式
             is_selected = (self.selected_card_idx == idx)
             is_valid_target = (self._in_targeting_mode and card in self._targeting_valid_targets)
             if is_selected:
-                border_color = "#2196F3"
+                border_color = UI_THEME["card_border_selected"]
                 border_width = 3
                 offset_y = 0
             elif is_valid_target:
-                border_color = "#FFEB3B"
+                border_color = UI_THEME["card_border_target"]
                 border_width = 3
                 offset_y = 0
-            elif can_play_now:
-                border_color = "#cfd8dc"
-                border_width = 1
-                offset_y = 0
             else:
-                border_color = "#cfd8dc"
+                border_color = UI_THEME["card_border_default"]
                 border_width = 1
                 offset_y = 1
 
             # 带标签形状的稀有度渐变背景
             rarity_colors = self._get_card_rarity_gradient_colors(card)
-            bg_colors = rarity_colors if rarity_colors else ("#FFFFFF", "#FFFFFF")
+            bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
             if _PIL_AVAILABLE:
                 photo = self._create_tab_gradient_photo(
                     cw, ch,
@@ -3757,7 +4636,7 @@ class BattleFrame(tk.Frame):
                 card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H + offset_y,
                 card_x1, card_y1 + TAB_H + offset_y,
             ]
-            tab_fill = "#4caf50" if can_play_now else "#455a64"
+            tab_fill = UI_THEME["card_tab_playable"] if can_play_now else UI_THEME["card_tab_default"]
             cvs.create_polygon(label_points, fill=tab_fill, outline="", tags="cost_tab")
 
             # 整体外形边框（带标签的圆角矩形，微圆角：仅用斜切做略微修正）
@@ -3777,7 +4656,7 @@ class BattleFrame(tk.Frame):
                 card_x1, body_y1,
             ]
             cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
-                               tags="card_border")
+                               joinstyle=tk.MITER, tags="card_border")
 
             img = None
             if getattr(card, "asset_id", None):
@@ -3796,7 +4675,7 @@ class BattleFrame(tk.Frame):
             stats = ""
             if isinstance(card, MinionCard):
                 stats = f"{card.attack}/{card.health}"
-            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
             bottom_text = stats
             if isinstance(card, Strategy):
@@ -3807,12 +4686,12 @@ class BattleFrame(tk.Frame):
                 bottom_text = "【矿物】"
             elif isinstance(card, MinionCard):
                 bottom_text = f"【异象】{stats}"
-            cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill="#455a64",
+            cvs.create_text(cw // 2, ch - 14, text=bottom_text, fill=UI_THEME["card_text_type"],
                             font=("Microsoft YaHei", 8), tags="card_text")
 
             # 已激活的阴谋：红色边框（带标签形状，跟随卡牌 offset_y）
             if isinstance(card, Conspiracy) and card in active.active_conspiracies:
-                cvs.create_polygon(shape_points, fill="", outline="#d32f2f", width=3,
+                cvs.create_polygon(shape_points, fill="", outline=UI_THEME["danger"], width=3,
                                    tags="activated_mark")
 
             # 已被对手见过的牌：左下角折痕效果（颜色随稀有度自适应）
@@ -3840,7 +4719,7 @@ class BattleFrame(tk.Frame):
             stack_count = getattr(card, "stack_count", 1)
             if stack_count > 1:
                 cvs.create_oval(cw - 22, ch - 22 + offset_y, cw - 2, ch - 2 + offset_y,
-                                fill="#d32f2f", outline="white", width=2, tags="stack_count")
+                                fill=UI_THEME["card_stack_bg"], outline="white", width=2, tags="stack_count")
                 cvs.create_text(cw - 12, ch - 12 + offset_y, text=str(stack_count), fill="white",
                                 font=("Microsoft YaHei", 9, "bold"), tags="stack_count")
             cvs.bind("<Button-1>", lambda e, idx=idx: self._on_hand_card_click(idx))
@@ -3853,6 +4732,96 @@ class BattleFrame(tk.Frame):
             import traceback
             traceback.print_exc()
 
+    def _render_reveal_card(self, canvas, card, cw=90, ch=144):
+        """在指定 Canvas 上渲染一张静态展示卡牌（用于弃置/移除/磨牌展示）。"""
+        print(f"[Reveal] _render_reveal_card 开始: card={getattr(card, 'name', 'unknown')}")
+        canvas.delete("all")
+        try:
+            cost_str = str(card.cost)
+            print(f"[Reveal]   cost_str={cost_str}")
+            TAB_W = self._calc_tab_width(cost_str)
+            TAB_H = 16
+            TAB_SLANT = max(5, TAB_W // 6)
+            border_color = UI_THEME["card_border_default"]
+            border_width = 1
+            print(f"[Reveal]   TAB_W={TAB_W}, TAB_SLANT={TAB_SLANT}")
+
+            # 稀有度渐变背景
+            rarity_colors = self._get_card_rarity_gradient_colors(card)
+            bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
+            print(f"[Reveal]   bg_colors={bg_colors}, _PIL_AVAILABLE={_PIL_AVAILABLE}")
+            if _PIL_AVAILABLE:
+                photo = self._create_tab_gradient_photo(
+                    cw, ch, bg_colors[0], bg_colors[1],
+                    tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2
+                )
+                print(f"[Reveal]   photo={photo is not None}")
+                if photo:
+                    canvas.create_image(cw // 2, ch // 2, image=photo, tags="rarity_bg")
+                    canvas.rarity_bg_image = photo
+
+            # 费用标签
+            label_points = [0, 0, TAB_W, 0, TAB_W + TAB_SLANT, TAB_H, 0, TAB_H]
+            canvas.create_polygon(label_points, fill=UI_THEME["card_tab_default"], outline="", tags="cost_tab")
+            print(f"[Reveal]   费用标签绘制完成")
+
+            # 边框
+            r = 2
+            shape_points = [
+                0, 0, TAB_W, 0, TAB_W + TAB_SLANT, TAB_H,
+                cw - r, TAB_H, cw, TAB_H + r, cw, ch - r,
+                cw - r, ch, r, ch, 0, ch - r, 0, TAB_H,
+            ]
+            canvas.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
+                                  joinstyle=tk.MITER, tags="card_border")
+            print(f"[Reveal]   边框绘制完成")
+
+            # 肖像
+            am = get_asset_manager()
+            img = None
+            if getattr(card, "asset_id", None):
+                img = am.get_card_face(card.asset_id, cw - 4, ch - 4)
+            print(f"[Reveal]   asset_id={getattr(card, 'asset_id', None)}, img={img is not None}")
+            if img:
+                canvas.create_image(cw // 2, ch // 2, image=img, tags="card_img")
+                canvas.image = img
+
+            # 费用文字
+            cost_cx = (TAB_W + TAB_SLANT) // 2
+            cost_cy = TAB_H // 2
+            canvas.create_text(cost_cx, cost_cy, text=cost_str, fill="white",
+                               font=("Microsoft YaHei", 8, "bold"), tags="card_text")
+            print(f"[Reveal]   费用文字绘制完成")
+
+            # 名称
+            name = card.name
+            canvas.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
+                               font=("Microsoft YaHei", 9, "bold"), tags="card_text")
+            print(f"[Reveal]   名称绘制完成: {name}")
+
+            # 底部类型
+            from tards.cards import MinionCard, Strategy, Conspiracy, MineralCard
+            stats = ""
+            if isinstance(card, MinionCard):
+                stats = f"{card.attack}/{card.health}"
+            bottom_text = stats
+            if isinstance(card, Strategy):
+                bottom_text = "【策略】"
+            elif isinstance(card, Conspiracy):
+                bottom_text = "【阴谋】"
+            elif isinstance(card, MineralCard):
+                bottom_text = "【矿物】"
+            elif isinstance(card, MinionCard):
+                bottom_text = f"【异象】{stats}"
+            canvas.create_text(cw // 2, ch - 14, text=bottom_text, fill=UI_THEME["card_text_type"],
+                               font=("Microsoft YaHei", 8), tags="card_text")
+            print(f"[Reveal]   底部类型绘制完成: {bottom_text}")
+            print(f"[Reveal] _render_reveal_card 完成")
+        except Exception as e:
+            print(f"[Reveal] [_render_reveal_card] 渲染异常 [{getattr(card, 'name', 'unknown')}]: {e}")
+            import traceback
+            traceback.print_exc()
+
     def _render_hand(self):
         game = self.duel.game
         if not game:
@@ -3862,10 +4831,10 @@ class BattleFrame(tk.Frame):
         if not active:
             return
         card_type_colors = {
-            MinionCard: "#e3f2fd",
-            Strategy: "#e8f5e9",
-            Conspiracy: "#f3e5f5",
-            MineralCard: "#fffde7",
+            MinionCard: "#eff6ff",
+            Strategy: "#f0fdf4",
+            Conspiracy: "#faf5ff",
+            MineralCard: "#fefce8",
         }
         am = get_asset_manager()
         cw = self.HAND_CARD_WIDTH
@@ -3908,36 +4877,43 @@ class BattleFrame(tk.Frame):
         self._mulligan_waiting_remote = False
 
         # 覆盖层
-        overlay = tk.Frame(self, bg="#555555")
+        overlay = tk.Frame(self, bg=UI_THEME["text_primary"])
         overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
         self._mulligan_overlay = overlay
 
         # 中央面板
-        panel = tk.Frame(overlay, bg="white", bd=2, relief=tk.RIDGE)
+        panel = tk.Frame(overlay, bg=UI_THEME["bg_panel"], bd=2, relief=tk.RIDGE)
         panel.place(relx=0.5, rely=0.5, anchor="center", width=700, height=400)
 
         # 标题
         title_text = f"调整初始手牌 - {player.name}"
-        tk.Label(panel, text=title_text, font=("Microsoft YaHei", 16, "bold"), bg="white").pack(pady=(15, 5))
-        tk.Label(panel, text="点击卡牌选择要替换的牌，确认后洗回牌库并重新抽取", font=("Microsoft YaHei", 10), bg="white", fg="gray").pack(pady=(0, 10))
+        tk.Label(panel, text=title_text, font=("Microsoft YaHei", 16, "bold"),
+                 bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"]).pack(pady=(15, 5))
+        tk.Label(panel, text="点击卡牌选择要替换的牌，确认后洗回牌库并重新抽取",
+                 font=("Microsoft YaHei", 10), bg=UI_THEME["bg_panel"],
+                 fg=UI_THEME["text_secondary"]).pack(pady=(0, 10))
 
         # 手牌区
-        hand_frame = tk.Frame(panel, bg="white")
+        hand_frame = tk.Frame(panel, bg=UI_THEME["bg_panel"])
         hand_frame.pack(pady=10)
         self._mulligan_hand_frame = hand_frame
 
         self._refresh_mulligan_cards()
 
         # 提示与按钮区
-        self._mulligan_bottom_frame = tk.Frame(panel, bg="white")
+        self._mulligan_bottom_frame = tk.Frame(panel, bg=UI_THEME["bg_panel"])
         self._mulligan_bottom_frame.pack(pady=10)
 
-        self._mulligan_hint_label = tk.Label(self._mulligan_bottom_frame, text="", font=("Microsoft YaHei", 10), bg="white", fg="blue")
+        self._mulligan_hint_label = tk.Label(self._mulligan_bottom_frame, text="",
+                                             font=("Microsoft YaHei", 10), bg=UI_THEME["bg_panel"],
+                                             fg=UI_THEME["accent"])
         self._mulligan_hint_label.pack(pady=(0, 5))
 
         self._mulligan_confirm_btn = tk.Button(
             self._mulligan_bottom_frame, text="确认替换",
             font=("Microsoft YaHei", 12), width=12,
+            bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
+            activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=2,
             command=self._on_mulligan_confirm,
         )
         self._mulligan_confirm_btn.pack(pady=5)
@@ -3951,7 +4927,7 @@ class BattleFrame(tk.Frame):
             w.destroy()
 
         from tards.cards import MinionCard as MC, Strategy as ST, Conspiracy as CO, MineralCard as MI
-        card_type_colors = {MC: "#e3f2fd", ST: "#e8f5e9", CO: "#f3e5f5", MI: "#fffde7"}
+        card_type_colors = {MC: "#eff6ff", ST: "#f0fdf4", CO: "#faf5ff", MI: "#fefce8"}
         am = get_asset_manager()
         cw = self.HAND_CARD_WIDTH
         ch = self.HAND_CARD_HEIGHT
@@ -3964,10 +4940,10 @@ class BattleFrame(tk.Frame):
         """渲染单张 mulligan 卡牌。"""
         try:
             frame_bd = 3 if selected else 0
-            frame_bg = "#4caf50" if selected else "white"
+            frame_bg = UI_THEME["success"] if selected else UI_THEME["bg_panel"]
             frame = tk.Frame(parent, bg=frame_bg, bd=frame_bd)
             frame.pack(side=tk.LEFT, padx=4)
-            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0)
+            cvs = tk.Canvas(frame, width=cw, height=ch, highlightthickness=0, bd=0, bg=UI_THEME["bg_panel"])
             cvs.pack(padx=2, pady=2)
 
             cost_str = str(card.cost)
@@ -3979,7 +4955,7 @@ class BattleFrame(tk.Frame):
 
             # 带标签形状的稀有度渐变背景
             rarity_colors = self._get_card_rarity_gradient_colors(card)
-            bg_colors = rarity_colors if rarity_colors else ("#FFFFFF", "#FFFFFF")
+            bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
             if _PIL_AVAILABLE:
                 photo = self._create_tab_gradient_photo(
                     cw, ch,
@@ -4001,7 +4977,7 @@ class BattleFrame(tk.Frame):
                 card_x1 + TAB_W + TAB_SLANT, card_y1 + TAB_H,
                 card_x1, card_y1 + TAB_H,
             ]
-            cvs.create_polygon(label_points, fill="#455a64", outline="", tags="cost_tab")
+            cvs.create_polygon(label_points, fill=UI_THEME["card_tab_default"], outline="", tags="cost_tab")
 
             # 整体外形边框（带标签的微圆角矩形）
             r = 2
@@ -4018,10 +4994,10 @@ class BattleFrame(tk.Frame):
                 card_x1, card_y2 - r,
                 card_x1, body_y1,
             ]
-            border_color = "#4caf50" if selected else "#cfd8dc"
+            border_color = UI_THEME["success"] if selected else UI_THEME["card_border_default"]
             border_width = 2 if selected else 1
             cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
-                               tags="card_border")
+                               joinstyle=tk.MITER, tags="card_border")
 
             img = None
             if getattr(card, "asset_id", None):
@@ -4050,9 +5026,9 @@ class BattleFrame(tk.Frame):
                 bottom_text = "【矿物】"
             elif isinstance(card, MC):
                 bottom_text = f"【异象】{stats}"
-            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill="#212121",
+            cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill="#455a64",
+            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill=UI_THEME["card_text_type"],
                             font=("Microsoft YaHei", 8), tags="card_text")
             cvs.bind("<Button-1>", lambda e, i=idx: self._on_mulligan_card_click(i))
         except Exception as e:
@@ -4125,16 +5101,17 @@ class BattleFrame(tk.Frame):
 
             # 背景色
             if is_target:
-                bg = "#fff59d"
+                bg = UI_THEME["btn_warning_bg"]
             elif is_current:
-                bg = "#e8f5e9"
+                bg = "#dcfce7"
             elif getattr(player, "braked", False):
-                bg = "#ffebee"
+                bg = UI_THEME["btn_danger_bg"]
             else:
-                bg = "#fafafa"
+                bg = UI_THEME["bg_main"]
 
-            for key in ["frame", "row0", "row1", "row2", "row_shown", "dot", "name_label", "hp_frame", "hp_label",
-                        "dis_label", "conspiracy_label", "shown_label"]:
+            for key in ["frame", "row0", "row1", "row2", "row_shown", "right_info",
+                        "dot", "name_label", "hp_frame", "hp_label",
+                        "dis_label", "conspiracy_label", "shown_label", "last_dis_label"]:
                 if key in widgets:
                     widgets[key].config(bg=bg)
             for key in ["deck_badge", "hand_label"]:
@@ -4142,7 +5119,7 @@ class BattleFrame(tk.Frame):
                     widgets[key].config(bg=bg)
             # 恢复手牌 badge 背景色
             if "hand_label" in widgets:
-                widgets["hand_label"].config(bg="#e3f2fd")
+                widgets["hand_label"].config(bg="#dbeafe")
 
             # 回合标记 + 名字
             active_mark = "● " if is_current else ""
@@ -4197,6 +5174,29 @@ class BattleFrame(tk.Frame):
             else:
                 widgets["shown_label"].config(text="")
 
+            # 上一张弃牌
+            last_dis_label = widgets.get("last_dis_label")
+            if last_dis_label:
+                card_dis = player.card_dis
+                if card_dis:
+                    last_card = card_dis[-1]
+                    last_info = self._last_discarded_info.get(pname)
+                    if last_info and last_info[0] == last_card.name:
+                        card_name, color = last_info
+                    else:
+                        # 未追踪到的路径，默认黑色
+                        card_name = last_card.name
+                        color = UI_THEME["text_primary"]
+                        self._last_discarded_info[pname] = (card_name, color)
+                    last_dis_label.config(text=f"上一张: {card_name}", fg=color)
+                else:
+                    last_dis_label.config(text="")
+
+            # 弃牌堆 badge 状态
+            discard_badge = widgets.get("discard_badge")
+            if discard_badge:
+                discard_badge.config(text=f"弃牌堆 {len(player.card_dis)}")
+
         # 更新右侧"当前资源"面板（网络对局显示本地玩家，本地对局显示当前回合玩家）
         game = self.duel.game
         active = game.current_player if game else None
@@ -4211,7 +5211,7 @@ class BattleFrame(tk.Frame):
             ]:
                 old_val = self._prev_res_values.get(key)
                 if old_val is not None and val != old_val:
-                    flash_color = "#4caf50" if val > old_val else "#f44336"
+                    flash_color = UI_THEME["success"] if val > old_val else UI_THEME["danger"]
                     self._flash_res_label(lbl, flash_color, times=2, interval=150)
                 self._prev_res_values[key] = val
 
@@ -4274,7 +5274,7 @@ class BattleFrame(tk.Frame):
                 self._targeting_on_confirm = None
                 self._targeting_on_cancel = None
                 self._targeting_valid_targets = []
-                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
                 self._render_board()
                 self._render_info()
                 if on_confirm:
@@ -4363,7 +5363,7 @@ class BattleFrame(tk.Frame):
             self._targeting_on_confirm = None
             self._targeting_on_cancel = None
             self._targeting_valid_targets = []
-            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
             self._render_board()
             self._render_info()
             if on_confirm:
@@ -4377,7 +5377,7 @@ class BattleFrame(tk.Frame):
         self._targeting_on_confirm = on_confirm
         self._targeting_on_cancel = on_cancel
         self.valid_targets = valid_targets
-        self.hint_label.config(text=prompt, font=("Microsoft YaHei", 12, "bold"), fg="#d32f2f")
+        self.hint_label.config(text=prompt, font=("Microsoft YaHei", 12, "bold"), fg=UI_THEME["danger"])
         self._render_board()
         self._render_info()
         self._render_hand()
@@ -4424,7 +5424,7 @@ class BattleFrame(tk.Frame):
         self._pending_sacrifices = []
         self.hint_label.config(
             text=f"请选择献祭异象（需要{required_blood}点鲜血）| 点击选择/取消 | Enter确认 | ESC取消",
-            font=("Microsoft YaHei", 11, "bold"), fg="#c62828"
+            font=("Microsoft YaHei", 11, "bold"), fg=UI_THEME["danger"]
         )
         self._render_board()
         self._render_info()
@@ -4440,7 +5440,7 @@ class BattleFrame(tk.Frame):
         self._sacrifice_card = None
         self._sacrifice_active = None
         # 注意：_pending_sacrifices 不在这里清除，因为 _confirm_sacrifice 需要保留它传递给 _enter_deploy_targeting
-        self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+        self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
         self._render_board()
         self._render_info()
         self._render_hand()
@@ -4449,8 +5449,8 @@ class BattleFrame(tk.Frame):
         """确认当前选择的献祭，进入部署位置选择。"""
         total = sum(m.keywords.get("丰饶", 1) for m in self._selected_sacrifices)
         if total < self._sacrifice_required:
-            self.hint_label.config(text=f"献祭不足，已选{total}点，还需{self._sacrifice_required - total}点", fg="red")
-            self.after(1000, lambda: self.hint_label.config(fg="#c62828"))
+            self.hint_label.config(text=f"献祭不足，已选{total}点，还需{self._sacrifice_required - total}点", fg=UI_THEME["danger"])
+            self.after(1000, lambda: self.hint_label.config(fg=UI_THEME["danger"]))
             return
         self._pending_sacrifices = list(self._selected_sacrifices)
         serial = self._sacrifice_serial
@@ -4472,7 +5472,7 @@ class BattleFrame(tk.Frame):
         self._current_targeting_mode = None
         if not preserve_pending:
             self._pending_sacrifices = []
-        self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+        self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
         self._render_hand()
         self._render_board()
         self._render_info()
@@ -4620,7 +5620,7 @@ class BattleFrame(tk.Frame):
             self._targeting_on_confirm = None
             self._targeting_on_cancel = None
             self._targeting_valid_targets = []
-            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+            self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
             self._render_board()
             self._render_info()
             self._render_hand()
@@ -4737,7 +5737,7 @@ class BattleFrame(tk.Frame):
         cx = c * self.cell_size + self.cell_size // 2 + self.board_offset_x
         cy = display_r * self.cell_size + self.cell_size // 2 + self.board_offset_y
         flash = self.canvas.create_rectangle(cx - 40, cy - 40, cx + 40, cy + 40,
-                                             outline="#ff1744", width=4,
+                                             outline=UI_THEME["danger"], width=4,
                                              tags="flash_hint")
         self.after(200, lambda: self.canvas.delete("flash_hint"))
 
@@ -4756,8 +5756,8 @@ class BattleFrame(tk.Frame):
         # 0. 献祭选择模式：点击空白格子非法，点击异象由 _on_minion_click 处理
         if self._in_sacrifice_mode:
             self._flash_invalid_at(target)
-            self.hint_label.config(text="请点击友方异象作为祭品", fg="red")
-            self.after(500, lambda: self.hint_label.config(fg="#c62828") if self.hint_label else None)
+            self.hint_label.config(text="请点击友方异象作为祭品", fg=UI_THEME["danger"])
+            self.after(500, lambda: self.hint_label.config(fg=UI_THEME["danger"]) if self.hint_label else None)
             return
 
         # 1. 如果处于指向模式，优先处理目标选择
@@ -4776,15 +5776,15 @@ class BattleFrame(tk.Frame):
                 self._targeting_on_confirm = None
                 self._targeting_on_cancel = None
                 self._targeting_valid_targets = []
-                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg="blue")
+                self.hint_label.config(text="", font=("Microsoft YaHei", 10), fg=UI_THEME["accent"])
                 self._render_board()
                 self._render_info()
                 if on_confirm:
                     on_confirm(clicked_target)
             else:
                 self._flash_invalid_at(target)
-                self.hint_label.config(text="点击的不是合法目标", fg="red")
-                self.after(500, lambda: self.hint_label.config(fg="blue") if self.hint_label else None)
+                self.hint_label.config(text="点击的不是合法目标", fg=UI_THEME["danger"])
+                self.after(500, lambda: self.hint_label.config(fg=UI_THEME["accent"]) if self.hint_label else None)
             return
 
         # 2. 手牌选择中的原有逻辑
@@ -4793,7 +5793,7 @@ class BattleFrame(tk.Frame):
                 self._submit_play(self.selected_card_idx + 1, target)
             else:
                 self._flash_invalid_at(target)
-                self.hint_label.config(text="点击的不是合法目标", fg="red")
+                self.hint_label.config(text="点击的不是合法目标", fg=UI_THEME["danger"])
                 self.after(1000, self._reset_guide_hint)
             return
         clicked = None
@@ -4804,7 +5804,7 @@ class BattleFrame(tk.Frame):
                 self._submit_play(self.selected_card_idx + 1, t)
                 return
         self._flash_invalid_at(target)
-        self.hint_label.config(text="点击的不是合法目标", fg="red")
+        self.hint_label.config(text="点击的不是合法目标", fg=UI_THEME["danger"])
         self.after(1000, self._reset_guide_hint)
 
     def _submit_play(self, serial: int, target: Any):
@@ -4830,7 +5830,7 @@ class BattleFrame(tk.Frame):
         self._clear_selection()
         # 阴谋激活视觉反馈
         if is_conspiracy:
-            self._show_toast(f"阴谋 [{card_name}] 已暗中激活", "#f3e5f5", 1500)
+            self._show_toast(f"阴谋 [{card_name}] 已暗中激活", UI_THEME["btn_secondary_bg"], 1500)
         self.duel.submit_local_action(action)
         self._add_history(f"打出 [{card_name}]", is_play=True)
         self.hint_label.config(text="已出牌，等待结果...")
@@ -4843,13 +5843,13 @@ class BattleFrame(tk.Frame):
         phase = self.duel.game.current_phase
         if phase == "action":
             if self._in_targeting_mode:
-                self.hint_label.config(text="指向模式：点击目标确认 | Enter确认 | ESC取消", fg="#d32f2f", font=("Microsoft YaHei", 12, "bold"))
+                self.hint_label.config(text="指向模式：点击目标确认 | Enter确认 | ESC取消", fg=UI_THEME["danger"], font=("Microsoft YaHei", 12, "bold"))
             else:
-                self.hint_label.config(text="出牌阶段：点击手牌出牌 | 点击异象设攻击目标 | 双击拍铃/拉闸 | B拉闸 Space拍铃 | 1~9快捷选牌 | ESC取消", fg="blue", font=("Microsoft YaHei", 10))
+                self.hint_label.config(text="出牌阶段：点击手牌出牌 | 点击异象设攻击目标 | 双击拍铃/拉闸 | B拉闸 Space拍铃 | 1~9快捷选牌 | ESC取消", fg=UI_THEME["accent"], font=("Microsoft YaHei", 10))
         elif phase == "resolve":
-            self.hint_label.config(text="结算阶段进行中，请稍候...", fg="#b71c1c", font=("Microsoft YaHei", 10))
+            self.hint_label.config(text="结算阶段进行中，请稍候...", fg=UI_THEME["danger_dark"], font=("Microsoft YaHei", 10))
         elif phase == "draw":
-            self.hint_label.config(text="抽牌阶段...", fg="#1565c0", font=("Microsoft YaHei", 10))
+            self.hint_label.config(text="抽牌阶段...", fg=UI_THEME["accent_dark"], font=("Microsoft YaHei", 10))
 
     def _on_bell(self):
         # 防重复点击/按键
@@ -4904,18 +5904,18 @@ class BattleFrame(tk.Frame):
         """展开/收起矿物快捷兑换面板。"""
         if self.mineral_bar.winfo_ismapped():
             self.mineral_bar.pack_forget()
-            self.exchange_btn.config(bg="#fff9c4")
+            self.exchange_btn.config(bg="#fef3c7")
         else:
             self._refresh_mineral_bar()
             self.mineral_bar.pack(fill=tk.X, pady=(0, 5), before=self.hint_label)
-            self.exchange_btn.config(bg="#fff59d")
+            self.exchange_btn.config(bg="#fde68a")
 
     def _refresh_mineral_bar(self):
         """根据当前玩家资源刷新4个矿物按钮的可用状态。"""
         active = self.duel.game and self.duel.game.current_player
         if not active:
             for btn in self._mineral_buttons.values():
-                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
             return
 
         from tards.card_db import Pack
@@ -4928,13 +5928,13 @@ class BattleFrame(tk.Frame):
                     target_name = name
                     break
             if not target_name or not can_exchange:
-                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
                 continue
             tmp_card = DEFAULT_REGISTRY.get(target_name).to_game_card(active)
             if tmp_card.exchange_cost.can_afford(active):
-                btn.config(state=tk.NORMAL, bg="#fff9c4", fg="#f57f17")
+                btn.config(state=tk.NORMAL, bg="#fef3c7", fg=UI_THEME["res_mineral"])
             else:
-                btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
 
     def _do_exchange_mineral(self, name: str) -> None:
         """直接兑换指定名称的矿物，收起展开面板。"""
@@ -4950,7 +5950,7 @@ class BattleFrame(tk.Frame):
         # 收起展开面板
         if self.mineral_bar.winfo_ismapped():
             self.mineral_bar.pack_forget()
-            self.exchange_btn.config(bg="#fff9c4")
+            self.exchange_btn.config(bg="#fef3c7")
 
     def _on_exchange(self):
         """旧版弹窗兑换（保留兼容，但主入口改为展开面板）。"""
@@ -5031,10 +6031,22 @@ class BattleFrame(tk.Frame):
             print(f"[_schedule_refresh] 异常: {e}")
             import traceback
             traceback.print_exc()
+        try:
+            self._try_show_reveal()
+        except Exception as e:
+            print(f"[_schedule_refresh] _try_show_reveal 异常: {e}")
+            import traceback
+            traceback.print_exc()
         self.after(200, self._schedule_refresh)
 
     def _try_refresh(self):
         try:
+            # 注册弃置/移除/磨牌展示监听器（只需一次）
+            if not getattr(self, '_reveal_listeners_registered', False):
+                if self.duel and getattr(self.duel, 'game', None):
+                    self._register_reveal_listeners()
+                    self._reveal_listeners_registered = True
+
             # 网络对局：每 200ms 无条件刷新，确保对手操作可见
             need_refresh = gui_refresh_event.is_set() or isinstance(self.duel, NetworkDuel)
             if need_refresh:
@@ -5081,18 +6093,18 @@ class BattleFrame(tk.Frame):
                 "draw": "抽牌阶段",
                 "action": "出牌阶段",
                 "resolve": "结算阶段",
-                "start": "回合开始",
-                "end": "回合结束",
+                "start": "结算阶段开始",
+                "end": "结算阶段结束",
             }
             phase_text = phase_map.get(self.duel.game.current_phase, self.duel.game.current_phase or "")
             turn = self.duel.game.current_turn
             phase = self.duel.game.current_phase
             if phase == "resolve":
-                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg="#ffcdd2", fg="#b71c1c", font=("Microsoft YaHei", 16, "bold"))
+                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"], font=("Microsoft YaHei", 16, "bold"))
             elif phase == "action":
-                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg="#c8e6c9", fg="#1b5e20", font=("Microsoft YaHei", 14, "bold"))
+                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg="#dcfce7", fg=UI_THEME["success_dark"], font=("Microsoft YaHei", 14, "bold"))
             else:
-                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg="SystemButtonFace", fg="#d32f2f", font=("Microsoft YaHei", 14, "bold"))
+                self.phase_label.config(text=f"回合 {turn} | {phase_text}", bg=UI_THEME["bg_main"], fg=UI_THEME["danger"], font=("Microsoft YaHei", 14, "bold"))
             self.app.root.title(f"Tards 对战 - 回合{turn} {phase_text}")
         else:
             self.phase_label.config(text="等待游戏开始...")
@@ -5114,9 +6126,9 @@ class BattleFrame(tk.Frame):
                                 not current.squirrel_exchanged_this_turn and
                                 current.squirrel_deck)
                 if can_squirrel:
-                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#fff9c4", fg="#f57f17")
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#fef3c7", fg=UI_THEME["res_mineral"])
                 else:
-                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
             else:
                 self.exchange_squirrel_btn.pack_forget()
         elif self.local_player:
@@ -5133,9 +6145,9 @@ class BattleFrame(tk.Frame):
                                 not self.local_player.squirrel_exchanged_this_turn and
                                 self.local_player.squirrel_deck)
                 if can_squirrel:
-                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#e3f2fd", fg="#1565c0")
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#dbeafe", fg=UI_THEME["accent_dark"])
                 else:
-                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
             else:
                 self.exchange_squirrel_btn.pack_forget()
 
@@ -5145,8 +6157,11 @@ class BattleFrame(tk.Frame):
         # 清理手牌/费用闪烁追踪状态
         self._prev_hand_card_ids.clear()
         self._prev_res_values.clear()
+        self._last_discarded_info.clear()
         self._history_phase = None
         self._history_action_counter = 0
+        # 重置展示监听器注册标志，确保新游戏重新注册
+        self._reveal_listeners_registered = False
 
         self.duel.local_turn_callback = lambda: gui_refresh_event.set()
         self.duel.game_over_callback = lambda winner: self.after(0, lambda: self._on_gameover(winner))
@@ -5159,29 +6174,31 @@ class BattleFrame(tk.Frame):
 
         def run():
             import time
-            # 创建对局日志写入器（同时写文件和控制台）
-            log_writer = BattleLogWriter.create_for_battle()
-            self._log_path = getattr(log_writer, "log_path", None)
-            old_stdout = sys.stdout
-            sys.stdout = self._GuiLogWriter(self, log_writer)
+            # 创建结构化对局日志记录器
+            is_local = isinstance(self.duel, LocalDuel)
+
+            def ui_callback(line: str):
+                self.after(0, lambda l=line: self._log(l))
+
+            logger = GameLogger.create_for_battle(ui_callback=ui_callback if is_local else None)
+            self._log_path = logger.file_path
             try:
                 print("[GameThread] 游戏线程启动，准备运行 duel.run_game", file=sys.stderr)
                 self.duel.resolve_step_callback = lambda: (
                     gui_refresh_event.set(),
                     time.sleep(0.4),
                 )
-                self.duel.run_game(self.opponent)
+                self.duel.run_game(self.opponent, logger=logger)
                 print("[GameThread] duel.run_game 已返回", file=sys.stderr)
             except Exception as e:
                 import traceback
                 error_msg = f"游戏线程异常: {e}\n{traceback.format_exc()}"
                 print(error_msg, file=sys.stderr)
-                print(error_msg)
+                logger.log_error(error_msg)
                 self.after(0, lambda: messagebox.showerror("游戏错误", error_msg))
             finally:
                 self.duel.resolve_step_callback = None
-                sys.stdout = old_stdout
-                log_writer.close()
+                logger.close()
 
         self._game_thread = threading.Thread(target=run, daemon=True)
         self._game_thread.start()
@@ -5252,7 +6269,7 @@ class BattleFrame(tk.Frame):
         self._tooltip_source = None
 
     def _on_terminate_game(self):
-        """终止当前对局并返回主菜单。日志已由 BattleLogWriter 自动保存。"""
+        """终止当前对局并返回主菜单。日志已由 GameLogger 自动保存。"""
         if messagebox.askyesno("终止游戏", "确定要终止当前对局吗？\n日志将保存到 logs/ 目录。"):
             # 1. 标记游戏结束
             if self.duel.game:
@@ -5289,7 +6306,7 @@ class BattleFrame(tk.Frame):
             success = send_feedback(entry, host, port, timeout=5.0)
             if success:
                 messagebox.showinfo("反馈已发送", f"反馈已成功发送到 {server_addr}")
-                self.hint_label.config(text=f"[反馈] 已发送到 {server_addr}", fg="green")
+                self.hint_label.config(text=f"[反馈] 已发送到 {server_addr}", fg=UI_THEME["success"])
             else:
                 # 发送失败，询问是否本地备份
                 if messagebox.askyesno(
@@ -5298,19 +6315,21 @@ class BattleFrame(tk.Frame):
                 ):
                     path = save_feedback_local(entry)
                     messagebox.showinfo("本地备份", f"反馈已保存到:\n{path}")
-                    self.hint_label.config(text=f"[反馈] 已本地备份: {path}", fg="orange")
+                    self.hint_label.config(text=f"[反馈] 已本地备份: {path}", fg=UI_THEME["warning_dark"])
                 else:
-                    self.hint_label.config(text="[反馈] 发送失败，未保存", fg="red")
+                    self.hint_label.config(text="[反馈] 发送失败，未保存", fg=UI_THEME["danger"])
 
         FeedbackDialog(self, player_name, do_submit)
 
-    def _show_toast(self, text: str, bg_color: str = "#fff9c4", duration_ms: int = 1500):
+    def _show_toast(self, text: str, bg_color: str = "", duration_ms: int = 1500):
         """在屏幕中央显示一个临时浮层提示，duration_ms 后自动消失。"""
         toast = tk.Toplevel(self)
         toast.overrideredirect(True)
         toast.attributes("-topmost", True)
+        if not bg_color:
+            bg_color = UI_THEME["btn_warning_bg"]
         label = tk.Label(toast, text=text, font=("Microsoft YaHei", 14, "bold"),
-                         bg=bg_color, fg="#212121", padx=20, pady=10,
+                         bg=bg_color, fg=UI_THEME["text_primary"], padx=20, pady=10,
                          relief="solid", bd=1)
         label.pack()
         toast.update_idletasks()
@@ -5319,28 +6338,198 @@ class BattleFrame(tk.Frame):
         toast.geometry(f"+{x}+{y}")
         self.after(duration_ms, toast.destroy)
 
+    def _register_reveal_listeners(self):
+        """注册弃置/移除/磨牌展示监听器（仅一次）。"""
+        game = self.duel.game
+        if not game:
+            return
+        print(f"[Reveal] 注册展示监听器到游戏 {id(game)}")
+
+        def on_reveal_event(event):
+            event_type = event.type
+            card = event.get("card")
+            player = event.get("player")
+            print(f"[Reveal] 收到事件: {event_type}, card={getattr(card, 'name', None)}, player={getattr(player, 'name', None)}")
+            if not card:
+                return
+            if event_type == EVENT_DISCARDED:
+                label = "弃置"
+                # 记录弃牌信息（蓝色）
+                if player:
+                    self._last_discarded_info[player.name] = (card.name, UI_THEME["accent"])
+            elif event_type == EVENT_MILLED:
+                label = "磨牌"
+            elif event_type == "card_removed_from_deck":
+                label = "移除"
+            else:
+                label = "展示"
+            # 仅将数据放入队列，不操作 GUI（线程安全）
+            self._reveal_queue.append((label, card, player))
+            print(f"[Reveal] 已加入队列，当前队列长度: {len(self._reveal_queue)}")
+
+        def on_card_played(event):
+            card = event.get("card")
+            player = event.get("player")
+            if card and player:
+                # 策略/阴谋正常打出进入弃牌堆 → 黑色
+                self._last_discarded_info[player.name] = (card.name, UI_THEME["text_primary"])
+
+        game.register_listener(EVENT_DISCARDED, on_reveal_event)
+        game.register_listener(EVENT_MILLED, on_reveal_event)
+        game.register_listener("card_removed_from_deck", on_reveal_event)
+        game.register_listener(EVENT_CARD_PLAYED, on_card_played)
+
+    def _show_discard_pile(self, player):
+        """弹出窗口展示玩家的弃牌堆（单列列表）。"""
+        top = tk.Toplevel(self)
+        top.title(f"{player.name} 的弃牌堆")
+        top.geometry("360x400")
+        top.transient(self)
+        top.grab_set()
+
+        top.config(bg=UI_THEME["bg_main"])
+        title = tk.Label(top, text=f"{player.name} 的弃牌堆（{len(player.card_dis)} 张）",
+                         font=("Microsoft YaHei", 13, "bold"),
+                         bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"])
+        title.pack(pady=(10, 5))
+
+        # 滚动区域
+        outer = tk.Frame(top, bg=UI_THEME["bg_main"])
+        outer.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        canvas = tk.Canvas(outer, highlightthickness=0, bg=UI_THEME["bg_panel"])
+        scrollbar = tk.Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        inner = tk.Frame(canvas, bg=UI_THEME["bg_panel"])
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+
+        # 单列布局（从最新到最旧）
+        card_dis = list(player.card_dis)
+        if not card_dis:
+            empty_label = tk.Label(inner, text="弃牌堆为空", font=("Microsoft YaHei", 11),
+                                   fg=UI_THEME["text_muted"], bg=UI_THEME["bg_panel"])
+            empty_label.pack(pady=20)
+        else:
+            for card in reversed(card_dis):
+                cost_str = str(getattr(card, "cost", "?"))
+                name = getattr(card, "name", "未知")
+                text = f"{name} ({cost_str})"
+                lbl = tk.Label(inner, text=text, font=("Microsoft YaHei", 10),
+                               bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], anchor="w",
+                               padx=8, pady=4, relief=tk.RIDGE, bd=1)
+                lbl.pack(fill=tk.X, pady=2)
+
+        inner.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+
+        # 关闭按钮
+        tk.Button(top, text="关闭", command=top.destroy, font=("Microsoft YaHei", 10),
+                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
+                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1).pack(pady=(5, 10))
+
+    def _try_show_reveal(self):
+        """轮询入口：每 200ms 检查一次队列并展示下一张卡牌。"""
+        if self._is_revealing:
+            return
+        if not self._reveal_queue:
+            return
+        print(f"[Reveal] _try_show_reveal: 队列长度={len(self._reveal_queue)}, _is_revealing={self._is_revealing}")
+        self._show_next_reveal()
+
+    def _queue_reveal(self, items: list):
+        """将卡牌加入展示队列。
+
+        支持两种格式：
+        - 字符串列表（卡牌名称，向后兼容）
+        - (label, card, player) 元组列表（事件驱动）
+        """
+        for item in items:
+            self._reveal_queue.append(item)
+        # 不立即触发展示，由 _try_show_reveal 轮询处理（线程安全）
+
+    def _show_next_reveal(self):
+        """展示队列中的下一张卡牌。"""
+        try:
+            print(f"[Reveal] === _show_next_reveal START ===")
+            print(f"[Reveal]   queue_len={len(self._reveal_queue)}, _is_revealing={self._is_revealing}")
+            print(f"[Reveal]   reveal_frame.winfo_exists={self.reveal_frame.winfo_exists()}")
+            if not self._reveal_queue:
+                print(f"[Reveal]   队列空，直接返回")
+                self._is_revealing = False
+                self.reveal_frame.pack_forget()
+                return
+            self._is_revealing = True
+            item = self._reveal_queue.pop(0)
+            print(f"[Reveal]   popped item={item}")
+
+            # 兼容旧格式（仅字符串名称）
+            if isinstance(item, str):
+                name = item
+                label = "展示"
+                player_name = ""
+                card = None
+                card_def = DEFAULT_REGISTRY.get(name)
+                if card_def:
+                    from tards.cards import Card
+                    card = Card.from_definition(card_def)
+            else:
+                label, card, player = item
+                player_name = getattr(player, "name", "未知")
+                name = getattr(card, "name", "未知")
+            print(f"[Reveal]   label={label}, name={name}, player_name={player_name}, card={card}")
+
+            if card:
+                print(f"[Reveal]   开始渲染卡牌...")
+                self._render_reveal_card(self.reveal_canvas, card)
+                print(f"[Reveal]   卡牌渲染完成")
+            else:
+                print(f"[Reveal]   card为None，清空canvas")
+                self.reveal_canvas.delete("all")
+
+            print(f"[Reveal]   设置label文本...")
+            if player_name:
+                self.reveal_label.config(text=f"{player_name} {label}: {name}")
+            else:
+                self.reveal_label.config(text=f"{label}: {name}")
+            print(f"[Reveal]   label文本已设置")
+
+            print(f"[Reveal]   调用 reveal_frame.pack()...")
+            self.reveal_frame.pack(fill=tk.X, pady=(0, 5))
+            print(f"[Reveal]   reveal_frame.pack() 完成")
+            self.update_idletasks()
+            print(f"[Reveal]   update_idletasks 后 reveal_frame.winfo_viewable={self.reveal_frame.winfo_viewable()}")
+            print(f"[Reveal]   update_idletasks 后 reveal_frame.winfo_width={self.reveal_frame.winfo_width()}")
+            print(f"[Reveal]   update_idletasks 后 reveal_frame.winfo_height={self.reveal_frame.winfo_height()}")
+            print(f"[Reveal]   设置 after(1500, _finish_reveal)...")
+            self.after(1500, self._finish_reveal)
+            print(f"[Reveal] === _show_next_reveal END ===")
+        except Exception as e:
+            print(f"[Reveal] _show_next_reveal 异常: {e}")
+            import traceback
+            traceback.print_exc()
+            self._is_revealing = False
+
+    def _finish_reveal(self):
+        """当前卡牌展示结束，标记为可继续（轮询会处理下一张）。"""
+        print(f"[Reveal] === _finish_reveal START ===")
+        self._is_revealing = False
+        print(f"[Reveal]   queue_len={len(self._reveal_queue)}")
+        if not self._reveal_queue:
+            print(f"[Reveal]   队列空，隐藏 reveal_frame")
+            self.reveal_frame.pack_forget()
+            self.reveal_canvas.delete("all")
+            self.reveal_label.config(text="")
+        print(f"[Reveal] === _finish_reveal END ===")
+
     def _on_gameover(self, winner_name: Optional[str]):
         msg = f"游戏结束！胜者: {winner_name}" if winner_name else "游戏结束：平局"
         messagebox.showinfo("对战结束", msg)
         if hasattr(self.duel, "close"):
             self.duel.close()
         self.app.show_menu()
-
-    class _GuiLogWriter:
-        """把 print 输出同步到 GUI 日志框，实际文件写入委托给 BattleLogWriter。
-        网络对局不显示实时日志，仅本地对局同步到 GUI。"""
-        def __init__(self, gui: "BattleFrame", log_writer):
-            self.gui = gui
-            self.log_writer = log_writer
-        def write(self, s: str):
-            if s.strip():
-                msg = s.strip()
-                # 仅本地对局同步到 GUI 日志框；网络对局只写文件
-                if not isinstance(self.gui.duel, NetworkDuel):
-                    self.gui.after(0, lambda msg=msg: self.gui._log(msg))
-                self.log_writer.write(msg + "\n")
-        def flush(self):
-            self.log_writer.flush()
 
 
 def main():

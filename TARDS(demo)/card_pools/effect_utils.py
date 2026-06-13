@@ -224,17 +224,25 @@ def summon_minion_by_name(
     """在指定位置召唤一个指定名称的异象（不扣除费用）。
 
     用于变形、token召唤等场景。召唤出的异象会执行其 special_fn。
-    位置被占用时返回 None。
+    位置被占用或对该卡牌不合法时返回 None。
     """
-    from tards.cards import Minion
+    from tards.cards import Minion, MinionCard
 
     card = create_card_by_name(name, owner)
     if not card:
         print(f"  [警告] 注册表中找不到卡牌 [{name}]")
         return None
 
+    if not isinstance(card, MinionCard):
+        print(f"  [警告] {name} 不是异象卡，无法召唤")
+        return None
+
     if position in game.board.minion_place:
         print(f"  无法召唤 {name}：位置 {position} 已被占用")
+        return None
+
+    if not game.board.is_valid_deploy(position, owner, card):
+        print(f"  无法召唤 {name}：位置 {position} 不合法")
         return None
 
     new_minion = Minion(
@@ -257,11 +265,6 @@ def summon_minion_by_name(
     new_minion.asset_id = getattr(card, 'asset_id', None)
 
     if game.board.place_minion(new_minion, position):
-        new_minion.summon_turn = game.current_turn
-        # 休眠处理
-        if "迅捷" not in new_minion.keywords and "休眠" not in new_minion.base_keywords:
-            new_minion.base_keywords["休眠"] = 1
-            new_minion.recalculate()
         # 触发 special
         if card.special:
             import inspect
@@ -541,6 +544,7 @@ def discard_card(player: "Player", card: "Card") -> bool:
 
     返回 True 表示成功弃置，False 表示该卡不在手牌中。
     """
+    from tards.cards import MineralCard
     if card in player.card_hand:
         player.card_hand.remove(card)
     elif card in player.extra_hand:
@@ -557,6 +561,7 @@ def discard_card(player: "Player", card: "Card") -> bool:
 
 def mill_cards(player: "Player", amount: int, game: Optional["Game"] = None) -> int:
     """从牌库顶弃置 amount 张牌到弃牌堆（磨牌）。返回实际弃置数量。"""
+    from tards.constants import EVENT_MILLED
     if amount <= 0:
         return 0
     milled = 0
@@ -567,6 +572,8 @@ def mill_cards(player: "Player", amount: int, game: Optional["Game"] = None) -> 
         player.card_dis.append(card)
         milled += 1
         print(f"  {player.name} 磨牌：{card.name} 被弃置")
+        if game:
+            game.emit_event(EVENT_MILLED, player=player, card=card)
     return milled
 
 
@@ -822,7 +829,7 @@ def get_frontmost_enemy(
 def gain_resource(player: "Player", resource: str, amount: int) -> None:
     """增加玩家资源。resource 可为 't'/'c'/'b'/'s'（大小写不敏感）。
 
-    注意：鲜血(B)在回合结束时会自动清空，此处仅做临时增加。
+    注意：鲜血(B)在结算阶段结束时会自动清空，此处仅做临时增加。
     """
     if amount == 0:
         return
@@ -1052,8 +1059,8 @@ def _init_event_name_map():
         "removed": C.EVENT_REMOVED,
         "entered_battlefield": C.EVENT_ENTERED_BATTLEFIELD, "进入战场": C.EVENT_ENTERED_BATTLEFIELD,
         # 回合/阶段
-        "turn_start": C.EVENT_TURN_START, "回合开始": C.EVENT_TURN_START,
-        "turn_end": C.EVENT_TURN_END, "回合结束": C.EVENT_TURN_END,
+        "turn_start": C.EVENT_TURN_START, "结算阶段开始": C.EVENT_TURN_START,
+        "turn_end": C.EVENT_TURN_END, "结算阶段结束": C.EVENT_TURN_END,
         "phase_start": C.EVENT_PHASE_START, "阶段开始": C.EVENT_PHASE_START,
         "phase_end": C.EVENT_PHASE_END, "阶段结束": C.EVENT_PHASE_END,
         # 资源
@@ -1091,7 +1098,7 @@ def on(period: str, callback, game, minion=None, priority: int = 0, once: bool =
       "before_attack"/"攻击前", "attacked"/"攻击后", "after_attack",
       "before_deploy"/"部署前", "deployed"/"部署后", "after_deploy",
       "before_destroy"/"消灭前", "destroyed",
-      "turn_start"/"回合开始", "turn_end"/"回合结束",
+      "turn_start"/"结算阶段开始", "turn_end"/"结算阶段结束",
       "phase_start"/"阶段开始", "phase_end"/"阶段结束",
       "sacrifice"/"献祭", "draw"/"抽牌", "discarded"/"弃置", "milled"/"磨牌",
       "card_played"/"卡牌打出", "bell"/"鸣钟", "death"/"死亡"
@@ -1203,7 +1210,7 @@ def delay_to_next_turn(
     callback: Callable[[Any], None],
     once: bool = True,
 ) -> int:
-    """注册一个在下一回合开始时执行的回调。
+    """注册一个在下一结算阶段开始时执行的回调。
 
     自动过滤：只在 game.current_turn > 注册时的回合数 时触发，
     避免在同一回合内重复执行。
@@ -1259,7 +1266,7 @@ def delay_to_turn_end(
     callback: Callable[[Any], None],
     once: bool = True,
 ) -> int:
-    """注册一个在当前回合结束时执行的回调。
+    """注册一个在当前结算阶段结束时执行的回调。
     返回 listener_id（可用于手动注销）。
     """
     from tards.constants import EVENT_TURN_END
@@ -1311,7 +1318,7 @@ def increment_stat(game: "Game", key: str, delta: int = 1) -> int:
 
 def track_per_turn(game: "Game", key: str, value: Any, turn_offset: int = 0) -> None:
     """记录当前回合（或偏移回合）的状态。
-    key 会自动附加回合后缀，回合结束时由 game.py 自动清理。
+    key 会自动附加回合后缀，结算阶段结束时由 game.py 自动清理。
     """
     turn = game.current_turn + turn_offset
     full_key = f"{key}_turn_{turn}"
@@ -1334,7 +1341,7 @@ def track_event_per_turn(
     event_type: str,
     filter_fn: Optional[Callable[[Any], bool]] = None,
 ) -> int:
-    """自动追踪某事件每回合的发生次数，并在回合结束时清零。
+    """自动追踪某事件每回合的发生次数，并在结算阶段结束时清零。
 
     注册一个 event_type 的全局监听器，满足 filter_fn 时计数 +1。
     返回 owner_id（可用于手动注销）。
@@ -1433,8 +1440,8 @@ def on_card_played_global(minion: "Minion", game: "Game", callback: Callable,
 
 def on_turn_start_global(minion: "Minion", game: "Game", callback: Callable,
                          priority: int = 0) -> int:
-    """【兼容】监听全局回合开始事件。
-    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""
+    """【兼容】监听全局结算阶段开始事件。
+    规则：结算阶段开始等价于 PHASE_RESOLVE 开始。"""
     def _wrapper(event):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
@@ -1444,8 +1451,8 @@ def on_turn_start_global(minion: "Minion", game: "Game", callback: Callable,
 
 def on_turn_end_global(minion: "Minion", game: "Game", callback: Callable,
                        priority: int = 0) -> int:
-    """【兼容】监听全局回合结束事件。
-    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""
+    """【兼容】监听全局结算阶段结束事件。
+    规则：结算阶段结束等价于 PHASE_RESOLVE 结束。"""
     def _wrapper(event):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
@@ -1892,9 +1899,9 @@ def give_temp_keyword_until_turn_end(
     keyword: str,
     value: Any = True,
 ) -> None:
-    """为异象赋予一个临时关键词，当前回合结束时自动清除。
+    """为异象赋予一个临时关键词，当前结算阶段结束时自动清除。
 
-    通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在回合结束清理）。
+    通过 minion 已有的 temp_keywords 机制实现（clear_temp_effects 会在结算阶段结束清理）。
     """
     gain_keyword(minion, keyword, value, permanent=False)
 
@@ -1904,7 +1911,7 @@ def give_temp_buff_until_turn_end(
     atk_delta: int = 0,
     hp_delta: int = 0,
 ) -> None:
-    """为异象提供临时 buff，当前回合结束时自动清除。"""
+    """为异象提供临时 buff，当前结算阶段结束时自动清除。"""
     buff_minion(minion, atk_delta, hp_delta, permanent=False)
 
 
@@ -2017,7 +2024,7 @@ def on_sacrifice(minion: "Minion", game: "Game", callback: Callable,
 def on_turn_start(minion: "Minion", game: "Game", callback: Callable,
                   priority: int = 0) -> int:
     """【兼容】注册 turn_start 监听器。
-    规则：回合开始等价于结算阶段开始（PHASE_RESOLVE）。"""
+    规则：结算阶段开始等价于 PHASE_RESOLVE 开始。"""
     def _wrapper(event):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
@@ -2028,7 +2035,7 @@ def on_turn_start(minion: "Minion", game: "Game", callback: Callable,
 def on_turn_end(minion: "Minion", game: "Game", callback: Callable,
                 priority: int = 0) -> int:
     """【兼容】注册 turn_end 监听器。
-    规则：回合结束等价于结算阶段结束（PHASE_RESOLVE）。"""
+    规则：结算阶段结束等价于 PHASE_RESOLVE 结束。"""
     def _wrapper(event):
         if event.data.get("phase") != game.PHASE_RESOLVE:
             return
@@ -2117,7 +2124,7 @@ def get_minions_by_cost(
 # =============================================================================
 
 def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None], source_name: str = "未知") -> None:
-    """给异象注入一个回合开始效果。source_name 用于 UI 显示来源。"""
+    """给异象注入一个结算阶段开始效果。source_name 用于 UI 显示来源。"""
     if not hasattr(minion, "_injected_turn_start"):
         minion._injected_turn_start = []
     fn._source_name = source_name
@@ -2125,7 +2132,7 @@ def add_turn_start_effect(minion: "Minion", fn: Callable[["Minion", "Player", "G
 
 
 def add_turn_end_effect(minion: "Minion", fn: Callable[["Minion", "Player", "Game"], None], source_name: str = "未知") -> None:
-    """给异象注入一个回合结束效果。source_name 用于 UI 显示来源。"""
+    """给异象注入一个结算阶段结束效果。source_name 用于 UI 显示来源。"""
     if not hasattr(minion, "_injected_turn_end"):
         minion._injected_turn_end = []
     fn._source_name = source_name
@@ -2316,7 +2323,7 @@ def register_terrain_enforcement(
         game: 游戏实例
         column: 被覆盖的列号（0-4）
         forced_terrain: 强制地形（如"水路"、"高地"）
-        end_turn: 覆盖持续到哪个回合结束（含）
+        end_turn: 覆盖持续到哪个结算阶段结束（含）
         owner: 可选绑定对象，绑定后该对象离场时延迟清理会被生命周期系统跳过
     """
     from tards.constants import EVENT_PHASE_START
@@ -2352,7 +2359,7 @@ def register_terrain_enforcement(
 
     listener_id = game.history.listen(EVENT_PHASE_START, _phase_checker)
 
-    # 清理函数：在 end_turn 回合结束时移除覆盖、注销监听器、最终检查
+    # 清理函数：在 end_turn 结算阶段结束时移除覆盖、注销监听器、最终检查
     def _cleanup():
         # 注销监听器
         game.history.unlisten(listener_id)
@@ -2401,7 +2408,7 @@ def is_untargetable_by_minions(minion: "Minion") -> bool:
 # =============================================================================
 
 def clear_attack_restrictions(game: "Game") -> None:
-    """清除所有全局攻击限制。应在回合结束时调用。"""
+    """清除所有全局攻击限制。应在结算阶段结束时调用。"""
     if hasattr(game, "_attack_restrictions"):
         game._attack_restrictions.clear()
 

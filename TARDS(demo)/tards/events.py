@@ -15,7 +15,10 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from .game_logger import GameLogger
 
 
 @dataclass
@@ -45,8 +48,9 @@ class EventBus:
     priority 越小越先执行（负数可用于最优先拦截）。
     """
 
-    def __init__(self, game=None):
+    def __init__(self, game=None, logger: Optional["GameLogger"] = None):
         self.game = game
+        self.logger = logger
         # event_type -> [(priority, fn, owner_id), ...]
         self._listeners: Dict[str, List[Tuple[int, Callable, Optional[int]]]] = {}
         # owner_id -> [event_type, ...]  用于批量注销
@@ -107,13 +111,53 @@ class EventBus:
         all_listeners = list(specific) + list(wildcard)
         all_listeners.sort(key=lambda x: x[0])
 
+        if self.logger:
+            self.logger.log_event(
+                event_type=event_type,
+                source=source,
+                data=kwargs,
+                listener_count=len(all_listeners),
+            )
+
         for priority, fn, owner_id in all_listeners:
             # before_* 事件：一旦 cancelled，跳过后续监听器
             if event.cancelled and event_type.startswith("before_"):
+                if self.logger:
+                    self.logger.log_response(
+                        event_type=event_type,
+                        listener_name=fn.__name__,
+                        before_state={"cancelled": True},
+                        after_state={"cancelled": True, "skipped": True},
+                    )
                 break
+
+            before_state = {
+                "cancelled": event.cancelled,
+                "prevent_default": event.prevent_default,
+            }
             try:
                 fn(event)
+                after_state = {
+                    "cancelled": event.cancelled,
+                    "prevent_default": event.prevent_default,
+                }
+                if self.logger:
+                    self.logger.log_response(
+                        event_type=event_type,
+                        listener_name=fn.__name__,
+                        before_state=before_state,
+                        after_state=after_state,
+                    )
             except Exception as e:
+                after_state = {"cancelled": event.cancelled, "prevent_default": event.prevent_default, "error": str(e)}
+                if self.logger:
+                    self.logger.log_response(
+                        event_type=event_type,
+                        listener_name=fn.__name__,
+                        before_state=before_state,
+                        after_state=after_state,
+                        exception=e,
+                    )
                 print(f"  [事件错误] {event_type} 监听器 {fn.__name__}: {e}")
         return event
 

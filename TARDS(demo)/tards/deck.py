@@ -133,15 +133,19 @@ class Deck:
         for pack in all_packs:
             x = self.immersion_points.get(pack, 0)
             count = pack_counts.get(pack, 0)
-            if x == 0:
-                if count > 0:
-                    errors.append(f"[{pack.value}] 卡包未分配沉浸点，但卡组中包含 {count} 张该卡包卡牌")
-            else:
-                max_allowed = 10 * (x + 1)
+            max_allowed = 10 * (x + 1)
+            if pack == Pack.GENERAL:
+                # 通用卡包不强制要求沉浸点，但仍受数量上限限制
                 if count > max_allowed:
-                    errors.append(f"[{pack.value}] 卡包分配了 {x} 点沉浸点，至多 {max_allowed} 张，当前 {count} 张")
-                # 通用卡包没有数量下限；非通用卡包至少 10X 张
-                if pack != Pack.GENERAL:
+                    errors.append(f"[{pack.value}] 通用卡包至多 {max_allowed} 张，当前 {count} 张")
+            else:
+                if x == 0:
+                    if count > 0:
+                        errors.append(f"[{pack.value}] 卡包未分配沉浸点，但卡组中包含 {count} 张该卡包卡牌")
+                else:
+                    if count > max_allowed:
+                        errors.append(f"[{pack.value}] 卡包分配了 {x} 点沉浸点，至多 {max_allowed} 张，当前 {count} 张")
+                    # 非通用卡包至少 10X 张
                     min_required = 10 * x
                     if count < min_required:
                         errors.append(f"[{pack.value}] 卡包分配了 {x} 点沉浸点，至少需要 {min_required} 张，当前 {count} 张")

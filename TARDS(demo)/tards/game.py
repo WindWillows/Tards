@@ -21,6 +21,7 @@ from .effect_queue import EffectQueue
 from .events import EventBus, GameEvent
 from .fusion import FusionSystem
 from .game_history import GameHistory
+from .game_logger import GameLogger
 from .player import Player
 from .targeting import TargetingRequest, TargetingSystem
 
@@ -40,6 +41,7 @@ class Game:
         discover_provider: Optional[Callable[["Game", Player, List[Any], int], Optional[Any]]] = None,
         targeting_provider: Optional[Callable[["Game", TargetingRequest, List[Any]], Optional[Any]]] = None,
         mulligan_provider: Optional[Callable[["Game", List[Player]], None]] = None,
+        logger: Optional[GameLogger] = None,
     ):
         self.p1 = player1
         self.p2 = player2
@@ -56,8 +58,9 @@ class Game:
         self.targeting_provider = targeting_provider
         self.mulligan_provider = mulligan_provider
         self.choice_provider: Optional[Callable[["Game", "Player", List[str], str], Optional[str]]] = None
+        self.logger = logger or GameLogger.create_for_battle()
         self.effect_queue = EffectQueue(self)
-        self.event_bus = EventBus(self)
+        self.event_bus = EventBus(self, logger=self.logger)
         self.targeting_system = TargetingSystem(self)
         self.resolve_step_callback = None
         self._next_sync_id = 1
@@ -75,7 +78,7 @@ class Game:
         # 部署光环/钩子（全局监听新异象部署）
         self.deploy_hooks: List[Callable[["Minion"], None]] = []
 
-        # 延迟效果队列（下回合开始时/回合结束时触发）
+        # 延迟效果队列（下结算阶段开始时/结算阶段结束时触发）
         self._delayed_effects: List[Dict[str, Any]] = []
 
         # 全局部署限制（如疣猪"双方无法部署花费≤4T的异象"）
@@ -132,7 +135,7 @@ class Game:
         # === 新版事件总线（含通配符监听器，阴谋在此触发） ===
         event = self.event_bus.emit(event_type, source=source, **kwargs)
 
-        # === 自动化时间节点效果（回合开始/结束等） ===
+        # === 自动化时间节点效果（结算阶段开始/结束等） ===
         event_data = dict(event_type=event_type, **kwargs)
         if event_type in (EVENT_TURN_START, EVENT_TURN_END, EVENT_PHASE_START,
                           EVENT_PHASE_END, EVENT_DEPLOYED, EVENT_DEATH,
@@ -154,7 +157,7 @@ class Game:
                     if hasattr(p, "_cost_modifier_system"):
                         removed = p._cost_modifier_system.expire("turn_end")
                         if removed:
-                            print(f"  [费用系统] {p.name} 清理 {removed} 个回合结束过期的费用修正")
+                            print(f"  [费用系统] {p.name} 清理 {removed} 个结算阶段结束过期的费用修正")
             elif event_type == EVENT_PHASE_END:
                 for p in self.players:
                     if hasattr(p, "_cost_modifier_system"):
@@ -169,7 +172,7 @@ class Game:
                         for prov in (m._aura_attack_provider, m._aura_max_health_provider, m._aura_keyword_provider):
                             removed = prov.expire("turn_end")
                             if removed:
-                                print(f"  [光环系统] {m.name} 清理 {removed} 个回合结束过期的光环")
+                                print(f"  [光环系统] {m.name} 清理 {removed} 个结算阶段结束过期的光环")
             elif event_type == EVENT_PHASE_END:
                 for m in list(self.board.minion_place.values()):
                     if m.is_alive():
@@ -255,7 +258,7 @@ class Game:
     def _trigger_auto_effects(self, event_type: str, event_data: Dict[str, Any]):
         """触发场上异象、手牌、玩家的自动化时间节点效果。
 
-        规则："回合开始/结束" 等价于 "结算阶段开始/结束"（PHASE_RESOLVE）。
+        规则："结算阶段开始/结束" 等价于 "结算阶段开始/结束"（PHASE_RESOLVE）。
         """
         attrs_to_trigger = []
         trigger_injected_start = False
@@ -265,11 +268,11 @@ class Game:
         if normal_attr:
             attrs_to_trigger.append(normal_attr)
 
-        # 结算阶段开始 = 回合开始
+        # 结算阶段开始 = 结算阶段开始
         if event_type == EVENT_PHASE_START and event_data.get("phase") == self.PHASE_RESOLVE:
             attrs_to_trigger.append("on_turn_start")
             trigger_injected_start = True
-        # 结算阶段结束 = 回合结束
+        # 结算阶段结束 = 结算阶段结束
         elif event_type == EVENT_PHASE_END and event_data.get("phase") == self.PHASE_RESOLVE:
             attrs_to_trigger.append("on_turn_end")
             trigger_injected_end = True
@@ -297,13 +300,13 @@ class Game:
                 if trigger_injected_start and attr_name == "on_turn_start":
                     for inj_fn in list(getattr(m, "_injected_turn_start", []) or []):
                         self.effect_queue.queue(
-                            f"{m.name} 的注入回合开始效果",
+                            f"{m.name} 的注入结算阶段开始效果",
                             lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
                         )
                 elif trigger_injected_end and attr_name == "on_turn_end":
                     for inj_fn in list(getattr(m, "_injected_turn_end", []) or []):
                         self.effect_queue.queue(
-                            f"{m.name} 的注入回合结束效果",
+                            f"{m.name} 的注入结算阶段结束效果",
                             lambda m=m, inj_fn=inj_fn: inj_fn(m, m.owner, self),
                         )
 
@@ -572,7 +575,7 @@ class Game:
         print("[出牌阶段]")
         for p in self.players:
             p.reset_turn_flags()
-            # 回合结束清空鲜血
+            # 结算阶段结束清空鲜血
             p.b_point = 0
             for m in self.board.get_minions_of_player(p):
                 m.clear_temp_effects()
@@ -608,7 +611,6 @@ class Game:
             self.show_hand(active)
             active.bell = False
             active.t_changed_this_round = False
-            active.played_card_this_round = False
 
             if self.action_provider:
                 action = self.action_provider(self, active, opponent)
@@ -641,6 +643,7 @@ class Game:
                     print(f"  {active.name} 本回合未打出过手牌即拍铃，失去 1 T点")
                     active.t_point_change(-1)
                 active, opponent = opponent, active
+                active.played_card_this_round = False
                 continue
             elif act_type == "exchange":
                 discrete_pts = active.immersion_points.get(Pack.DISCRETE, 0)
@@ -1167,7 +1170,7 @@ class Game:
         return False
 
     def clear_protections(self):
-        """清理所有持续保护效果（回合结束/开始时调用）。"""
+        """清理所有持续保护效果（结算阶段结束/开始时调用）。"""
         self._target_protections.clear()
         # 移除所有 once=False 的伤害替换（持续型）
         self._damage_replacements = [

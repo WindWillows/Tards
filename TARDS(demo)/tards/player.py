@@ -89,10 +89,10 @@ class Player:
         return []
 
     def get_friendly_rows(self) -> tuple:
-        return (3, 4) if self.side == 0 else (0, 1)
+        return (3, 4)if self.side == 0 else (1, 0)
 
     def get_enemy_rows(self) -> tuple:
-        return (0, 1) if self.side == 0 else (3, 4)
+        return (1, 0) if self.side == 0 else (3, 4)
 
     def health_change(self, delta: int, source: Any = None) -> bool:
         """改变生命值。delta < 0 时表示【受到伤害】，触发伤害替换、血契2级、player_damage 事件。
@@ -282,8 +282,7 @@ class Player:
             self.card_dis.append(card)
             print(f"  {self.name} 手牌已满，{card.name} 被弃置")
             if game and emit_events:
-                game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="mill")
-                game.emit_event(EVENT_MILLED, player=self, card=card)
+                game.emit_event(EVENT_DISCARDED, player=self, card=card, reason="overflow")
             return None
         
         if mark_drawn:

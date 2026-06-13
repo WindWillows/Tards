@@ -108,6 +108,19 @@ def _genchu_effect(player, target, game, extras=None):
     return False
 
 
+@special
+def _jingxiliwu_special(minion, player, game, extras=None):
+    """惊喜礼物：亡语：你抽1张牌，对手抽2张牌。"""
+    def _dr(m, p, b):
+        g = b.game_ref
+        opponent = g.p2 if p == g.p1 else g.p1
+        p.draw_card(1, game=g)
+        print(f"  惊喜礼物：{p.name} 抽1张牌")
+        opponent.draw_card(2, game=g)
+        print(f"  惊喜礼物：{opponent.name} 抽2张牌")
+    add_deathrattle(minion, _dr)
+
+
 # =============================================================================
 # 注册卡牌
 # =============================================================================
@@ -230,4 +243,20 @@ register_card(
     description="消灭一个异象。",
     targets_fn=target("minion"),
     effect_fn=_genchu_effect,
+)
+
+register_card(
+    name="惊喜礼物",
+    cost_str="3T",
+    card_type=CardType.MINION,
+    pack=Pack.GENERAL,
+    rarity=Rarity.BRONZE,
+    attack=4,
+    health=4,
+    keywords={"亡语": True},
+    tags=[],
+    hidden_keywords={},
+    description="亡语：你抽1张牌，对手抽2张牌。",
+    targets_fn=target("position", friendly=True),
+    special_fn=_jingxiliwu_special,
 )

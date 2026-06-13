@@ -273,15 +273,41 @@ def _liuqinghuajia_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# 竹心：亡语：随机消灭1个处于协同的敌方异象。
+# 竹心：部署：消灭一个处于协同的敌方异象。
 # =============================================================================
-@special
 @special
 def _zhuxin_special(minion, player, game, extras=None):
     """竹心：部署：消灭一个处于协同的敌方异象。"""
-    target = extras
-    if not target or not target.is_alive():
+    from tards.targeting import TargetingRequest
+    from tards.cards import Minion
+
+    def scope(p, board):
+        return [m for m in board.minion_place.values()
+                if m.is_alive() and m.owner != player and m.keywords.get("协同", False)]
+
+    candidates = scope(player, game.board)
+    if not candidates:
+        print("  竹心：没有处于协同的敌方异象")
+        return True
+
+    req = TargetingRequest()
+    req.source = minion
+    req.scope_fn = scope
+    req.prompt = "竹心：选择1个处于协同的敌方异象"
+    req.deciding_player = player
+
+    target = game.targeting_system.request_target(req)
+    if target is None:
+        print("  竹心：取消选择目标")
         return False
+
+    if not isinstance(target, Minion) or not target.is_alive():
+        print("  竹心：目标无效")
+        return False
+    if target.owner == player or not target.keywords.get("协同", False):
+        print("  竹心：目标不是处于协同的敌方异象")
+        return False
+
     destroy_minion(target, game)
     print(f"  竹心部署：消灭处于协同的 {target.name}")
     return True
@@ -308,11 +334,11 @@ def _huanderxixi_special(minion, player, game, extras=None):
 
 
 # =============================================================================
-# Bishop：回合结束：场上每有1个具有恐惧的异象，你获得1点HP。
+# Bishop：结算阶段结束：场上每有1个具有恐惧的异象，你获得1点HP。
 # =============================================================================
 @special
 def _bishop_special(minion, player, game, extras=None):
-    """Bishop：回合结束：场上每有1个具有恐惧的异象，你获得1点HP。"""
+    """Bishop：结算阶段结束：场上每有1个具有恐惧的异象，你获得1点HP。"""
     def on_turn_end(g, event_data, source=minion):
         if not source.is_alive():
             return
@@ -539,7 +565,7 @@ def _xianchu_xinzang_effect(player, target, game, extras=None):
     return True
 
 def _jisuobuyu_effect(player, target, game, extras=None):
-    """己所不欲：随机将对方1张手牌转换为己所不欲（+2T直到回合结束）。"""
+    """己所不欲：随机将对方1张手牌转换为己所不欲（+2T直到结算阶段结束）。"""
     import random
     opponent = game.p2 if player == game.p1 else game.p1
 
@@ -568,7 +594,7 @@ def _jisuobuyu_effect(player, target, game, extras=None):
     opponent.card_hand.append(new_card)
     print(f"  己所不欲：{opponent.name} 的 [{original.name}] 被转换为 [{new_card.name}]（+2T）")
 
-    # 回合结束时移除修正
+    # 结算阶段结束时移除修正
     def _cleanup():
         if _temp_cost_mod in getattr(new_card, "_card_cost_modifiers", []):
             new_card._card_cost_modifiers.remove(_temp_cost_mod)
@@ -695,7 +721,7 @@ def _kongju_zhi_effect(player, target, game, extras=None):
     return True
 
 def _zhongying_effect(player, target, game, extras=None):
-    """重影：对方胶片数量翻倍，所有胶片+1T直到回合结束。"""
+    """重影：对方胶片数量翻倍，所有胶片+1T直到结算阶段结束。"""
     opponent = game.p2 if player == game.p1 else game.p1
     film_def = DEFAULT_REGISTRY.get("胶片")
 
@@ -723,7 +749,7 @@ def _zhongying_effect(player, target, game, extras=None):
         film._card_cost_modifiers.append(_temp_cost_mod)
     print(f"  重影：{len(all_films)} 张胶片+1T")
 
-    # 回合结束时移除修正
+    # 结算阶段结束时移除修正
     def _cleanup():
         for film in all_films:
             if _temp_cost_mod in getattr(film, "_card_cost_modifiers", []):
@@ -1129,12 +1155,12 @@ def _hangou_chilun_effect(player, target, game, extras=None, card=None):
     player.health_change(-3)
     print(f"  含垢齿轮：{player.name} 受到3点伤害")
 
-    player._double_s_gain = True
+    player._double_blood_gain = True
     print(f"  含垢齿轮：{player.name} 获得双倍血契")
     return True
 
 def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
-    '''天下无双：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。'''
+    '''天下无双：随机对1个敌方异象失去1点HP。若场上有敌方异象的HP为偶数，重复此操作。'''
     import random
 
     opponent = game.p2 if player == game.p1 else game.p1
@@ -1146,10 +1172,12 @@ def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
         if not enemy_minions:
             break
 
-        # 随机选1个造成1点伤害
+        # 随机选1个失去1点HP
         victim = random.choice(enemy_minions)
-        victim.take_damage(1, source_type="strategy")
-        print(f'  天下无双：{victim.name} 受到1点伤害')
+        victim.current_health -= 1
+        print(f'  天下无双：{victim.name} 失去1点HP')
+        if victim.current_health <= 0:
+            victim.minion_death()
 
         # 检查是否仍有敌方异象HP为偶数
         has_even_hp = any(
@@ -1204,13 +1232,13 @@ def _weiwei_yuzhui_effect(player, target, game, extras=None, card=None):
     return True
 
 def _zhanweifu1_effect(player, target, game, extras=None, card=None):
-    """占位符1：消灭场上攻击力唯一最高的敌方异象。"""
+    """阳炎：消灭场上攻击力唯一最高的敌方异象。"""
     opponent = game.p2 if player == game.p1 else game.p1
     enemy_minions = [m for m in game.board.minion_place.values()
                      if m.is_alive() and m.owner == opponent]
 
     if not enemy_minions:
-        print("  占位符1：场上没有敌方异象")
+        print("  阳炎：场上没有敌方异象")
         return True
 
     # 找出最高攻击力
@@ -1218,13 +1246,13 @@ def _zhanweifu1_effect(player, target, game, extras=None, card=None):
     highest = [m for m in enemy_minions if m.attack == max_attack]
 
     if len(highest) != 1:
-        print(f"  占位符1：最高攻击力({max_attack})的敌方异象有{len(highest)}个，不唯一，无法消灭")
+        print(f"  阳炎：最高攻击力({max_attack})的敌方异象有{len(highest)}个，不唯一，无法消灭")
         return True
 
     victim = highest[0]
     victim.current_health = 0
     victim.minion_death()
-    print(f"  占位符1：消灭 {victim.name}")
+    print(f"  阳炎：消灭 {victim.name}")
     return True
 
 def _zhanweifu2_effect(player, target, game, extras=None, card=None):
@@ -1467,35 +1495,6 @@ def _xuezhi_huaibiao_game_start(player, game, card):
         player.card_deck.insert(0, card)
         print(f"  血渍怀表：{player.name} 将其置入卡组顶")
 
-def _tianxiawushuang_effect(player, target, game, extras=None, card=None):
-    """天下无"双"：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。"""
-    import random
-
-    opponent = game.p2 if player == game.p1 else game.p1
-
-    while True:
-        # 获取敌方存活异象
-        enemy_minions = [m for m in game.board.minion_place.values()
-                         if m.is_alive() and m.owner == opponent]
-        if not enemy_minions:
-            break
-
-        # 随机选1个造成1点伤害
-        victim = random.choice(enemy_minions)
-        victim.take_damage(1, source_type="strategy")
-        print(f"天下无双：{victim.name} 受到1点伤害")
-
-        # 检查是否仍有敌方异象HP为偶数
-        has_even_hp = any(
-            m.is_alive() and m.health % 2 == 0
-            for m in game.board.minion_place.values()
-            if m.owner == opponent
-        )
-        if not has_even_hp:
-            break
-
-    return True
-
 def target_highland_minion(player, board):
     """返回所有位于高地列（col=0）的异象。"""
     return [m for m in board.minion_place.values()
@@ -1728,42 +1727,49 @@ def _silingfashi_special(minion, player, game, extras=None):
 
 @special
 def _xianyingshi_special(minion, player, game, extras=None):
-    """显影室：回合开始：将1个"溴化银"加入本异象前方。"""
+    """显影室：结算阶段开始：将1个"溴化银"加入本异象前方。"""
     from tards.constants import EVENT_PHASE_START
     from card_pools.effect_utils import summon_minion_by_name
 
     def on_phase_start(event, g):
+        print(player,f"[DEBUG 显影室] on_phase_start 触发, phase={event.data.get('phase')}, expected={g.PHASE_RESOLVE}")
         if event.data.get("phase") != g.PHASE_RESOLVE:
+            print(player,f"[DEBUG 显影室] 阶段不匹配，跳过")
             return
-        if event.data.get("first") is not player:
-            return
+
+        print(player,f"[DEBUG 显影室] minion.is_alive()={minion.is_alive()}")
         if not minion.is_alive():
+            print(player,f"[DEBUG 显影室] 显影室已死亡，跳过")
             return
 
         pos = minion.position
-        if pos is None:
-            return
+        print(player,f"[DEBUG 显影室] minion.position={pos}")
 
         friendly_rows = player.get_friendly_rows()
         current_row = pos[0]
         col = pos[1]
-
+        
         # 后排 -> 前排
         if current_row == friendly_rows[1]:
             front_pos = (friendly_rows[0], col)
+            print(player,f"[DEBUG 显影室] 在后排，前方位置={front_pos}")
         else:
-            print("  显影室：已在前排，无法在前方召唤")
+            print(player,f"[DEBUG 显影室] 已在前排，无法在前方召唤")
             return
 
         if front_pos in g.board.minion_place:
-            print(f"  显影室：前方 {front_pos} 已被占用，无法召唤溴化银")
+            print(player,f"[DEBUG 显影室] 前方 {front_pos} 已被占用，无法召唤溴化银")
             return
 
+        print(player,f"[DEBUG 显影室] 尝试召唤溴化银到 {front_pos}")
         result = summon_minion_by_name(g, "溴化银", player, front_pos)
         if result:
-            print(f"  显影室：在前方 {front_pos} 召唤溴化银")
+            print(player,f"[DEBUG 显影室] 在前方 {front_pos} 召唤溴化银成功")
+        else:
+            print(player,f"[DEBUG 显影室] 召唤溴化银失败")
 
     game.history.listen(EVENT_PHASE_START, on_phase_start, owner=minion)
+    print(player,f"[DEBUG 显影室] 监听器已注册，owner={minion.name} at {minion.position}")
     return True
 
 
@@ -1836,7 +1842,13 @@ def _liuming_special(minion, player, game, extras=None):
             print(f"  流明：战场已满，无法继续召唤")
             break
         spirit_def = random.choice(spirits)
-        pos = empties.pop(0)
+        spirit_card = spirit_def.to_game_card(player)
+        valid_positions = [pos for pos in empties if game.board.is_valid_deploy(pos, player, spirit_card)]
+        if not valid_positions:
+            print(f"  流明：没有合法位置召唤 {spirit_def.name}")
+            continue
+        pos = random.choice(valid_positions)
+        empties.remove(pos)
         result = summon_minion_by_name(game, spirit_def.name, player, pos)
         if result:
             print(f"  流明：召唤 {spirit_def.name} 至 {pos}")
@@ -2059,28 +2071,6 @@ def _guankui_effect(player, target, game, extras=None, card=None):
     return True
 
 
-def _tianxiawushuang_effect(player, target, game, extras=None, card=None):
-    """天下无双：随机对1个敌方异象造成1点伤害。若场上有敌方异象的HP为偶数，重复此操作。"""
-    import random
-
-    opponent = game.p1 if player == game.p2 else game.p1
-
-    while True:
-        enemies = [
-            m for m in game.board.minion_place.values()
-            if m.is_alive() and m.owner == opponent and m.current_health % 2 == 0
-        ]
-        if not enemies:
-            print("  天下无双：场上无偶数HP敌方异象，停止")
-            break
-
-        target_minion = random.choice(enemies)
-        target_minion.take_damage(1, source_minion=card, source_type="effect")
-        print(f"  天下无双：对 {target_minion.name} 造成1点伤害（HP {target_minion.current_health + 1} -> {target_minion.current_health}）")
-
-    return True
-
-
 @special
 def _yixi_special(minion, player, game, extras=None):
     """乙烯：部署：还原一个异象的HP（恢复到初始面板生命值）。"""
@@ -2152,7 +2142,7 @@ def _erliuhuatan_special(minion, player, game, extras=None):
 
 @special
 def _sanfuhualu_special(minion, player, game, extras=None):
-    """三氟化氯：场上有异象具有恐惧时，无法被异象指向。回合开始：随机使1个敌方异象具有恐惧。"""
+    """三氟化氯：场上有异象具有恐惧时，无法被异象指向。结算阶段开始：随机使1个敌方异象具有恐惧。"""
     from tards.constants import EVENT_PHASE_START
 
     # 1. 动态"虚化"：通过 _aura_keyword_fns 实现
@@ -2192,7 +2182,7 @@ def _sanfuhualu_special(minion, player, game, extras=None):
     # 监听任意事件，确保任何状态变化后都检查恐惧计数
     game.history.listen("*", track_fear_change, owner=minion)
 
-    # 3. 回合开始：随机使1个敌方异象具有恐惧
+    # 3. 结算阶段开始：随机使1个敌方异象具有恐惧
     def on_phase_start(event, g):
         if event.data.get("phase") != g.PHASE_RESOLVE:
             return

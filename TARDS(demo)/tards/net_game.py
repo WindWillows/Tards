@@ -197,7 +197,7 @@ class NetworkDuel:
                 return None
 
     # ========== 游戏运行 ==========
-    def run_game(self, opponent: Player, action_provider: Optional[Callable] = None):
+    def run_game(self, opponent: Player, action_provider: Optional[Callable] = None, logger=None):
         """在后台线程中启动游戏。"""
         # 如果 Host 决定 Client 先手（未来可能扩展），需要调整 first/second
         # 目前简化：Host 固定 side=0 且先手
@@ -215,6 +215,7 @@ class NetworkDuel:
             discover_provider=self._make_discover_provider(),
             targeting_provider=self._make_targeting_provider(),
             mulligan_provider=self._make_mulligan_provider(),
+            logger=logger,
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
@@ -281,7 +282,7 @@ class NetworkDuel:
         self._sync_hash_thread.start()
 
     def _on_sync_hash(self, turn: int, hash_val: str):
-        """Game 回合结束时调用：记录本地 hash 并发送给远端。"""
+        """Game 结算阶段结束时调用：记录本地 hash 并发送给远端。"""
         self._sync_hashes[turn] = hash_val
         if self.conn:
             self.conn.send(msg_sync_hash(turn, hash_val))

@@ -35,7 +35,7 @@ register_card(
     health=4,
     tags=['非生命'],
     hidden_keywords={},
-    description="你受到的伤害-1。回合结束：你获得+1HP。",
+    description="你受到的伤害-1。结算阶段结束：你获得+1HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_yingshi_special,
 )
@@ -86,7 +86,7 @@ register_card(
     keywords={"协同": True, "河岸": True},
     tags=['非生命'],
     hidden_keywords={},
-    description="回合结束：将1张“书”加入手牌。",
+    description="结算阶段结束：将1张“书”加入手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_diaoyugan_special,
 )
@@ -213,7 +213,7 @@ register_card(
     keywords={"亡语": True},
     tags=['地狱', '敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="受到其伤害的目标在回合结束时获得-1/1。若是对手，移除其卡组顶的1张牌。 亡语：将1张“凋零骷髅头”加入手牌。",
+    description="受到其伤害的目标在结算阶段结束时获得-1/1。若是对手，移除其卡组顶的1张牌。 亡语：将1张“凋零骷髅头”加入手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_diaolingkulou_special,
 )
@@ -261,7 +261,7 @@ register_card(
     keywords={"协同": True},
     tags=['友好', '生物'],
     hidden_keywords={'友好': True},
-    description="回合结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。",
+    description="结算阶段结束：若其为本回合唯一部署的友方异象，抽1张牌，将其花费改为0T。",
     targets_fn=target("position", friendly=True),
     special_fn=_yang_special,
 )
@@ -311,7 +311,7 @@ register_card(
     keywords={"协同": True},
     tags=['友好', '生物'],
     hidden_keywords={'友好': True},
-    description="回合结束：若处于协同，抽1张牌。",
+    description="结算阶段结束：若处于协同，抽1张牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_lv_special,
 )
@@ -442,7 +442,7 @@ register_card(
     keywords={"协同": True, "两栖": True, "坚韧": 1},
     tags=['两栖', '友好', '生物'],
     hidden_keywords={'友好': True},
-    description="受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下回合结束。",
+    description="受到伤害后，将攻击力最高的敌方异象的攻击力设为1，直到下结算阶段结束。",
     targets_fn=target("position", friendly=True),
     special_fn=_haigui_special,
 )
@@ -458,7 +458,7 @@ register_card(
     health=4,
     tags=['友好', '生物'],
     hidden_keywords={'友好': True},
-    description="回合开始：将出牌阶段对方使用的首张策略的复制加入手牌。",
+    description="结算阶段开始：将出牌阶段对方使用的首张策略的复制加入手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_yingwu_special,
 )
@@ -542,7 +542,7 @@ register_card(
     keywords={"两栖": True, "坚韧": 1, "穿刺": True},
     tags=['两栖', '友好', '生物', '肉食动物'],
     hidden_keywords={'友好': True},
-    description="回合结束：若HP不大于2，获得-1/+2。",
+    description="结算阶段结束：若HP不大于2，获得-1/+2。",
     targets_fn=target("position", friendly=True),
     special_fn=_beijixiong_special,
 )
@@ -707,7 +707,7 @@ register_card(
     keywords={"坚韧": 1, "先攻": -1, "视野": 2},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="敌方异象受到1点伤害后，在回合结束时返回手牌。",
+    description="敌方异象受到1点伤害后，在结算阶段结束时返回手牌。",
     targets_fn=target("position", friendly=True),
     special_fn=_qianyingbei_special,
 )
@@ -724,7 +724,7 @@ register_card(
     keywords={"绝缘": True},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="回合开始：将1张精灵异象加入战场，使其具有迅捷。 场上有精灵异象时，自身虚化。",
+    description="结算阶段开始：将1张精灵异象加入战场，使其具有迅捷。 场上有精灵异象时，自身虚化。（需在出牌阶段预设召唤位置）",
     targets_fn=target("position", friendly=True),
     special_fn=_huanmozhe_special,
 )
@@ -775,7 +775,7 @@ register_card(
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
     is_token=True,
-    description="回合开始：对所有敌方异象造成1点伤害。",
+    description="结算阶段开始：对所有敌方异象造成1点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_shike_special,
 )
@@ -890,7 +890,7 @@ register_card(
     health=5,
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="回合开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。",
+    description="结算阶段开始：随机冰冻1个敌方异象。若其已被冰冻，将其消灭。",
     targets_fn=target("position", friendly=True),
     special_fn=_liudu_special,
 )
@@ -941,7 +941,7 @@ register_card(
     keywords={"绝缘": True},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="回合结束：若本回合对手受到的伤害不小于3，使对手失去2点HP。",
+    description="结算阶段结束：若本回合对手受到的伤害不小于3，使对手失去2点HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_jielueduizhang_special,
 )
@@ -1023,7 +1023,7 @@ register_card(
     keywords={"迅捷": True},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="回合结束时，将其消灭。",
+    description="结算阶段结束时，将其消灭。",
     targets_fn=target("position", friendly=True),
     special_fn=_naogui_special,
 )
@@ -1073,7 +1073,7 @@ register_card(
     keywords={"迅捷": True, "视野": 1},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="部署：你的手牌具有+1T花费，直到下回合结束。",
+    description="部署：你的手牌具有+1T花费，直到下结算阶段结束。",
     targets_fn=target("position", friendly=True),
     special_fn=_kuloumaqishi_special
 )
@@ -1341,7 +1341,7 @@ register_card(
     keywords={"视野": 1, "坚韧": 1},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="溢出伤害转移至对手。 回合结束：若你的手牌数不小于6，随机攻击1个敌方异象。",
+    description="溢出伤害转移至对手。 结算阶段结束：若你的手牌数不小于6，随机攻击1个敌方异象。",
     targets_fn=target("position", friendly=True),
     special_fn=_diaolingpaota_special
 )
@@ -1527,7 +1527,7 @@ register_card(
     keywords={"绝缘": True},
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
-    description="部署：使1个目标获得-2HP。若将其消灭，获得：“本列结算时，使1个目标获得 -2HP。若将其消灭，具有“无法被消灭“直到回合结束。”",
+    description="部署：使1个目标获得-2HP。若将其消灭，获得：“本列结算时，使1个目标获得 -2HP。若将其消灭，具有“无法被消灭“直到结算阶段结束。”",
     targets_fn=target("position", friendly=True),
     special_fn=_nvwu_special
 )
@@ -1722,7 +1722,7 @@ register_card(
     rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
-    description="获得2个额外的C槽。回合结束：抽一张牌。",
+    description="获得2个额外的C槽。结算阶段结束：抽一张牌。",
     targets_fn=target_none,
     effect_fn=_tiegao_effect,
 )
@@ -2032,7 +2032,6 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="抽2张策略 使其获得-1T花费。",
@@ -2045,7 +2044,6 @@ register_card(
     cost_str="1D",
     card_type=CardType.STRATEGY,
     pack=Pack.DISCRETE,
-    immersion_level=1,
     hidden_keywords={},
     is_token=True,
     description="抽2张异象 使其获得+1/2。",
@@ -2113,7 +2111,7 @@ register_card(
     rarity=Rarity.SILVER,
     immersion_level=2,
     hidden_keywords={},
-    description="消灭1个友方异象，将2张具有迅捷的“恶魂“加入战场，回合结束时，将其移除。",
+    description="消灭1个友方异象，将2张具有迅捷的“恶魂“加入战场，结算阶段结束时，将其移除。",
     targets_fn=target_none,
     effect_fn=_cuiruotongmeng_effect,
 )
@@ -2403,7 +2401,7 @@ register_card(
     tags=['非生命'],
     hidden_keywords={},
     is_token=True,
-    targets_fn=target_none,
+    targets_fn=target("position", friendly=True),
     special_fn=None,
 )
 
@@ -2482,7 +2480,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    description="使1个异象获得：回合开始：获得+1/1。",
+    description="使1个异象获得：结算阶段开始：获得+1/1。",
     targets_fn=target_none,
     effect_fn=_jinxiguapian_effect,
 )
@@ -2508,7 +2506,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    description="抽2张牌。回合结束时，将其弃掉。",
+    description="抽2张牌。结算阶段结束时，将其弃掉。",
     targets_fn=target_none,
     effect_fn=_zisongguo_strategy,
 )
@@ -2534,7 +2532,7 @@ register_card(
     rarity=Rarity.IRON,
     immersion_level=1,
     hidden_keywords={},
-    description="对1个非高地异象造成2点伤害，将其攻击力设为0直到回合结束。",
+    description="对1个非高地异象造成2点伤害，将其攻击力设为0直到结算阶段结束。",
     targets_fn=target_none,
     effect_fn=_yinyu_effect,
 )
@@ -2573,7 +2571,7 @@ register_card(
     rarity=Rarity.SILVER,
     immersion_level=1,
     hidden_keywords={},
-    description="你和对手轮流抽牌至手牌数量为7张，下回合开始时弃掉本次抽到的牌。",
+    description="你和对手轮流抽牌至手牌数量为7张，下结算阶段开始时弃掉本次抽到的牌。",
     targets_fn=target_none,
     effect_fn=_huozhai_effect,
 )
@@ -2652,7 +2650,7 @@ register_card(
     rarity=Rarity.BRONZE,
     immersion_level=1,
     hidden_keywords={},
-    description="使1个友方异象返回手牌，将其花费设为1I直到回合结束。然后若其上回合在场 上，使其部署时具有迅捷。",
+    description="使1个友方异象返回手牌，将其花费设为1I直到结算阶段结束。然后若其上回合在场 上，使其部署时具有迅捷。",
     targets_fn=target_none,
     effect_fn=_menchuanchuansuo_effect,
 )
