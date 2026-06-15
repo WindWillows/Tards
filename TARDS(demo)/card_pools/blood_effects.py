@@ -277,13 +277,24 @@ def _liuqinghuajia_special(minion, player, game, extras=None):
 # =============================================================================
 @special
 def _zhuxin_special(minion, player, game, extras=None):
-    """竹心：部署：消灭一个处于协同的敌方异象。"""
+    """竹心：部署：消灭一个处于协同的敌方异象。
+
+    处于协同指该异象的同列存在其他友方异象（不依赖是否具有“协同”关键词）。
+    """
     from tards.targeting import TargetingRequest
     from tards.cards import Minion
 
+    def _is_in_synergy(m, board):
+        """判断异象是否处于协同（同列有其他存活的友方异象）。"""
+        col = m.position[1]
+        return any(
+            other is not m and other.is_alive()
+            for other in board.get_minions_in_column(col, friendly_to=m.owner)
+        )
+
     def scope(p, board):
         return [m for m in board.minion_place.values()
-                if m.is_alive() and m.owner != player and m.keywords.get("协同", False)]
+                if m.is_alive() and m.owner != player and _is_in_synergy(m, board)]
 
     candidates = scope(player, game.board)
     if not candidates:
@@ -304,7 +315,7 @@ def _zhuxin_special(minion, player, game, extras=None):
     if not isinstance(target, Minion) or not target.is_alive():
         print("  竹心：目标无效")
         return False
-    if target.owner == player or not target.keywords.get("协同", False):
+    if target.owner == player or not _is_in_synergy(target, game.board):
         print("  竹心：目标不是处于协同的敌方异象")
         return False
 
@@ -1166,9 +1177,9 @@ def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
     opponent = game.p2 if player == game.p1 else game.p1
 
     while True:
-        # 获取敌方存活异象
+        # 获取敌方存活异象（current_health > 0 防止已触发死亡但尚未移除的异象被重复选中）
         enemy_minions = [m for m in game.board.minion_place.values()
-                         if m.is_alive() and m.owner == opponent]
+                         if m.is_alive() and m.current_health > 0 and m.owner == opponent]
         if not enemy_minions:
             break
 
@@ -1179,9 +1190,9 @@ def _tianxia_wushuang_effect(player, target, game, extras=None, card=None):
         if victim.current_health <= 0:
             victim.minion_death()
 
-        # 检查是否仍有敌方异象HP为偶数
+        # 检查是否仍有敌方异象HP为偶数（同样过滤已死亡但尚未移除的异象）
         has_even_hp = any(
-            m.is_alive() and m.health % 2 == 0
+            m.is_alive() and m.current_health > 0 and m.health % 2 == 0
             for m in game.board.minion_place.values()
             if m.owner == opponent
         )
@@ -1930,7 +1941,8 @@ def _budongdian_special(minion, player, game, extras=None):
             if attacker.is_alive():
                 attacker.gain_attack(1, permanent=True)
                 attacker.gain_health_bonus(1, permanent=True)
-                print(f"  不动点亡语：{attacker.name} 获得+1/1")
+                attacker.current_health += 1
+                print(f"  不动点亡语：{attacker.name} 获得+1/1（当前 {attacker.current_health}/{attacker.current_max_health}）")
 
     add_deathrattle(minion, deathrattle)
 

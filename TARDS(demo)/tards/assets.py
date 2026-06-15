@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from time import time
 from typing import Dict, Optional, Tuple
 
 try:
@@ -36,10 +37,15 @@ class AssetManager:
     # 图像搜索的后缀名顺序
     _EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
 
-    def __init__(self, base_path: str = "assets"):
+    # 默认资源目录：与 tards/ 同级（即 TARDS(demo)/assets），避免受 cwd 影响
+    _DEFAULT_BASE_PATH = str(Path(__file__).parent.parent / "assets")
+
+    def __init__(self, base_path: str = _DEFAULT_BASE_PATH):
         self.base_path = Path(base_path)
-        self._cache: Dict[Tuple[str, Tuple[int, int]], Optional[ImageTk.PhotoImage]] = {}
+        self._cache: Dict[Tuple[str, Tuple[int, int]], ImageTk.PhotoImage] = {}
         self._raw_cache: Dict[Tuple[str, Tuple[int, int]], Optional[Image.Image]] = {}
+        # 记录资源加载失败的时间戳，避免对缺失资源每帧都重试，同时允许热新增资源在短时间后自动生效
+        self._miss_times: Dict[Tuple[str, Tuple[int, int]], float] = {}
         self._config: Dict[str, str] = {}
         self._load_config()
 
@@ -100,6 +106,7 @@ class AssetManager:
         """清空图像缓存。用于资源热更新。"""
         self._cache.clear()
         self._raw_cache.clear()
+        self._miss_times.clear()
 
     # ------------------------------------------------------------------
     # 内部实现
@@ -109,11 +116,23 @@ class AssetManager:
              default_dir: str, asset_id: str) -> Optional[ImageTk.PhotoImage]:
         if not _PIL_AVAILABLE:
             return None
-        cache = self._cache.get((cache_key, (width, height)))
-        if cache is not None or (cache_key, (width, height)) in self._cache:
+        cache_key_tuple = (cache_key, (width, height))
+        cache = self._cache.get(cache_key_tuple)
+        if cache is not None:
             return cache
+        # 旧版本可能曾把 None 写入缓存；遇到时清除并重新尝试加载
+        if cache_key_tuple in self._cache:
+            del self._cache[cache_key_tuple]
+        now = time()
+        last_miss = self._miss_times.get(cache_key_tuple)
+        if last_miss is not None and now - last_miss < 2.0:
+            return None
         img = self._load_and_scale(asset_id, default_dir, width, height)
-        self._cache[(cache_key, (width, height))] = img
+        if img is not None:
+            self._cache[cache_key_tuple] = img
+            self._miss_times.pop(cache_key_tuple, None)
+        else:
+            self._miss_times[cache_key_tuple] = now
         return img
 
     def _load_raw_image(self, asset_id: str, default_dir: str,
@@ -127,7 +146,9 @@ class AssetManager:
             if img.mode not in ("RGB", "RGBA"):
                 img = img.convert("RGBA")
             if img.size != (width, height):
-                img = img.resize((width, height), Image.LANCZOS)
+                # 小尺寸图标（如 15×15 像素画）使用最近邻，避免抗锯齿模糊
+                resample = Image.NEAREST if max(width, height) <= 32 else Image.LANCZOS
+                img = img.resize((width, height), resample)
             return img
         except Exception:
             return None
@@ -146,10 +167,21 @@ class AssetManager:
             return None
         key = (cache_key, (width, height))
         cached = self._raw_cache.get(key)
-        if cached is not None or key in self._raw_cache:
+        if cached is not None:
             return cached
+        # 旧版本可能曾把 None 写入缓存；遇到时清除并重新尝试加载
+        if key in self._raw_cache:
+            del self._raw_cache[key]
+        now = time()
+        last_miss = self._miss_times.get(key)
+        if last_miss is not None and now - last_miss < 2.0:
+            return None
         img = self._load_raw_image(asset_id, default_dir, width, height)
-        self._raw_cache[key] = img
+        if img is not None:
+            self._raw_cache[key] = img
+            self._miss_times.pop(key, None)
+        else:
+            self._miss_times[key] = now
         return img
 
     # ------------------------------------------------------------------
@@ -208,7 +240,7 @@ class AssetManager:
 _default_manager: Optional[AssetManager] = None
 
 
-def get_asset_manager(base_path: str = "assets") -> AssetManager:
+def get_asset_manager(base_path: str = AssetManager._DEFAULT_BASE_PATH) -> AssetManager:
     """获取全局默认 AssetManager 实例。"""
     global _default_manager
     if _default_manager is None:

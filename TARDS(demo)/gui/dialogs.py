@@ -13,6 +13,7 @@ from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY
 
 from gui.theme import UI_THEME
+from gui.battle.render_utils import calc_tab_width
 
 try:
     from PIL import Image, ImageDraw, ImageTk  # noqa: F401
@@ -51,7 +52,7 @@ class SacrificeDialog(tk.Toplevel):
         for i, m in enumerate(minions):
             defn = DEFAULT_REGISTRY.get(m.name)
             cost_str = defn.cost_str if defn else "?"
-            TAB_W = parent._calc_tab_width(cost_str)
+            TAB_W = calc_tab_width(cost_str)
             TAB_H = 16
             TAB_SLANT = max(5, TAB_W // 6)
             frame = tk.Frame(card_frame, bd=0)
@@ -151,7 +152,7 @@ class SacrificeDialog(tk.Toplevel):
         for i, cvs in enumerate(self.card_canvases):
             defn = DEFAULT_REGISTRY.get(self.minions[i].name)
             cost_str = defn.cost_str if defn else "?"
-            TAB_W = self._parent._calc_tab_width(cost_str)
+            TAB_W = calc_tab_width(cost_str)
             TAB_SLANT = max(5, TAB_W // 6)
             body_y1 = card_y1 + 16
             shape_points = [
@@ -218,7 +219,7 @@ class DiscoverDialog(tk.Toplevel):
         for name in names:
             defn = DEFAULT_REGISTRY.get(name)
             cost_str = defn.cost_str if defn else "?"
-            TAB_W = parent._calc_tab_width(cost_str)
+            TAB_W = calc_tab_width(cost_str)
             TAB_H = 16
             TAB_SLANT = max(5, TAB_W // 6)
             frame = tk.Frame(card_frame, bd=0)
@@ -363,7 +364,7 @@ class ChoiceDialog(tk.Toplevel):
 
             for opt, defn in zip(options, card_defs):
                 cost_str = defn.cost_str if defn else "?"
-                TAB_W = parent._calc_tab_width(cost_str)
+                TAB_W = calc_tab_width(cost_str)
                 TAB_H = 16
                 TAB_SLANT = max(5, TAB_W // 6)
                 frame = tk.Frame(card_frame, bd=0)

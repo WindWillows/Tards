@@ -360,19 +360,24 @@ class NetworkDuel:
                 # 通知 GUI
                 if self.local_turn_callback:
                     self.local_turn_callback()
-                # 阻塞等待本地玩家提交 action
+                # 阻塞等待本地玩家提交 action（带超时，避免永久死锁）
                 self._local_turn_event.set()
-                self._local_action_event.wait()
+                while not self._local_action_event.wait(timeout=5.0):
+                    if game.game_over or not (self.conn and self.conn._running):
+                        self._local_turn_event.clear()
+                        return None
                 self._local_action_event.clear()
                 self._local_turn_event.clear()
                 action = self._local_action
                 self._local_action = None
-                if action and self.conn:
+                if action and self.conn and self.conn._running:
                     self.conn.send(msg_action(action))
                 return action
             else:
                 # 远端玩家：统一使用 _recv_or_pending，避免与 SYNC_HASH 线程竞争
                 while True:
+                    if game.game_over:
+                        return {"type": "brake"}
                     msg = self._recv_or_pending("ACTION")
                     if msg:
                         mtype = msg.get("type")
@@ -408,9 +413,12 @@ class NetworkDuel:
                 self._discover_event.clear()
                 if self.discover_request_callback:
                     self.discover_request_callback(names)
-                self._discover_event.wait()
+                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
+                while not self._discover_event.wait(timeout=5.0):
+                    if game.game_over or not (self.conn and self.conn._running):
+                        return candidates[0] if candidates else None
                 chosen_name = self._discover_result if self._discover_result is not None else names[0]
-                if self.conn:
+                if self.conn and self.conn._running:
                     self.conn.send(msg_discover(names, chosen_name))
                 for d in candidates:
                     if getattr(d, "name", str(d)) == chosen_name:
@@ -418,6 +426,8 @@ class NetworkDuel:
                 return candidates[0] if candidates else None
             else:
                 while True:
+                    if game.game_over:
+                        return candidates[0] if candidates else None
                     msg = self._recv_or_pending("DISCOVER")
                     if msg:
                         mtype = msg.get("type")
@@ -446,14 +456,19 @@ class NetworkDuel:
                 self._choice_event.clear()
                 if self.choice_request_callback:
                     self.choice_request_callback(options, title)
-                self._choice_event.wait()
+                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
+                while not self._choice_event.wait(timeout=5.0):
+                    if game.game_over or not (self.conn and self.conn._running):
+                        return options[0] if options else None
                 chosen = self._choice_result if self._choice_result in options else options[0]
-                if self.conn:
+                if self.conn and self.conn._running:
                     from .net_protocol import msg_choice
                     self.conn.send(msg_choice(options, chosen, title))
                 return chosen
             else:
                 while True:
+                    if game.game_over:
+                        return options[0] if options else None
                     msg = self._recv_or_pending("CHOICE")
                     if msg:
                         mtype = msg.get("type")
@@ -483,9 +498,12 @@ class NetworkDuel:
                 self._targeting_event.clear()
                 if self.targeting_request_callback:
                     self.targeting_request_callback(request, valid_targets)
-                self._targeting_event.wait()
+                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
+                while not self._targeting_event.wait(timeout=5.0):
+                    if game.game_over or not (self.conn and self.conn._running):
+                        return None
                 result = self._targeting_result
-                if self.conn:
+                if self.conn and self.conn._running:
                     from .net_protocol import _serialize_target
                     self.conn.send(msg_targeting(
                         getattr(request.source, "name", str(request.source)),
@@ -494,6 +512,8 @@ class NetworkDuel:
                 return result
             else:
                 while True:
+                    if game.game_over:
+                        return None
                     msg = self._recv_or_pending("TARGETING")
                     if msg:
                         mtype = msg.get("type")
@@ -533,17 +553,22 @@ class NetworkDuel:
             self._mulligan_event.clear()
             if self.mulligan_request_callback:
                 self.mulligan_request_callback(self.local_player)
-            self._mulligan_event.wait()
+            # 带超时轮询，避免 GUI 未响应或网络断开时死锁
+            while not self._mulligan_event.wait(timeout=5.0):
+                if game.game_over or not (self.conn and self.conn._running):
+                    return
             local_indices = self._mulligan_result or []
 
             # 2. 发送本地结果给对方
-            if self.conn:
+            if self.conn and self.conn._running:
                 from .net_protocol import msg_mulligan
                 self.conn.send(msg_mulligan(local_indices))
 
             # 3. 等待对方 mulligan 结果（统一走 _recv_or_pending 避免竞争）
             remote_indices = []
             while True:
+                if game.game_over:
+                    break
                 msg = self._recv_or_pending("MULLIGAN")
                 if msg:
                     mtype = msg.get("type")
@@ -573,19 +598,20 @@ class NetworkDuel:
             self.conn.send(msg_gameover(winner_name))
 
     def close(self):
+        if self.game:
+            self.game.game_over = True
+        # 先 set 所有事件，让阻塞的 provider 立即退出
+        self._local_action_event.set()
+        self._discover_event.set()
+        self._choice_event.set()
+        self._targeting_event.set()
+        self._mulligan_event.set()
         if self.conn:
-            # 先发送 DISCONNECT 通知对方，再关闭连接
+            # 发送 DISCONNECT 通知对方，再关闭连接
             try:
                 self.conn.send(msg_disconnect())
             except Exception:
                 pass
             self.conn.close()
-        if self.game:
-            self.game.game_over = True
-        self._local_action_event.set()
         # 关闭 ngrok 隧道
         self._stop_ngrok_tunnel()
-        self._discover_event.set()
-        self._choice_event.set()
-        self._mulligan_event.set()
-        self._targeting_event.set()

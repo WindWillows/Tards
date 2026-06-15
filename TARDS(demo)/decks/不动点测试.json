@@ -1,0 +1,14 @@
+{
+  "name": "不动点测试",
+  "is_test_deck": true,
+  "immersion_points": {
+    "UNDERWORLD": 2,
+    "DISCRETE": 1
+  },
+  "cards": {
+    "不动点": 3,
+    "蠹虫": 6,
+    "骷髅马骑士": 1,
+    "侦测器": 2
+  }
+}

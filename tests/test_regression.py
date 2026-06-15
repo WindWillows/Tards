@@ -676,9 +676,11 @@ def test_zhuxin_deploy_targets_enemy_coordinated_minion():
     h = GameHarness()
     p1, p2 = h.players
 
-    # p2 在场上放置一个带有协同的敌方异象
+    # p2 在同列放置两个敌方异象，使保卫者处于协同状态
     h.deploy("保卫者", p2, (0, 0))
+    h.deploy("蠹虫", p2, (1, 0))
     assert h.at((0, 0)) is not None, "保卫者应被部署"
+    assert h.at((1, 0)) is not None, "同列友方异象应存在"
 
     # p1 手牌有竹心，并设置指向器总是选择第一个合法目标
     h.give_hand(p1, "竹心")
@@ -688,6 +690,7 @@ def test_zhuxin_deploy_targets_enemy_coordinated_minion():
     assert h.play_minion(p1, "竹心", (4, 0)), "竹心应成功部署"
     assert h.at((4, 0)) is not None, "竹心应存在于战场"
     assert h.at((0, 0)) is None, "竹心应消灭处于协同的敌方保卫者"
+    assert h.at((1, 0)) is not None, "同列另一个友方异象应保留"
 
 
 # =============================================================================

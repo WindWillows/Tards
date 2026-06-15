@@ -1,0 +1,11 @@
+{
+  "name": "新卡组",
+  "is_test_deck": true,
+  "immersion_points": {
+    "DISCRETE": 1
+  },
+  "cards": {
+    "骷髅马骑士": 6,
+    "探索": 4
+  }
+}

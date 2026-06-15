@@ -775,7 +775,7 @@ register_card(
     tags=['敌对', '生物'],
     hidden_keywords={'敌对': True},
     is_token=True,
-    description="结算阶段开始：对所有敌方异象造成1点伤害。",
+    description="结算阶段结束：对所有敌方异象造成1点伤害。",
     targets_fn=target("position", friendly=True),
     special_fn=_shike_special,
 )

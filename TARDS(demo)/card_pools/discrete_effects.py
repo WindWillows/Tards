@@ -1531,13 +1531,13 @@ def _liudu_special(minion, player, game, extras=None):
 
 @special
 def _shike_special(minion, player, game, extras=None):
-    """尸壳：结算阶段开始：对所有敌方异象造成1点伤害。"""
+    """尸壳：结算阶段结束：对所有敌方异象造成1点伤害。"""
 
-    def _on_turn_start(g, event_data, m):
+    def _on_turn_end(g, event_data, m):
         for enemy in all_enemy_minions(g, player):
             deal_damage_to_minion(enemy, 1, source=m, game=g)
 
-    minion.on_turn_start = _on_turn_start
+    minion.on_turn_end = _on_turn_end
 
 
 

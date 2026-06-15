@@ -71,7 +71,11 @@ class LocalDuel:
             if self.local_turn_callback:
                 self.local_turn_callback()
             self._local_turn_event.set()
-            self._local_action_event.wait()
+            # 超时轮询，避免 GUI 未响应时永久阻塞
+            while not self._local_action_event.wait(timeout=5.0):
+                if game.game_over:
+                    self._local_turn_event.clear()
+                    return None
             self._local_action_event.clear()
             self._local_turn_event.clear()
             return self._local_action
@@ -85,7 +89,10 @@ class LocalDuel:
             self._discover_event.clear()
             if self.discover_request_callback:
                 self.discover_request_callback(names)
-                self._discover_event.wait()
+                # 超时轮询，允许游戏结束时退出等待
+                while not self._discover_event.wait(timeout=5.0):
+                    if game.game_over:
+                        return candidates[0] if candidates else None
                 chosen_name = self._discover_result if self._discover_result is not None else names[0]
             else:
                 # 无 GUI 回调时回退随机选择（避免死锁）
@@ -108,7 +115,10 @@ class LocalDuel:
             self._choice_event.clear()
             if self.choice_request_callback:
                 self.choice_request_callback(options, title)
-            self._choice_event.wait()
+            # 超时轮询，允许游戏结束时退出等待
+            while not self._choice_event.wait(timeout=5.0):
+                if game.game_over:
+                    return options[0] if options else None
             return self._choice_result if self._choice_result in options else options[0]
         return provider
 
@@ -121,7 +131,10 @@ class LocalDuel:
             self._targeting_event.clear()
             if self.targeting_request_callback:
                 self.targeting_request_callback(request, valid_targets)
-            self._targeting_event.wait()
+            # 超时轮询，允许游戏结束时退出等待
+            while not self._targeting_event.wait(timeout=5.0):
+                if game.game_over:
+                    return None
             return self._targeting_result
         return provider
 
@@ -154,7 +167,10 @@ class LocalDuel:
                 self._mulligan_event.clear()
                 if self.mulligan_request_callback:
                     self.mulligan_request_callback(player)
-                self._mulligan_event.wait()
+                # 超时轮询，允许游戏结束时退出等待
+                while not self._mulligan_event.wait(timeout=5.0):
+                    if game.game_over:
+                        return
                 indices = self._mulligan_indices or []
                 cards = [player.card_hand[i] for i in indices
                          if 0 <= i < len(player.card_hand)]
@@ -164,4 +180,6 @@ class LocalDuel:
     def close(self):
         self._local_action_event.set()
         self._discover_event.set()
+        self._choice_event.set()
+        self._targeting_event.set()
         self._mulligan_event.set()
