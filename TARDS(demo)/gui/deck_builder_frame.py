@@ -11,7 +11,9 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Optional
 
 from tards import Minion, MinionCard
+from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY, Pack, CardType
+from tards.cards import Conspiracy, MineralCard, Strategy
 from tards.deck import Deck
 from tards.deck_io import load_deck, save_deck
 
@@ -169,12 +171,20 @@ class DeckBuilderFrame(tk.Frame):
         detail_frame = tk.LabelFrame(center_frame, text="卡牌详情",
                                      bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         detail_frame.grid(row=1, column=0, sticky="nsew", pady=5)
-        detail_frame.rowconfigure(0, weight=1)
+        detail_frame.rowconfigure(1, weight=1)
         detail_frame.columnconfigure(0, weight=1)
+
+        # 卡面立绘（正方形）
+        self.detail_canvas = tk.Canvas(detail_frame, width=200, height=200,
+                                       highlightthickness=1,
+                                       highlightbackground=UI_THEME["border"],
+                                       bg=UI_THEME["bg_main"])
+        self.detail_canvas.grid(row=0, column=0, pady=(5, 0))
+
         self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
                                    bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], relief=tk.FLAT, bd=0)
-        self.detail_text.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.detail_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         self.detail_text.config(state=tk.NORMAL)
         _insert_rich_detail(self.detail_text, "单击左侧或右侧卡牌查看详情\n双击右侧卡牌加入卡组")
         self.detail_text.config(state=tk.DISABLED)
@@ -183,8 +193,9 @@ class DeckBuilderFrame(tk.Frame):
                                       bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
                                       activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1,
                                       command=self._show_related_cards_in_tab)
-        self.related_btn.grid(row=1, column=0, sticky="se", padx=5, pady=(0, 5))
+        self.related_btn.grid(row=2, column=0, sticky="se", padx=5, pady=(0, 5))
         self._current_detail_card = None
+        self._draw_card_portrait(None)
 
         # ===== 右列：卡池与检索 =====
         pool_frame = tk.LabelFrame(main_frame, text="可用卡牌 (单击查看详情，双击加入卡组)",
@@ -364,6 +375,8 @@ class DeckBuilderFrame(tk.Frame):
                 self.related_btn.config(state=tk.NORMAL)
             else:
                 self.related_btn.config(state=tk.DISABLED)
+            # 绘制卡面立绘
+            self._draw_card_portrait(card)
         except Exception as e:
             print(f"[警告] 显示卡牌详情时出错: {e}")
 
@@ -373,6 +386,66 @@ class DeckBuilderFrame(tk.Frame):
         self.detail_text.config(state=tk.DISABLED)
         self._current_detail_card = None
         self.related_btn.config(state=tk.DISABLED)
+        self._draw_card_portrait(None)
+
+    def _draw_card_portrait(self, card):
+        """在 detail_canvas 中绘制正方形卡牌肖像/占位。"""
+        if not hasattr(self, "detail_canvas"):
+            return
+        canvas = self.detail_canvas
+        canvas.delete("all")
+        size = int(canvas["width"])
+
+        card_type_colors = {
+            MinionCard: "#3b82f6",
+            Strategy: "#10b981",
+            Conspiracy: "#8b5cf6",
+            MineralCard: "#f59e0b",
+        }
+        card_type = type(card)
+        if isinstance(card, Minion):
+            source = getattr(card, "source_card", None)
+            if source:
+                card_type = type(source)
+        border_color = card_type_colors.get(card_type, UI_THEME["border"])
+
+        pad = 3
+        canvas.create_rectangle(
+            pad, pad, size - pad, size - pad,
+            outline=border_color, fill=UI_THEME["bg_panel"], width=2,
+        )
+
+        if card is None:
+            canvas.create_text(
+                size // 2, size // 2, text="选择卡牌查看卡面",
+                fill=UI_THEME["text_secondary"],
+                font=("Microsoft YaHei", 11),
+                width=size - 20, justify=tk.CENTER,
+            )
+            return
+
+        name = getattr(card, "name", "")
+        if name:
+            canvas.create_text(
+                size // 2, size // 2 - 8, text=name,
+                fill=UI_THEME["text_primary"],
+                font=("Microsoft YaHei", 12, "bold"),
+                width=size - 20, justify=tk.CENTER,
+            )
+            canvas.create_text(
+                size // 2, size // 2 + 16, text="[卡面占位]",
+                fill=UI_THEME["text_secondary"],
+                font=("Microsoft YaHei", 9),
+            )
+
+        asset_id = getattr(card, "asset_id", None)
+        if not asset_id:
+            return
+        am = get_asset_manager()
+        img = am.get_card_portrait(asset_id, size - 8)
+        if img:
+            canvas.create_image(size // 2, size // 2, image=img, anchor=tk.CENTER)
+            canvas.image = img
 
     def _get_related_cards(self, card):
         """获取与指定卡牌关联的其他卡牌列表（正向+反向）。"""

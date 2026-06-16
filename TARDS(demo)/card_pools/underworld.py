@@ -243,6 +243,7 @@ register_card(
     health=2,
     tags=['生物', '陆生'],
     is_token=True,
+    asset_id="松鼠",
     targets_fn=target("position", friendly=True),
 )
 

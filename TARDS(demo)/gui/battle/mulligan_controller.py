@@ -11,7 +11,7 @@ import tkinter as tk
 from typing import Any, Optional
 
 from gui.theme import UI_THEME
-from gui.battle.render_utils import calc_tab_width
+from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
 from tards.asset_manager import get_asset_manager
 
 
@@ -221,23 +221,13 @@ class MulliganController:
                             font=("Microsoft YaHei", 8, "bold"), tags="card_text")
 
             name = card.name
-            stats = ""
-            from tards.cards import MinionCard as MC, Strategy as ST, Conspiracy as CO, MineralCard as MI
-            if isinstance(card, MC):
-                stats = f"{card.attack}/{card.health}"
-            bottom_text = stats
-            if isinstance(card, ST):
-                bottom_text = "【策略】"
-            elif isinstance(card, CO):
-                bottom_text = "【阴谋】"
-            elif isinstance(card, MI):
-                bottom_text = "【矿物】"
-            elif isinstance(card, MC):
-                bottom_text = f"【异象】{stats}"
             cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-            cvs.create_text(cw // 2, ch - 12, text=bottom_text, fill=UI_THEME["card_text_type"],
-                            font=("Microsoft YaHei", 8), tags="card_text")
+            from tards.cards import MinionCard as MC
+            if isinstance(card, MC):
+                draw_minion_stat_badges(
+                    cvs, card.attack, card.health, cw, ch, offset_y=0
+                )
             cvs.bind("<Button-1>", lambda e, i=idx: self._on_card_click(i))
         except Exception as e:
             print(f"[_render_mulligan_card] 渲染卡牌异常 [{getattr(card, 'name', 'unknown')}]: {e}")

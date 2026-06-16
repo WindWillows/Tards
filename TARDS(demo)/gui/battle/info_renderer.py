@@ -145,13 +145,13 @@ class InfoRenderer:
                 discard_badge.config(text=f"弃牌堆 {len(player.card_dis)}")
 
     def _render_resource_panel(self) -> None:
-        """更新右侧当前资源面板。"""
+        """更新右侧'当前资源'面板（网络对局显示本地玩家，本地对局显示当前回合玩家）。"""
         game = self.frame.duel.game
         active = game.current_player if game else None
-        # 网络对局中始终显示本地玩家资源
         display_player = self.frame.local_player if isinstance(self.frame.duel, NetworkDuel) else active
         if not display_player:
-            self.frame.res_panel.config(text="当前资源")
+            if hasattr(self.frame, "res_panel") and self.frame.res_panel.winfo_exists():
+                self.frame.res_panel.config(text="当前资源")
             return
 
         for key, val, lbl in [
@@ -162,21 +162,18 @@ class InfoRenderer:
         ]:
             old_val = self.frame._prev_res_values.get(key)
             if old_val is not None and val != old_val:
-                flash_color = UI_THEME["success"] if val > old_val else UI_THEME["danger"]
+                flash_color = "#4caf50" if val > old_val else "#f44336"
                 self.frame._flash_res_label(lbl, flash_color, times=2, interval=150)
             self.frame._prev_res_values[key] = val
 
         self.frame.res_t_label.config(text=f"T:{display_player.t_point}/{display_player.t_point_max}")
         self.frame.res_c_label.config(text=f"C:{display_player.c_point}/{display_player.c_point_max}")
-
-        # B点显示：献祭模式下显示 x/y（当前可用/所需）
         if self.frame._in_sacrifice_mode and self.frame._sacrifice_active == display_player:
             selected_blood = sum(m.keywords.get("丰饶", 1) for m in self.frame._selected_sacrifices)
             total_blood = display_player.b_point + selected_blood
             self.frame.res_b_label.config(text=f"B:{total_blood}/{self.frame._sacrifice_required}")
         else:
             self.frame.res_b_label.config(text=f"B:{display_player.b_point}")
-
         has_underworld = display_player.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
         if has_underworld:
             self.frame.res_sacrifice_label.config(text=f"可献祭:{self.frame._get_available_blood(display_player)}")
@@ -184,7 +181,6 @@ class InfoRenderer:
                 self.frame.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
         else:
             self.frame.res_sacrifice_label.pack_forget()
-
         self.frame.res_s_label.config(text=f"S:{display_player.s_point}")
         self.frame.res_deck_label.config(text=f"抽牌堆:{len(display_player.card_deck)}")
         self.frame.res_dis_label.config(text=f"弃牌堆:{len(display_player.card_dis)}")
@@ -198,7 +194,7 @@ class InfoRenderer:
         if active and (not isinstance(self.frame.duel, NetworkDuel) or active == self.frame.local_player):
             has_underworld = active.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
             if has_underworld and active.squirrel_deck:
-                self.frame.squirrel_draw_cb.pack(side=tk.LEFT, padx=5)
+                self.frame.squirrel_draw_cb.pack(side=tk.LEFT)
                 self.frame.squirrel_draw_var.set(active.squirrel_draw_enabled)
             else:
                 self.frame.squirrel_draw_cb.pack_forget()

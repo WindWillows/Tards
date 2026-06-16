@@ -165,18 +165,9 @@ class RenderMixin:
     def _card_display_text(self, card) -> str:
         name = card.name
         cost = str(card.cost)
-        type_icon = ""
         if isinstance(card, MinionCard):
-            type_icon = "【异象】"
-        elif isinstance(card, Strategy):
-            type_icon = "【策略】"
-        elif isinstance(card, Conspiracy):
-            type_icon = "【阴谋】"
-        elif isinstance(card, MineralCard):
-            type_icon = "【矿物】"
-        if isinstance(card, MinionCard):
-            return f"{type_icon}{name}\n{cost}费 {card.attack}/{card.health}"
-        return f"{type_icon}{name}\n{cost}费"
+            return f"{name}\n{cost}费 {card.attack}/{card.health}"
+        return f"{name}\n{cost}费"
 
     def _clear_detail_text(self):
         if not hasattr(self, "detail_text"):
@@ -357,10 +348,6 @@ class RenderMixin:
             return result
         return chooser
 
-    def _on_exchange(self):
-        """旧版弹窗兑换（保留兼容，但主入口改为展开面板）。"""
-        self._toggle_mineral_bar()
-
     def _show_card_tooltip(self, event, card):
         # 浮窗已禁用，详情信息改由右侧固定面板显示
         pass
@@ -378,14 +365,4 @@ class RenderMixin:
     def _show_minion_tooltip(self, event, minion):
         # 浮窗已禁用，详情信息改由右侧固定面板显示
         pass
-
-    def _toggle_mineral_bar(self):
-        """展开/收起矿物快捷兑换面板。"""
-        if self.mineral_bar.winfo_ismapped():
-            self.mineral_bar.pack_forget()
-            self.exchange_btn.config(bg="#fef3c7")
-        else:
-            self._refresh_mineral_bar()
-            self.mineral_bar.pack(fill=tk.X, pady=(0, 5), before=self.hint_label)
-            self.exchange_btn.config(bg="#fde68a")
 

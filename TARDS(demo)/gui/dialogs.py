@@ -6,14 +6,14 @@
 from typing import Any, Callable, List, Optional
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox
 
 from tards import Minion
 from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY
 
 from gui.theme import UI_THEME
-from gui.battle.render_utils import calc_tab_width
+from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
 
 try:
     from PIL import Image, ImageDraw, ImageTk  # noqa: F401
@@ -298,23 +298,13 @@ class DiscoverDialog(tk.Toplevel):
             cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                             font=("Microsoft YaHei", 9, "bold"), tags="card_text")
 
-            # 类型/攻防
-            type_str = ""
-            stats = ""
+            # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
             if defn:
                 from tards.card_db import CardType
                 if defn.card_type == CardType.MINION:
-                    type_str = "【异象】"
-                    stats = f"{defn.attack or 0}/{defn.health or 1}"
-                elif defn.card_type == CardType.STRATEGY:
-                    type_str = "【策略】"
-                elif defn.card_type == CardType.CONSPIRACY:
-                    type_str = "【阴谋】"
-                elif defn.card_type == CardType.MINERAL:
-                    type_str = "【矿物】"
-            bottom = f"{type_str}{stats}"
-            cvs.create_text(cw // 2, ch - 12, text=bottom, fill=UI_THEME["card_text_type"],
-                            font=("Microsoft YaHei", 8), tags="card_text")
+                    draw_minion_stat_badges(
+                        cvs, defn.attack or 0, defn.health or 1, cw, ch, offset_y=0
+                    )
 
             # 点击事件
             cvs.bind("<Button-1>", lambda e, n=name: self._choose(n))
@@ -437,22 +427,13 @@ class ChoiceDialog(tk.Toplevel):
                 cvs.create_text(cw // 2, 20 + TAB_H, text=opt, fill=UI_THEME["card_text_name"],
                                 font=("Microsoft YaHei", 9, "bold"), tags="card_text")
 
-                type_str = ""
-                stats = ""
+                # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
                 if defn:
                     from tards.card_db import CardType
                     if defn.card_type == CardType.MINION:
-                        type_str = "【异象】"
-                        stats = f"{defn.attack or 0}/{defn.health or 1}"
-                    elif defn.card_type == CardType.STRATEGY:
-                        type_str = "【策略】"
-                    elif defn.card_type == CardType.CONSPIRACY:
-                        type_str = "【阴谋】"
-                    elif defn.card_type == CardType.MINERAL:
-                        type_str = "【矿物】"
-                bottom = f"{type_str}{stats}"
-                cvs.create_text(cw // 2, ch - 12, text=bottom, fill=UI_THEME["card_text_type"],
-                                font=("Microsoft YaHei", 8), tags="card_text")
+                        draw_minion_stat_badges(
+                            cvs, defn.attack or 0, defn.health or 1, cw, ch, offset_y=0
+                        )
 
                 cvs.bind("<Button-1>", lambda e, o=opt: self._choose(o))
                 cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
@@ -534,108 +515,6 @@ class EffectTargetDialog(tk.Toplevel):
         self.destroy()
         if self.on_cancel:
             self.on_cancel()
-
-
-class FeedbackDialog(tk.Toplevel):
-    """反馈提交弹窗。
-
-    允许玩家输入问题描述和反馈服务器地址，
-    自动附带当前对战的最新日志。
-    """
-
-    def __init__(self, parent, player_name: str, on_submit: Callable[[str, str], None]):
-        super().__init__(parent)
-        self.title("提交反馈")
-        self.geometry("450x380")
-        self.resizable(False, False)
-        self.on_submit = on_submit
-        self._build_ui(player_name)
-        self.grab_set()
-        self.focus_force()
-
-    def _build_ui(self, player_name: str):
-        self.config(bg=UI_THEME["bg_main"])
-        pad = {"padx": 10, "pady": 5}
-
-        # 玩家名
-        tk.Label(self, text=f"玩家: {player_name}", anchor="w",
-                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(fill=tk.X, **pad)
-
-        # 服务器地址
-        addr_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
-        addr_frame.pack(fill=tk.X, **pad)
-        tk.Label(addr_frame, text="反馈服务器:", bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(side=tk.LEFT)
-        self.addr_entry = tk.Entry(addr_frame, width=25,
-                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
-                                   insertbackground=UI_THEME["text_primary"])
-        self.addr_entry.pack(side=tk.LEFT, padx=5)
-        # 加载上次使用的地址
-        config = load_feedback_config()
-        last_addr = config.get("server_address", "")
-        if last_addr:
-            self.addr_entry.insert(0, last_addr)
-        else:
-            self.addr_entry.insert(0, "127.0.0.1:9999")
-
-        # 问题描述
-        tk.Label(self, text="问题描述:", anchor="w",
-                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(fill=tk.X, **pad)
-        self.desc_text = scrolledtext.ScrolledText(self, height=8, wrap=tk.WORD,
-                                                   bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"],
-                                                   relief=tk.FLAT, bd=0)
-        self.desc_text.pack(fill=tk.BOTH, expand=True, **pad)
-
-        # 日志提示
-        tk.Label(
-            self,
-            text="✓ 将自动附带当前对战的最新日志（尾部500行）",
-            fg=UI_THEME["success"],
-            bg=UI_THEME["bg_main"],
-            anchor="w",
-        ).pack(fill=tk.X, **pad)
-
-        # 按钮
-        btn_frame = tk.Frame(self, bg=UI_THEME["bg_main"])
-        btn_frame.pack(fill=tk.X, pady=10)
-        tk.Button(btn_frame, text="提交", command=self._on_submit, width=10,
-                  bg=UI_THEME["btn_primary_bg"], fg=UI_THEME["btn_primary_fg"],
-                  activebackground=UI_THEME["btn_primary_active"], relief=tk.RAISED, bd=1).pack(side=tk.RIGHT, padx=10)
-        tk.Button(btn_frame, text="取消", command=self.destroy, width=10,
-                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
-                  activebackground=UI_THEME["btn_secondary_active"], relief=tk.RAISED, bd=1).pack(side=tk.RIGHT)
-
-        # 绑定回车提交
-        self.bind("<Return>", lambda e: self._on_submit())
-        self.bind("<Escape>", lambda e: self.destroy())
-
-    def _on_submit(self):
-        desc = self.desc_text.get("1.0", tk.END).strip()
-        if not desc:
-            messagebox.showwarning("提示", "请输入问题描述")
-            return
-
-        addr = self.addr_entry.get().strip()
-        if not addr:
-            messagebox.showwarning("提示", "请输入反馈服务器地址")
-            return
-
-        # 简单校验 ip:port 格式
-        parts = addr.rsplit(":", 1)
-        if len(parts) != 2:
-            messagebox.showwarning("提示", "地址格式应为 IP:端口，如 192.168.1.100:9999")
-            return
-        host, port_str = parts
-        try:
-            port = int(port_str)
-        except ValueError:
-            messagebox.showwarning("提示", "端口号必须是数字")
-            return
-
-        # 保存配置
-        save_feedback_config({"server_address": addr})
-
-        self.on_submit(desc, f"{host}:{port}")
-        self.destroy()
 
 
 class NumericChoiceDialog(tk.Toplevel):

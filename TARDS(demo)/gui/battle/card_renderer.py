@@ -18,7 +18,12 @@ from tards import MinionCard, Strategy, Conspiracy, MineralCard
 from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY
 from gui.theme import UI_THEME
-from gui.battle.render_utils import calc_tab_width, create_tab_gradient_photo
+from gui.battle.render_utils import (
+    calc_tab_width,
+    create_tab_gradient_photo,
+    create_strategy_gradient_photo,
+    draw_minion_stat_badges,
+)
 
 
 class CardRenderer:
@@ -50,9 +55,19 @@ class CardRenderer:
         TAB_H = 16
         TAB_SLANT = max(5, TAB_W // 6)
 
-        # 带标签形状的稀有度渐变背景
         rarity_colors = self.frame._get_card_rarity_gradient_colors(card)
         bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
+
+        # 策略卡：左上角斜切 + 底部尖角盾牌形
+        if isinstance(card, Strategy):
+            self._draw_strategy_card_base(
+                cvs, card_x1, card_y1, card_x2, card_y2,
+                bg_colors, border_color, border_width, tab_fill, offset_y,
+                cost_str,
+            )
+            return
+
+        # 带标签形状的稀有度渐变背景
         if _PIL_AVAILABLE:
             photo = create_tab_gradient_photo(
                 cw, ch,
@@ -95,6 +110,72 @@ class CardRenderer:
         cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
                            joinstyle=tk.MITER, tags="card_border")
 
+    def _draw_strategy_card_base(
+        self,
+        cvs: tk.Canvas,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        bg_colors,
+        border_color: str,
+        border_width: int,
+        tab_fill: str,
+        offset_y: int,
+        cost_str: str,
+    ) -> None:
+        """绘制策略卡底层：上半部分与普通卡牌一致，底部为尖角 V 形。"""
+        cw = x2 - x1
+        ch = y2 - y1
+        TAB_W = calc_tab_width(cost_str)
+        TAB_H = 16
+        TAB_SLANT = max(5, TAB_W // 6)
+        POINT_DEPTH = 12
+        r = 2
+        body_y1 = y1 + TAB_H + offset_y
+        y2o = y2 + offset_y
+
+        if _PIL_AVAILABLE:
+            photo = create_strategy_gradient_photo(
+                cw, ch,
+                bg_colors[0], bg_colors[1],
+                tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT,
+                point_depth=POINT_DEPTH, radius=r,
+            )
+            if photo:
+                cvs.create_image(
+                    cw // 2,
+                    ch // 2 + offset_y,
+                    image=photo, tags="rarity_bg",
+                )
+                cvs.rarity_bg_image = photo
+
+        # 费用标签（与普通卡牌一致）
+        label_points = [
+            x1, y1 + offset_y,
+            x1 + TAB_W, y1 + offset_y,
+            x1 + TAB_W + TAB_SLANT, body_y1,
+            x1, body_y1,
+        ]
+        cvs.create_polygon(label_points, fill=tab_fill, outline="", tags="cost_tab")
+
+        # 外形边框：顶部同普通卡，底部尖角
+        shape_points = [
+            x1, y1 + offset_y,
+            x1 + TAB_W, y1 + offset_y,
+            x1 + TAB_W + TAB_SLANT, body_y1,
+            x2 - r, body_y1,
+            x2, body_y1 + r,
+            x2, y2 - r - POINT_DEPTH + offset_y,
+            x2 - r, y2 - POINT_DEPTH + offset_y,
+            (x1 + x2) // 2, y2o,
+            x1 + r, y2 - POINT_DEPTH + offset_y,
+            x1, y2 - r - POINT_DEPTH + offset_y,
+            x1, body_y1,
+        ]
+        cvs.create_polygon(shape_points, fill="", outline=border_color, width=border_width,
+                           joinstyle=tk.MITER, tags="card_border")
+
     def _draw_card_face(self, cvs: tk.Canvas, card: Any, cw: int, ch: int) -> None:
         """绘制卡牌肖像。"""
         am = get_asset_manager()
@@ -115,8 +196,7 @@ class CardRenderer:
         offset_y: int = 0,
         bottom_y: int = 0,
     ) -> None:
-        """绘制卡牌费用、名称、底部类型文字。"""
-        """绘制卡牌费用、名称、底部类型文字。"""
+        """绘制卡牌费用、名称、底部攻防徽章。"""
         TAB_W = calc_tab_width(cost_str)
         TAB_H = 16
         TAB_SLANT = max(5, TAB_W // 6)
@@ -127,24 +207,13 @@ class CardRenderer:
                         font=("Microsoft YaHei", 8, "bold"), tags="card_text")
 
         name = card.name
-        stats = ""
-        if isinstance(card, MinionCard):
-            stats = f"{card.attack}/{card.health}"
         cvs.create_text(cw // 2, 20 + TAB_H, text=name, fill=UI_THEME["card_text_name"],
                         font=("Microsoft YaHei", 9, "bold"), tags="card_text")
-        bottom_text = stats
-        if isinstance(card, Strategy):
-            bottom_text = "【策略】"
-        elif isinstance(card, Conspiracy):
-            bottom_text = "【阴谋】"
-        elif isinstance(card, MineralCard):
-            bottom_text = "【矿物】"
-        elif isinstance(card, MinionCard):
-            bottom_text = f"【异象】{stats}"
-        if bottom_y == 0:
-            bottom_y = ch - 14
-        cvs.create_text(cw // 2, bottom_y, text=bottom_text, fill=UI_THEME["card_text_type"],
-                        font=("Microsoft YaHei", 8), tags="card_text")
+        # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
+        if isinstance(card, MinionCard):
+            draw_minion_stat_badges(
+                cvs, card.attack, card.health, cw, ch, offset_y=offset_y
+            )
 
     # ------------------------------------------------------------------
     # 手牌渲染
@@ -232,11 +301,7 @@ class CardRenderer:
 
             cvs.bind("<Button-1>", lambda e, i=idx: self.frame._on_hand_card_click(i))
             cvs.bind("<ButtonPress-1>", lambda e, c=card, s=serial: self.frame._on_drag_start(e, c, s))
-            cvs.bind("<Enter>", lambda e, c=card, s=serial: (
-                self.frame._show_card_tooltip(e, c),
-                self.frame._preview_deploy_positions(s),
-                self.frame._update_detail_text(c),
-            ))
+            cvs.bind("<Enter>", lambda e, c=card, s=serial: self._on_hand_enter(c, s))
             cvs.bind("<Leave>", lambda e: (self.frame._hide_tooltip(), self.frame._clear_preview(), self.frame._clear_detail_text()))
             cvs.bind("<Motion>", lambda e, c=card: self.frame._move_tooltip(e.x_root, e.y_root))
         except Exception as e:
@@ -244,6 +309,14 @@ class CardRenderer:
             print(f"[_render_hand_card] 渲染卡牌异常 [{getattr(card, 'name', 'unknown')}]: {e}")
             import traceback
             traceback.print_exc()
+
+    def _on_hand_enter(self, card: Any, serial: str) -> None:
+        """鼠标进入手牌：先更新右侧面板详情，再尝试高亮可部署位置。"""
+        self.frame._update_detail_text(card)
+        try:
+            self.frame._preview_deploy_positions(serial)
+        except Exception as exc:  # noqa: BLE001 (预览失败不应影响详情展示)
+            print(f"[警告] 预览部署位置失败 [{getattr(card, 'name', serial)}]: {exc}")
 
     def _draw_shown_fold(self, cvs: tk.Canvas, card: Any, cw: int, ch: int, offset_y: int) -> None:
         """绘制已展示给对手的折痕标记。"""

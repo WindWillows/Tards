@@ -67,13 +67,6 @@ from tards.assets import get_asset_manager
 from tards.card_db import DEFAULT_REGISTRY, Pack, CardType, Rarity
 from tards.deck import Deck
 from tards.deck_io import list_saved_decks, load_deck, save_deck
-from tards.feedback import (
-    create_feedback,
-    send_feedback,
-    save_feedback_local,
-    load_feedback_config,
-    save_feedback_config,
-)
 try:
     from PIL import Image, ImageDraw, ImageTk
     _PIL_AVAILABLE = True
@@ -114,7 +107,6 @@ from gui.dialogs import (
     DiscoverDialog,
     ChoiceDialog,
     EffectTargetDialog,
-    FeedbackDialog,
     NumericChoiceDialog,
 )
 from gui.tooltip import Tooltip
@@ -524,11 +516,11 @@ class BattleFrame(tk.Frame, RenderMixin):
         })
 
         # 2) 附加手牌槽 + 当前玩家资源面板（横向排列）
-        hand_bottom_row = tk.Frame(right, bg=UI_THEME["bg_main"])
-        hand_bottom_row.pack(fill=tk.X, pady=5)
+        self.hand_bottom_row = tk.Frame(right, bg=UI_THEME["bg_main"])
+        self.hand_bottom_row.pack(fill=tk.X, pady=5)
 
         # 左侧：附加手牌槽（约占 55%）
-        self.extra_hand_frame = tk.LabelFrame(hand_bottom_row, text="附加手牌槽",
+        self.extra_hand_frame = tk.LabelFrame(self.hand_bottom_row, text="附加手牌槽",
                                               bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.extra_hand_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.extra_hand_canvas = tk.Canvas(self.extra_hand_frame, height=self.HAND_CARD_HEIGHT + 10,
@@ -549,39 +541,39 @@ class BattleFrame(tk.Frame, RenderMixin):
         })
 
         # 右侧：当前玩家资源面板（约占 45%，随 current_player 切换）
-        self.res_panel = tk.LabelFrame(hand_bottom_row, text="当前资源",
+        self.res_panel = tk.LabelFrame(self.hand_bottom_row, text="当前资源",
                                        bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
         self.res_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         res_row1 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row1.pack(fill=tk.X, padx=5, pady=(5, 2))
         self.res_t_label = tk.Label(res_row1, text="T: -/-", font=("Microsoft YaHei", 10, "bold"),
-                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_t"])
+                                    fg=UI_THEME["res_t"], bg=UI_THEME["bg_panel"])
         self.res_t_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_c_label = tk.Label(res_row1, text="C: -/-", font=("Microsoft YaHei", 10, "bold"),
-                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_c"])
+                                    fg=UI_THEME["res_c"], bg=UI_THEME["bg_panel"])
         self.res_c_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_b_label = tk.Label(res_row1, text="B: 0", font=("Microsoft YaHei", 10, "bold"),
-                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_b"])
+                                    fg=UI_THEME["res_b"], bg=UI_THEME["bg_panel"])
         self.res_b_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_sacrifice_label = tk.Label(res_row1, text="可献祭: 0", font=("Microsoft YaHei", 9),
-                                            bg=UI_THEME["bg_panel"], fg=UI_THEME["res_b"])
+                                            fg="#9c27b0", bg=UI_THEME["bg_panel"])
         self.res_sacrifice_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_s_label = tk.Label(res_row1, text="S: 0", font=("Microsoft YaHei", 10, "bold"),
-                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["res_s"])
+                                    fg=UI_THEME["res_s"], bg=UI_THEME["bg_panel"])
         self.res_s_label.pack(side=tk.LEFT, padx=(0, 8))
         res_row2 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row2.pack(fill=tk.X, padx=5, pady=(0, 5))
         self.res_deck_label = tk.Label(res_row2, text="抽牌堆:0", font=("Microsoft YaHei", 9),
-                                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+                                       bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
         self.res_deck_label.pack(side=tk.LEFT, padx=(0, 8))
         self.res_dis_label = tk.Label(res_row2, text="弃牌堆:0", font=("Microsoft YaHei", 9),
-                                      bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+                                      bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
         self.res_dis_label.pack(side=tk.LEFT, padx=(0, 8))
 
         res_row3 = tk.Frame(self.res_panel, bg=UI_THEME["bg_panel"])
         res_row3.pack(fill=tk.X, padx=5, pady=(0, 5))
         self.res_conspiracy_label = tk.Label(res_row3, text="阴谋序列:0", font=("Microsoft YaHei", 9),
-                                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
+                                             bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
         self.res_conspiracy_label.pack(side=tk.LEFT, padx=(0, 8))
 
         # 按钮区分组：主操作 / 兑换 / 系统
@@ -590,38 +582,37 @@ class BattleFrame(tk.Frame, RenderMixin):
 
         # 主操作组（最醒目）
         main_grp = tk.LabelFrame(btn_frame, text="操作", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"],
-                                  font=("Microsoft YaHei", 8), padx=4, pady=2)
+                                 font=("Microsoft YaHei", 8), padx=4, pady=2)
         main_grp.pack(side=tk.LEFT, padx=(0, 6))
         self.bell_btn = tk.Button(main_grp, text="拍铃", bg=UI_THEME["btn_warning_bg"], fg=UI_THEME["btn_warning_fg"],
-                                   activebackground=UI_THEME["btn_warning_active"],
-                                   font=("Microsoft YaHei", 10, "bold"),
-                                   width=6, height=1, relief=tk.RAISED, bd=1)
+                                  activebackground=UI_THEME["btn_warning_active"], font=("Microsoft YaHei", 10, "bold"),
+                                  width=6, height=1)
         self.bell_btn.pack(side=tk.LEFT, padx=2)
         self.bell_btn.bind("<Double-Button-1>", lambda e: self._on_bell())
         self.brake_btn = tk.Button(main_grp, text="拉闸", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
-                                    activebackground=UI_THEME["btn_secondary_active"],
-                                    font=("Microsoft YaHei", 10, "bold"),
-                                    width=6, height=1, relief=tk.RAISED, bd=1)
+                                   activebackground=UI_THEME["btn_secondary_active"], font=("Microsoft YaHei", 10, "bold"),
+                                   width=6, height=1)
         self.brake_btn.pack(side=tk.LEFT, padx=2)
         self.brake_btn.bind("<Double-Button-1>", lambda e: self._on_brake())
 
         # 兑换组（中等）
         ex_grp = tk.LabelFrame(btn_frame, text="兑换", bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"],
-                                font=("Microsoft YaHei", 8), padx=4, pady=2)
+                               font=("Microsoft YaHei", 8), padx=4, pady=2)
         ex_grp.pack(side=tk.LEFT, padx=(0, 6))
-        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#fef3c7", fg=UI_THEME["res_mineral"],
-                                       activebackground="#fde68a", font=("Microsoft YaHei", 9),
-                                       width=5, relief=tk.RAISED, bd=1, command=self._toggle_mineral_bar)
+        self.exchange_btn = tk.Button(ex_grp, text="矿物", bg="#fff9c4", fg="#f57f17",
+                                      activebackground="#fff59d", font=("Microsoft YaHei", 9),
+                                      width=5, command=self._toggle_mineral_bar)
         self.exchange_btn.pack(side=tk.LEFT, padx=2)
-        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#fef3c7", fg=UI_THEME["res_mineral"],
-                                                activebackground="#fde68a", font=("Microsoft YaHei", 9),
-                                                width=5, relief=tk.RAISED, bd=1, command=self._on_exchange_squirrel)
+        self.exchange_squirrel_btn = tk.Button(ex_grp, text="松鼠", bg="#fff9c4", fg="#f57f17",
+                                               activebackground="#fff59d", font=("Microsoft YaHei", 9),
+                                               width=5, command=self._on_exchange_squirrel)
         self.exchange_squirrel_btn.pack(side=tk.LEFT, padx=2)
         self.squirrel_draw_var = tk.BooleanVar(value=False)
-        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg=UI_THEME["bg_panel"], fg=UI_THEME["res_mineral"],
-                                                variable=self.squirrel_draw_var,
-                                                command=self._on_toggle_squirrel_draw,
-                                                font=("Microsoft YaHei", 9), selectcolor=UI_THEME["bg_panel"])
+        self.squirrel_draw_cb = tk.Checkbutton(ex_grp, text="抽", bg=UI_THEME["bg_panel"], fg="#f57f17",
+                                               variable=self.squirrel_draw_var,
+                                               command=self._on_toggle_squirrel_draw,
+                                               font=("Microsoft YaHei", 9),
+                                               selectcolor=UI_THEME["bg_panel"])
         self.squirrel_draw_cb.pack(side=tk.LEFT, padx=2)
 
         # 矿物展开面板（点击"矿物"后展开，显示4个快捷兑换按钮）
@@ -635,8 +626,8 @@ class BattleFrame(tk.Frame, RenderMixin):
         ]
         for mtype, mname in mineral_specs:
             btn = tk.Button(self.mineral_bar, text=mname, font=("Microsoft YaHei", 9),
-                            width=6, bg="#fef3c7", fg=UI_THEME["res_mineral"],
-                            activebackground="#fde68a", relief=tk.RAISED, bd=1,
+                            width=6, bg="#fff9c4", fg="#f57f17",
+                            activebackground="#fff59d",
                             command=lambda n=mname: self._do_exchange_mineral(n))
             btn.pack(side=tk.LEFT, padx=3)
             self._mineral_buttons[mtype] = btn
@@ -645,20 +636,33 @@ class BattleFrame(tk.Frame, RenderMixin):
         sys_grp = tk.Frame(btn_frame, bg=UI_THEME["bg_main"])
         sys_grp.pack(side=tk.LEFT)
         self.cancel_btn = tk.Button(sys_grp, text="取消", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
-                                     activebackground=UI_THEME["btn_secondary_active"],
-                                     font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
-                                     width=5, command=self._on_cancel)
+                                    activebackground=UI_THEME["btn_secondary_active"], font=("Microsoft YaHei", 9),
+                                    width=5, command=self._on_cancel)
         self.cancel_btn.pack(side=tk.LEFT, padx=2)
         self.terminate_btn = tk.Button(sys_grp, text="终止", bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"],
-                                        activebackground=UI_THEME["btn_danger_active"],
-                                        font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
-                                        width=5, command=self._on_terminate_game)
+                                       activebackground=UI_THEME["btn_danger_active"], font=("Microsoft YaHei", 9),
+                                       width=5, command=self._on_terminate_game)
         self.terminate_btn.pack(side=tk.LEFT, padx=2)
         self.feedback_btn = tk.Button(sys_grp, text="反馈", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
-                                       activebackground=UI_THEME["btn_secondary_active"],
-                                       font=("Microsoft YaHei", 9), relief=tk.RAISED, bd=1,
-                                       width=5, command=self._on_feedback)
+                                      activebackground=UI_THEME["btn_secondary_active"], font=("Microsoft YaHei", 9),
+                                      width=5, command=self._on_feedback)
         self.feedback_btn.pack(side=tk.LEFT, padx=2)
+        self.extra_hand_canvas = tk.Canvas(self.extra_hand_frame, height=self.HAND_CARD_HEIGHT + 10,
+                                           bg=UI_THEME["bg_panel"], highlightthickness=0, bd=0)
+        mineral_hbar = tk.Scrollbar(self.extra_hand_frame, orient=tk.HORIZONTAL, command=self.extra_hand_canvas.xview)
+        self.extra_hand_canvas.configure(xscrollcommand=mineral_hbar.set)
+        mineral_hbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.extra_hand_canvas.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.extra_hand_inner = tk.Frame(self.extra_hand_canvas, bg=UI_THEME["bg_panel"])
+        self.extra_hand_canvas.create_window((0, 0), window=self.extra_hand_inner, anchor="nw")
+        self.extra_hand_inner.bind("<Configure>", lambda e, c=self.extra_hand_canvas: c.configure(scrollregion=c.bbox("all")))
+        self.hand_zones.append({
+            "label": "附加手牌槽",
+            "frame": self.extra_hand_frame,
+            "inner": self.extra_hand_inner,
+            "player_attr": "extra_hand",
+            "max_attr": "extra_hand_max",
+        })
 
         self.hint_label = tk.Label(right, text="等待游戏开始...", fg=UI_THEME["accent"],
                                    bg=UI_THEME["bg_main"], wraplength=500)
@@ -697,8 +701,10 @@ class BattleFrame(tk.Frame, RenderMixin):
         self.log_text.tag_config("damage", foreground=UI_THEME["log_damage"])
         self.log_text.tag_config("victory", foreground=UI_THEME["log_victory"], font=("Microsoft YaHei", 10, "bold"))
 
-
-
+        # 让附加手牌槽+资源面板行与手牌区严格等高
+        self.update_idletasks()
+        self.hand_bottom_row.config(height=self.hand_frame.winfo_reqheight())
+        self.hand_bottom_row.pack_propagate(False)
 
     def _add_history(self, text: str, is_play: bool = False):
         """添加一条操作历史记录。
@@ -946,6 +952,34 @@ class BattleFrame(tk.Frame, RenderMixin):
         """刷新玩家信息与资源面板（委托给 InfoRenderer）。"""
         self.info_renderer.render()
 
+    def _flash_res_label(self, widget, flash_color, times=2, interval=150):
+        """同时闪烁 Label 的背景和前景色，效果更明显。"""
+        if not widget.winfo_exists():
+            return
+        original_fg = widget.cget("fg")
+        original_bg = widget.cget("bg")
+        flash_fg = "#ffffff" if flash_color == "#f44336" else "#000000"
+
+        def step(count=0):
+            if not widget.winfo_exists():
+                return
+            if count >= times * 2:
+                widget.config(fg=original_fg, bg=original_bg)
+                return
+            if count % 2 == 0:
+                widget.config(fg=flash_fg, bg=flash_color)
+            else:
+                widget.config(fg=original_fg, bg=original_bg)
+            widget.after(interval, lambda: step(count + 1))
+
+        step()
+
+    def _get_available_blood(self, player):
+        """计算场上友方异象可提供的献祭B点总和。"""
+        if not self.duel.game:
+            return 0
+        minions = self.duel.game.board.get_minions_of_player(player)
+        return sum(m.keywords.get("丰饶", 1) for m in minions if m.is_alive())
 
     def _on_minion_click(self, minion: Minion):
         # 1. 献祭选择模式：选择/取消祭品
@@ -1056,7 +1090,66 @@ class BattleFrame(tk.Frame, RenderMixin):
     def _on_cancel(self):
         self.input_controller.on_cancel()
 
+    def _toggle_mineral_bar(self):
+        """展开/收起矿物快捷兑换面板。"""
+        if self.mineral_bar.winfo_ismapped():
+            self.mineral_bar.pack_forget()
+            self.exchange_btn.config(bg="#fff9c4")
+        else:
+            self._refresh_mineral_bar()
+            self.mineral_bar.pack(fill=tk.X, pady=(0, 5), before=self.hint_label)
+            self.exchange_btn.config(bg="#fff59d")
 
+    def _set_btn_disabled(self, btn: tk.Button) -> None:
+        """将按钮设为不可用并显示灰色。"""
+        btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
+
+    def _set_btn_enabled(self, btn: tk.Button, bg: str, fg: str) -> None:
+        """将按钮设为可用并恢复指定配色。"""
+        btn.config(state=tk.NORMAL, bg=bg, fg=fg)
+
+    def _refresh_action_buttons(self) -> None:
+        """根据当前游戏状态启用/禁用拍铃、拉闸、取消选择、终止按钮。"""
+        game = self.duel.game
+        if not game or not game.current_player:
+            self._set_btn_disabled(self.bell_btn)
+            self._set_btn_disabled(self.brake_btn)
+            self._set_btn_disabled(self.cancel_btn)
+            self._set_btn_disabled(self.terminate_btn)
+            return
+
+        active = game.current_player
+        phase = game.current_phase
+        is_local_turn = (not isinstance(self.duel, NetworkDuel)) or active == self.local_player
+        opponent = game.p2 if active == game.p1 else game.p1
+
+        # 终止：游戏进行中始终可用
+        self._set_btn_enabled(self.terminate_btn,
+                              bg=UI_THEME["btn_danger_bg"], fg=UI_THEME["btn_danger_fg"])
+
+        # 取消选择：仅在献祭、指向或选牌时可用
+        can_cancel = (self._in_sacrifice_mode or self._in_targeting_mode
+                      or self.selected_card_idx is not None)
+        if can_cancel:
+            self._set_btn_enabled(self.cancel_btn,
+                                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"])
+        else:
+            self._set_btn_disabled(self.cancel_btn)
+
+        # 拍铃/拉闸：仅本地玩家的出牌阶段、且未拉闸时可用
+        can_act = is_local_turn and phase == "action" and not active.braked
+        if can_act:
+            self._set_btn_enabled(self.brake_btn,
+                                  bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"])
+            # 对方已拉闸时，拍铃变灰
+            if opponent.braked:
+                self._set_btn_disabled(self.bell_btn)
+            else:
+                self._set_btn_enabled(self.bell_btn,
+                                      bg=UI_THEME["btn_warning_bg"], fg=UI_THEME["btn_warning_fg"])
+        else:
+            self._set_btn_disabled(self.bell_btn)
+            self._set_btn_disabled(self.brake_btn)
 
     def _refresh_mineral_bar(self):
         """根据当前玩家资源刷新4个矿物按钮的可用状态。"""
@@ -1098,7 +1191,7 @@ class BattleFrame(tk.Frame, RenderMixin):
         # 收起展开面板
         if self.mineral_bar.winfo_ismapped():
             self.mineral_bar.pack_forget()
-            self.exchange_btn.config(bg="#fef3c7")
+            self.exchange_btn.config(bg="#fff9c4")
 
 
     def _on_toggle_squirrel_draw(self):
@@ -1110,6 +1203,10 @@ class BattleFrame(tk.Frame, RenderMixin):
         active.squirrel_draw_enabled = self.squirrel_draw_var.get()
         state = "开启" if active.squirrel_draw_enabled else "关闭"
         print(f"  {active.name} 抽松鼠选项已{state}")
+
+    def _on_feedback(self):
+        """反馈按钮（功能已移除）。"""
+        messagebox.showinfo("反馈", "反馈功能已移除")
 
     def _on_exchange_squirrel(self):
         active = self.duel.game and self.duel.game.current_player
@@ -1271,9 +1368,9 @@ class BattleFrame(tk.Frame, RenderMixin):
                                 not current.squirrel_exchanged_this_turn and
                                 current.squirrel_deck)
                 if can_squirrel:
-                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#fef3c7", fg=UI_THEME["res_mineral"])
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#fff9c4", fg="#f57f17")
                 else:
-                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
             else:
                 self.exchange_squirrel_btn.pack_forget()
         elif self.local_player:
@@ -1290,11 +1387,18 @@ class BattleFrame(tk.Frame, RenderMixin):
                                 not self.local_player.squirrel_exchanged_this_turn and
                                 self.local_player.squirrel_deck)
                 if can_squirrel:
-                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#dbeafe", fg=UI_THEME["accent_dark"])
+                    self.exchange_squirrel_btn.config(state=tk.NORMAL, bg="#e3f2fd", fg="#1565c0")
                 else:
-                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg=UI_THEME["btn_secondary_active"], fg=UI_THEME["text_muted"])
+                    self.exchange_squirrel_btn.config(state=tk.DISABLED, bg="#eeeeee", fg="#9e9e9e")
             else:
                 self.exchange_squirrel_btn.pack_forget()
+        else:
+            self.exchange_btn.pack_forget()
+            self.exchange_squirrel_btn.pack_forget()
+        self._refresh_mineral_bar()
+
+        # 刷新拍铃/拉闸/取消/终止按钮状态
+        self._refresh_action_buttons()
 
     def _start_game_thread(self):
         # 清理上局可能遗留的全局事件，避免新游戏初期就误触发 _render_info
@@ -1348,12 +1452,6 @@ class BattleFrame(tk.Frame, RenderMixin):
         self._game_thread = threading.Thread(target=run, daemon=True)
         self._game_thread.start()
 
-
-
-
-
-
-
     def _move_tooltip(self, x, y):
         if self._tooltip:
             self._tooltip.move(x, y)
@@ -1386,36 +1484,6 @@ class BattleFrame(tk.Frame, RenderMixin):
             if hasattr(self.duel, "close"):
                 self.duel.close()
             self.app.show_menu()
-
-    def _on_feedback(self):
-        """打开反馈对话框，提交问题描述和日志到反馈服务器。"""
-        player_name = self.local_player.name
-
-        def do_submit(description: str, server_addr: str):
-            host, port_str = server_addr.rsplit(":", 1)
-            port = int(port_str)
-
-            # 组装反馈数据
-            entry = create_feedback(player_name, description)
-
-            # 尝试发送到服务器
-            success = send_feedback(entry, host, port, timeout=5.0)
-            if success:
-                messagebox.showinfo("反馈已发送", f"反馈已成功发送到 {server_addr}")
-                self.hint_label.config(text=f"[反馈] 已发送到 {server_addr}", fg=UI_THEME["success"])
-            else:
-                # 发送失败，询问是否本地备份
-                if messagebox.askyesno(
-                    "发送失败",
-                    f"无法连接到反馈服务器 {server_addr}\n是否保存到本地备份？",
-                ):
-                    path = save_feedback_local(entry)
-                    messagebox.showinfo("本地备份", f"反馈已保存到:\n{path}")
-                    self.hint_label.config(text=f"[反馈] 已本地备份: {path}", fg=UI_THEME["warning_dark"])
-                else:
-                    self.hint_label.config(text="[反馈] 发送失败，未保存", fg=UI_THEME["danger"])
-
-        FeedbackDialog(self, player_name, do_submit)
 
     def _show_toast(self, text: str, bg_color: str = "", duration_ms: int = 1500):
         """在屏幕中央显示一个临时浮层提示，duration_ms 后自动消失。"""
@@ -1627,12 +1695,10 @@ class BattleFrame(tk.Frame, RenderMixin):
             self.duel.close()
         self.app.show_menu()
 
-
 def main():
     root = tk.Tk()
     app = TardsApp(root)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()

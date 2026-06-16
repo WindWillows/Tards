@@ -63,6 +63,48 @@ def calc_tab_width(cost_str: str, base: int = 28, char_px: int = 6, padding: int
     return max(base, len(cost_str) * char_px + padding)
 
 
+def draw_minion_stat_badges(
+    canvas: tk.Canvas,
+    attack: Optional[int],
+    health: Optional[int],
+    cw: int,
+    ch: int,
+    offset_y: int = 0,
+) -> None:
+    """在卡牌左下角/右下角绘制攻击/生命数值徽章。
+
+    比居中的 "3/4" 文本更醒目，也方便通过颜色区分攻防。
+    """
+    if attack is None or health is None:
+        return
+
+    r = 9
+    y = ch - 13 + offset_y
+    font = ("Microsoft YaHei", 8, "bold")
+
+    # 左下角攻击徽章（黄色，与场上异象攻击栏颜色一致）
+    ax = 14
+    canvas.create_oval(
+        ax - r, y - r, ax + r, y + r,
+        fill=UI_THEME["minion_atk_eq"], outline="#b45309", width=1,
+        tags="card_stat",
+    )
+    canvas.create_text(
+        ax, y, text=str(attack), fill="black", font=font, tags="card_stat",
+    )
+
+    # 右下角生命徽章（黄色，与场上异象 HP 栏满血颜色一致）
+    hx = cw - 14
+    canvas.create_oval(
+        hx - r, y - r, hx + r, y + r,
+        fill=UI_THEME["minion_hp_eq"], outline="#b45309", width=1,
+        tags="card_stat",
+    )
+    canvas.create_text(
+        hx, y, text=str(health), fill="black", font=font, tags="card_stat",
+    )
+
+
 def get_minion_attack_color(m) -> str:
     """返回 1 号攻击三角区域背景色。"""
     if m.current_attack > m.base_attack:
@@ -151,6 +193,54 @@ def create_tab_gradient_photo(width: int, height: int, color1: str, color2: str,
         (x1 + tab_w + slant, body_y1),
         (x1, body_y1),
     ], fill=255)
+
+    r_band, g_band, b_band = grad.split()
+    img = Image.merge("RGBA", (r_band, g_band, b_band, mask))
+    return ImageTk.PhotoImage(img)
+
+
+def create_strategy_gradient_photo(width: int, height: int, color1: str, color2: str,
+                                    tab_w: int = 28, tab_h: int = 16, slant: int = 5,
+                                    point_depth: int = 10, radius: int = 2):
+    """生成策略卡牌：顶部与普通卡牌一致，底部为尖底 V 形的渐变 PIL Image。"""
+    if not _PIL_AVAILABLE or width <= 0 or height <= 0:
+        return None
+
+    c1 = hex_to_rgb(color1)
+    c2 = hex_to_rgb(color2)
+
+    grad = Image.new("RGB", (width, height))
+    pixels = grad.load()
+    max_sum = width + height - 2
+    for y in range(height):
+        for x in range(width):
+            t = (x + y) / max_sum if max_sum > 0 else 0
+            r = int(c1[0] + (c2[0] - c1[0]) * t)
+            g = int(c1[1] + (c2[1] - c1[1]) * t)
+            b = int(c1[2] + (c2[2] - c1[2]) * t)
+            pixels[x, y] = (r, g, b)
+
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    x1, y1 = 0, 0
+    x2, y2 = width - 1, height - 1
+    r = radius
+    body_y1 = y1 + tab_h
+
+    points = [
+        (x1, y1),
+        (x1 + tab_w, y1),
+        (x1 + tab_w + slant, body_y1),
+        (x2 - r, body_y1),
+        (x2, body_y1 + r),
+        (x2, y2 - r - point_depth),
+        (x2 - r, y2 - point_depth),
+        ((x1 + x2) // 2, y2),
+        (x1 + r, y2 - point_depth),
+        (x1, y2 - r - point_depth),
+        (x1, body_y1),
+    ]
+    draw.polygon(points, fill=255)
 
     r_band, g_band, b_band = grad.split()
     img = Image.merge("RGBA", (r_band, g_band, b_band, mask))

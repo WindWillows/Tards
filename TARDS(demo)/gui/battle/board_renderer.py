@@ -10,6 +10,7 @@ import tkinter as tk
 
 from tards import Minion, MinionCard, Strategy
 from tards.assets import get_asset_manager
+from tards.net_game import NetworkDuel
 from gui.theme import UI_THEME
 from gui.battle.render_utils import (
     create_minion_portrait_photo,
@@ -202,6 +203,29 @@ class BoardRenderer:
             tags=(tag, "minion", "portrait_text"),
         )
 
+    def _get_visible_keywords(
+        self,
+        m: "Minion",  # type: ignore[name-defined]
+    ) -> List[Tuple[str, Any]]:
+        """返回应显示在关键词条区域的有效词条/状态列表（已按优先级排序）。"""
+        priority = {
+            "恐惧": 0, "冰冻": 0, "眩晕": 0, "休眠": 0,
+            "亡语": 1, "迅捷": 1, "潜行": 1, "潜水": 1,
+            "成长": 2, "视野": 3, "高频": 3, "先攻": 3,
+        }
+        active = []
+        for k, v in m.display_keywords.items():
+            if v is False or v is None:
+                continue
+            if isinstance(v, int) and v == 0:
+                continue
+            # 默认值为 1 的“丰饶/献祭”不显示
+            if k in ("丰饶", "献祭") and v == 1:
+                continue
+            active.append((k, v))
+        active.sort(key=lambda x: priority.get(x[0], 99))
+        return active
+
     def draw_minion_keyword_bar(
         self,
         cx: int,
@@ -215,6 +239,8 @@ class BoardRenderer:
         gap = self.keyword_gap
         start_x = cx + r + gap
         start_y = cy - r
+
+        active = self._get_visible_keywords(m)
 
         # 词条/状态配色（背景，前景文字）
         keyword_styles = {
@@ -240,24 +266,6 @@ class BoardRenderer:
             "独行": (UI_THEME["kw_solo"], "white"),
         }
         default_style = (UI_THEME["minion_bar_bg"], "black")
-
-        # 收集有效词条/状态，优先显示控制类状态
-        priority = {
-            "恐惧": 0, "冰冻": 0, "眩晕": 0, "休眠": 0,
-            "亡语": 1, "迅捷": 1, "潜行": 1, "潜水": 1,
-            "成长": 2, "视野": 3, "高频": 3, "先攻": 3,
-        }
-        active = []
-        for k, v in m.display_keywords.items():
-            if v is False or v is None:
-                continue
-            if isinstance(v, int) and v == 0:
-                continue
-            # 默认值为 1 的“丰饶/献祭”不显示
-            if k in ("丰饶", "献祭") and v == 1:
-                continue
-            active.append((k, v))
-        active.sort(key=lambda x: priority.get(x[0], 99))
 
         am = get_asset_manager()
         # 按可用高度截断
@@ -286,6 +294,21 @@ class BoardRenderer:
                     (x1 + x2) // 2, (y1 + y2) // 2, text=k[0],
                     fill=fg, font=("Microsoft YaHei", 8, "bold"),
                     tags=(tag, "minion", "keyword_text"),
+                )
+
+            # 层数/计数徽章（图标右侧，不遮挡图标主体；布尔值只显示图标，不显示 true）
+            if type(v) is int and v >= 1:
+                badge_font = ("Microsoft YaHei", max(6, box // 2 - 1), "bold")
+                # 黑色阴影增加可读性
+                self.canvas.create_text(
+                    x2 + 2, y2, text=str(v), anchor=tk.SW,
+                    fill="black", font=badge_font,
+                    tags=(tag, "minion", "keyword_badge_shadow"),
+                )
+                self.canvas.create_text(
+                    x2 + 1, y2 - 1, text=str(v), anchor=tk.SW,
+                    fill="white", font=badge_font,
+                    tags=(tag, "minion", "keyword_badge_text"),
                 )
 
     # ------------------------------------------------------------------
@@ -327,8 +350,11 @@ class BoardRenderer:
         # 绘制每个异象
         for (logic_r, c), m in game.board.minion_place.items():
             cx, cy, display_r = _cell_center(logic_r, c)
-            cx += frame.MINION_OFFSET_X
             tag = f"minion_{logic_r}_{c}"
+
+            # 只有当有异象需要展示右侧关键词条时，才向左偏移以腾出空间
+            if self._get_visible_keywords(m):
+                cx += frame.MINION_OFFSET_X
 
             # 清除该 tag 上所有旧事件绑定
             for seq in ("<Enter>", "<Leave>", "<Motion>", "<Button-1>", "<Double-Button-1>"):
@@ -377,7 +403,7 @@ class BoardRenderer:
                                     tags=(tag, "minion", "hp_text"))
 
             # 4 号区域：关键词/状态小方框
-            self.draw_minion_keyword_bar(self.canvas, cx, cy, m, tag)
+            self.draw_minion_keyword_bar(cx, cy, m, tag)
 
             # 事件绑定
             self.canvas.tag_bind(tag, "<Enter>",

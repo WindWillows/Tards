@@ -23,6 +23,8 @@ class DetailRenderer:
         """在右侧文本栏中显示卡牌/异象信息（悬停时触发）。"""
         if not hasattr(self.frame, "detail_text"):
             return
+        if card is None:
+            return
 
         detail_text = self.frame.detail_text
         is_minion = isinstance(card, Minion)

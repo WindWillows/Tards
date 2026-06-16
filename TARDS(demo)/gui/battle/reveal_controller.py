@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 from tards.card_db import DEFAULT_REGISTRY
 from tards.constants import EVENT_CARD_PLAYED, EVENT_DISCARDED, EVENT_MILLED
-from gui.battle.render_utils import calc_tab_width
+from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
 
 if TYPE_CHECKING:
     from tkinter import Canvas
@@ -312,25 +312,13 @@ class RevealController:
             )
             print(f"[Reveal]   名称绘制完成: {name}")
 
-            # 底部类型
-            from tards.cards import Conspiracy, MineralCard, MinionCard, Strategy
-            stats = ""
+            # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
+            from tards.cards import MinionCard
             if isinstance(card, MinionCard):
-                stats = f"{card.attack}/{card.health}"
-            bottom_text = stats
-            if isinstance(card, Strategy):
-                bottom_text = "【策略】"
-            elif isinstance(card, Conspiracy):
-                bottom_text = "【阴谋】"
-            elif isinstance(card, MineralCard):
-                bottom_text = "【矿物】"
-            elif isinstance(card, MinionCard):
-                bottom_text = f"【异象】{stats}"
-            canvas.create_text(
-                cw // 2, ch - 14, text=bottom_text, fill=UI_THEME["card_text_type"],
-                font=("Microsoft YaHei", 8), tags="card_text"
-            )
-            print(f"[Reveal]   底部类型绘制完成: {bottom_text}")
+                draw_minion_stat_badges(
+                    canvas, card.attack, card.health, cw, ch, offset_y=0
+                )
+            print("[Reveal]   底部攻防徽章绘制完成")
             print("[Reveal] _render_reveal_card 完成")
         except Exception as e:
             print(f"[Reveal] [_render_reveal_card] 渲染异常 [{getattr(card, 'name', 'unknown')}]: {e}")

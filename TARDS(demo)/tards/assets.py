@@ -192,6 +192,46 @@ class AssetManager:
         """加载卡面原始图像。"""
         return self.get_raw_image(f"card_face:{asset_id}", width, height, "cards/faces", asset_id)
 
+    def get_card_portrait(self, asset_id: str, size: int) -> Optional[ImageTk.PhotoImage]:
+        """加载正方形卡面肖像（中心裁剪）。"""
+        if not _PIL_AVAILABLE:
+            return None
+        cache_key = f"card_portrait:{asset_id}"
+        key = (cache_key, (size, size))
+        cached = self._cache.get(key)
+        if cached is not None:
+            return cached
+        if key in self._cache:
+            del self._cache[key]
+        now = time()
+        last_miss = self._miss_times.get(key)
+        if last_miss is not None and now - last_miss < 2.0:
+            return None
+        path = self._resolve_path(asset_id, "cards/faces")
+        if path is None or not path.exists():
+            self._miss_times[key] = now
+            return None
+        try:
+            img = Image.open(path)
+            if img.mode not in ("RGB", "RGBA"):
+                img = img.convert("RGBA")
+            # 等比缩放，使短边 >= size，然后中心裁剪出 size×size
+            ratio = max(size / img.width, size / img.height)
+            new_w, new_h = int(img.width * ratio), int(img.height * ratio)
+            if (new_w, new_h) != img.size:
+                resample = Image.NEAREST if max(new_w, new_h) <= 32 else Image.LANCZOS
+                img = img.resize((new_w, new_h), resample)
+            left = (img.width - size) // 2
+            top = (img.height - size) // 2
+            img = img.crop((left, top, left + size, top + size))
+            photo = ImageTk.PhotoImage(img)
+            self._cache[key] = photo
+            self._miss_times.pop(key, None)
+            return photo
+        except Exception:
+            self._miss_times[key] = now
+            return None
+
     def get_card_back_raw(self, asset_id: Optional[str], width: int, height: int) -> Optional[Image.Image]:
         """加载卡背原始图像。"""
         aid = asset_id or "default"
