@@ -262,7 +262,9 @@ def _default_minion_effect(player: "Player", target: Any, game: "Game",
                 print(f"  献祭 {m.name}（免疫献祭，异象保留），获得 {blood}B")
             else:
                 m.current_health = 0
-                m.minion_death()
+                # 献祭需要立即从战场移除，避免在抉择/指向等阻塞效果期间
+                # 祭品仍以 HP 0 的状态留在场上。
+                m.minion_death(sync=True)
                 print(f"  献祭 {m.name}，获得 {blood}B")
             game.emit_event(EVENT_SACRIFICE, minion=m, player=player, blood=blood,
                             required_blood=card.cost.b, total_blood=total_blood)
@@ -746,7 +748,13 @@ class Minion:
             game.deploy_hooks.remove(fn)
             self._deploy_hook_fn = None
 
-    def minion_death(self):
+    def minion_death(self, sync: bool = False):
+        """触发死亡流程。
+
+        Args:
+            sync: 为 True 时立即同步执行移除（用于献祭等需要在效果内
+                  立即清理战场的场景），否则加入连锁队列延后处理。
+        """
         if self.current_health <= 0 and self.is_alive() and not getattr(self, "_pending_death", False):
             print(f"  {self.name} 被消灭了！")
             self._pending_death = True
@@ -829,7 +837,9 @@ class Minion:
                             return fn
                         game.effect_queue.queue(f"亡语 [{self.name}]", make_dr())
 
-            if self.board.game_ref:
+            if sync:
+                do_remove()
+            elif self.board.game_ref:
                 self.board.game_ref.effect_queue.queue(f"消灭 [{self.name}]", do_remove)
             else:
                 do_remove()

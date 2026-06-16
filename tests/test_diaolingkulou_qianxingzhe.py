@@ -26,18 +26,18 @@ def test_qianxingzhe_kills_nearest_enemy():
     h = GameHarness()
     p1, p2 = h.players
 
-    # p2 部署两个异象
+    # p2 部署两个异象（火把不能放在水路，改为河岸）
     h.deploy("书架", p2, (0, 1))
-    h.deploy("火把", p2, (0, 4))
+    h.deploy("火把", p2, (0, 3))
     assert_minion_exists(h.game, (0, 1), "书架")
-    assert_minion_exists(h.game, (0, 4), "火把")
+    assert_minion_exists(h.game, (0, 3), "火把")
 
     # p1 在 (4,1) 部署潜行者，最近的是 (0,1) 的书架（距离4）
     h.deploy("潜行者", p1, (4, 1))
 
     # 书架应被消灭，火把存活
     assert_board_empty(h.game, (0, 1))
-    assert_minion_exists(h.game, (0, 4), "火把")
+    assert_minion_exists(h.game, (0, 3), "火把")
 
 
 def test_qianxingzhe_prefers_enemy_when_tied():
@@ -45,16 +45,16 @@ def test_qianxingzhe_prefers_enemy_when_tied():
     h = GameHarness()
     p1, p2 = h.players
 
-    # p1 友方在 (3,1)，p2 敌方在 (3,3)
-    # (4,2) 到 (3,1) = 1+1=2，到 (3,3) = 1+1=2
-    h.deploy("书架", p1, (3, 1))
-    h.deploy("火把", p2, (3, 3))
+    # p1 友方在 (4,0)，p2 敌方在 (0,2)
+    # (3,2) 到 (4,0) = 1+2=3，到 (0,2) = 3+0=3
+    h.deploy("书架", p1, (4, 0))
+    h.deploy("火把", p2, (0, 2))
 
-    h.deploy("潜行者", p1, (4, 2))
+    h.deploy("潜行者", p1, (3, 2))
 
     # 距离相同，优先敌方火把
-    assert_minion_exists(h.game, (3, 1), "书架")
-    assert_board_empty(h.game, (3, 3))
+    assert_minion_exists(h.game, (4, 0), "书架")
+    assert_board_empty(h.game, (0, 2))
 
 
 def test_qianxingzhe_no_other_minions():

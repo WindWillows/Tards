@@ -280,6 +280,8 @@ class BattleFrame(tk.Frame, RenderMixin):
         self._tooltip_source: Optional[Any] = None
         self._pending_play_data: Optional[Dict[str, Any]] = None
         self._game_thread: Optional[threading.Thread] = None
+        self._disconnect_handled = False
+        self._gameover_handled = False
         self._targeting_source_minion: Optional[Minion] = None
         self._current_targeting_mode: Optional[str] = None
         self._dragging_card = None
@@ -1414,6 +1416,7 @@ class BattleFrame(tk.Frame, RenderMixin):
 
         self.duel.local_turn_callback = lambda: gui_refresh_event.set()
         self.duel.game_over_callback = lambda winner: self.after(0, lambda: self._on_gameover(winner))
+        self.duel.disconnect_callback = lambda: self.after(0, self._on_disconnect)
         self.duel.discover_request_callback = lambda names: self.after(0, lambda: self._show_discover(names))
         self.duel.choice_request_callback = lambda options, title: self.after(0, lambda: self._show_choice(options, title))
         self.duel.targeting_request_callback = lambda req, vt: self.after(0, lambda: self._show_targeting(req, vt))
@@ -1464,6 +1467,9 @@ class BattleFrame(tk.Frame, RenderMixin):
 
     def _on_terminate_game(self):
         """终止当前对局并返回主菜单。日志已由 GameLogger 自动保存。"""
+        if self._disconnect_handled:
+            return
+        self._gameover_handled = True
         if messagebox.askyesno("终止游戏", "确定要终止当前对局吗？\n日志将保存到 logs/ 目录。"):
             # 1. 标记游戏结束
             if self.duel.game:
@@ -1689,8 +1695,37 @@ class BattleFrame(tk.Frame, RenderMixin):
         print(f"[Reveal] === _finish_reveal END ===")
 
     def _on_gameover(self, winner_name: Optional[str]):
+        if self._gameover_handled or self._disconnect_handled:
+            return
+        self._gameover_handled = True
         msg = f"游戏结束！胜者: {winner_name}" if winner_name else "游戏结束：平局"
         messagebox.showinfo("对战结束", msg)
+        if hasattr(self.duel, "close"):
+            self.duel.close()
+        self.app.show_menu()
+
+    def _on_disconnect(self):
+        """对手断开连接时安全退出到主菜单。"""
+        if self._disconnect_handled:
+            return
+        self._disconnect_handled = True
+        if self.duel.game:
+            self.duel.game.game_over = True
+        # 解除可能阻塞的本地输入
+        if hasattr(self.duel, "_local_action_event"):
+            self.duel._local_action = {"type": "brake"}
+            self.duel._local_action_event.set()
+        if hasattr(self.duel, "_discover_event"):
+            self.duel._discover_event.set()
+        if hasattr(self.duel, "_choice_event"):
+            self.duel._choice_event.set()
+        if hasattr(self.duel, "_targeting_event"):
+            self.duel._targeting_event.set()
+        if hasattr(self.duel, "_mulligan_event"):
+            self.duel._mulligan_event.set()
+        if self._game_thread and self._game_thread.is_alive():
+            self._game_thread.join(timeout=2.0)
+        messagebox.showinfo("连接断开", "与对手的连接已断开，返回主菜单。")
         if hasattr(self.duel, "close"):
             self.duel.close()
         self.app.show_menu()

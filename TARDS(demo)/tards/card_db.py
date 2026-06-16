@@ -262,6 +262,10 @@ class CardRegistry:
     def by_immersion(self, pack: Pack, level: int) -> List[CardDefinition]:
         return [c for c in self._cards.values() if c.pack == pack and c.immersion_level <= level]
 
+    def keys(self):
+        """返回所有已注册卡牌名称，便于测试与 UI 遍历。"""
+        return self._cards.keys()
+
 
 # 全局默认注册表
 DEFAULT_REGISTRY = CardRegistry()

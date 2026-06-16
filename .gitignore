@@ -58,3 +58,9 @@ assets/fonts/*.ttc
 assets/fonts/*.otf
 *_screenshot.png
 agent_team_config.json
+
+# Release artifacts / local outputs
+TARDS-demo-*.zip
+TARDS*.zip
+Tards*.zip
+tests_output.txt

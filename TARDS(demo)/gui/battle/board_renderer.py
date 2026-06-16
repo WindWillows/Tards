@@ -4,7 +4,7 @@
 使 BattleFrame 专注于输入控制与状态协调。
 """
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import tkinter as tk
 

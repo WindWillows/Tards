@@ -151,7 +151,8 @@ class LobbyFrame(tk.Frame):
                     self.after(0, lambda: self.ngrok_url_label.config(text=f"公网地址: {url}", fg=UI_THEME["success"]))
                 self.after(0, lambda: self._on_connected(deck, local_player, opponent))
             else:
-                self.after(0, lambda: self.status_label.config(text="连接失败", fg=UI_THEME["danger"]))
+                err = getattr(self.duel, "connect_error", None) or "连接失败"
+                self.after(0, lambda: self.status_label.config(text=err, fg=UI_THEME["danger"]))
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
@@ -192,11 +193,17 @@ class LobbyFrame(tk.Frame):
         self.status_label.config(text=f"正在连接 {ip}:{port} ...")
 
         def connect_thread():
-            ok = self.duel.connect()
-            if ok:
-                self.after(0, lambda: self._on_connected(deck, local_player, opponent))
-            else:
-                self.after(0, lambda: self.status_label.config(text="连接失败", fg=UI_THEME["danger"]))
+            try:
+                ok = self.duel.connect()
+                if ok:
+                    self.after(0, lambda: self._on_connected(deck, local_player, opponent))
+                else:
+                    err = getattr(self.duel, "connect_error", None) or "连接失败"
+                    self.after(0, lambda: self.status_label.config(text=err, fg=UI_THEME["danger"]))
+            except Exception as e:
+                self.after(0, lambda: self.status_label.config(
+                    text=f"连接异常: {e}", fg=UI_THEME["danger"]
+                ))
 
         threading.Thread(target=connect_thread, daemon=True).start()
 

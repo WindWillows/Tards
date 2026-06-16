@@ -5,8 +5,11 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 from .board import Board
+from .cards import Minion
+from .deck import Deck
 from .game import Game
 from .net_protocol import (
+    DesyncError,
     GameConnection,
     connect_to_host,
     deserialize_action,
@@ -22,6 +25,7 @@ from .net_protocol import (
 )
 from .player import Player
 from .card_db import DEFAULT_REGISTRY, Pack
+from .targeting import get_attack_target_candidates
 
 
 class NetworkDuel:
@@ -58,6 +62,10 @@ class NetworkDuel:
         self.remote_immersion_points: Dict[str, int] = {}
         self.first_player_name: Optional[str] = None
         self.seed: int = 0
+        self.connect_error: Optional[str] = None
+        self.disconnect_callback: Optional[Callable[[], None]] = None
+        self._disconnect_lock = threading.Lock()
+        self._disconnect_notified = False
 
         self.game: Optional[Game] = None
         self.local_turn_callback: Optional[Callable[[], None]] = None
@@ -137,19 +145,80 @@ class NetworkDuel:
             return self._ngrok_tunnel.public_url
         return None
 
+    def _notify_disconnect(self) -> None:
+        """通知 UI 连接已断开，避免重复弹窗。"""
+        with self._disconnect_lock:
+            if self._disconnect_notified:
+                return
+            self._disconnect_notified = True
+        if self.disconnect_callback:
+            try:
+                self.disconnect_callback()
+            except Exception as e:
+                print(f"[Net] disconnect_callback 异常: {e}")
+
+    def _wait_for_local_event(self, event: threading.Event, game: Game) -> bool:
+        """等待本地玩家提交，或检测到对局结束/断开后返回 False。
+
+        不再使用 5 秒超时回退默认操作，避免玩家思考或弹窗被遮挡时状态分叉。
+        """
+        while True:
+            if event.wait(timeout=1.0):
+                return True
+            if game.game_over:
+                return False
+            if self.conn and not self.conn.is_running():
+                game.game_over = True
+                self._notify_disconnect()
+                return False
+
+    def _validate_deck_list(self, deck_list: list, immersion_points: Dict[str, int]) -> Optional[str]:
+        """校验远程卡组是否合法。返回错误信息，合法返回 None。"""
+        deck = Deck(name="remote", registry=DEFAULT_REGISTRY)
+        for k, v in immersion_points.items():
+            try:
+                pack = Pack(k)
+            except ValueError:
+                return f"非法沉浸点包: {k}"
+            try:
+                deck.set_immersion(pack, v)
+            except ValueError as e:
+                return str(e)
+        counts: Dict[str, int] = {}
+        for name in deck_list:
+            counts[name] = counts.get(name, 0) + 1
+        for name, count in counts.items():
+            if not deck.add_card(name, count):
+                return f"非法卡牌或数量: {name}"
+        if deck.is_test_deck:
+            return "测试卡组不能用于联机对战"
+        errors = deck.validate()
+        if errors:
+            return "; ".join(errors)
+        return None
+
     # ========== 连接与握手 ==========
     def connect(self) -> bool:
         """建立连接。阻塞方法。"""
-        if self.is_host:
-            if self.use_ngrok:
-                url = self._start_ngrok_tunnel()
-                if not url:
-                    return False
-            self.conn = start_host(self.port)
-        else:
-            if not self.host_ip:
-                raise ValueError("Client 必须提供 host_ip")
-            self.conn = connect_to_host(self.host_ip, self.port)
+        try:
+            if self.is_host:
+                if self.use_ngrok:
+                    url = self._start_ngrok_tunnel()
+                    if not url:
+                        return False
+                self.conn = start_host(self.port)
+            else:
+                if not self.host_ip:
+                    raise ValueError("Client 必须提供 host_ip")
+                self.conn = connect_to_host(self.host_ip, self.port)
+        except Exception as e:
+            self.connect_error = f"连接失败: {e}"
+            print(f"[Net] {self.connect_error}")
+            self.conn = None
+            return False
+
+        # 启动后台接收与心跳
+        self.conn.start_listening()
 
         # 发送 HELLO
         imm_dict = {p.value: pts for p, pts in self.local_player.immersion_points.items()}
@@ -163,6 +232,17 @@ class NetworkDuel:
         self.remote_deck_list = hello.get("deck", [])
         raw_imm = hello.get("immersion_points", {})
         self.remote_immersion_points = {k: v for k, v in raw_imm.items()}
+
+        # 校验对方卡组合法性
+        err = self._validate_deck_list(self.remote_deck_list, self.remote_immersion_points)
+        if err:
+            self.connect_error = f"对手卡组不合法: {err}"
+            print(f"[Net] {self.connect_error}")
+            if self.conn:
+                self.conn.close()
+                self.conn = None
+            self._stop_ngrok_tunnel()
+            return False
 
         if self.is_host:
             # Host 决定先手与随机种子
@@ -251,16 +331,17 @@ class NetworkDuel:
     def _start_sync_hash_listener(self):
         """启动后台线程监听对方的 SYNC_HASH 消息。"""
         def listener():
-            while self.conn and self.conn._running and not getattr(self.game, "game_over", False):
+            while self.conn and self.conn.is_running() and not getattr(self.game, "game_over", False):
                 try:
                     msg = self.conn.msg_queue.get(timeout=0.5)
                 except queue.Empty:
                     # 连接已断开但队列为空：将 DISCONNECT 放入 pending，供 provider 处理
-                    if self.conn and not self.conn._running:
+                    if self.conn and not self.conn.is_running():
                         with self._pending_lock:
                             self._pending_messages.append(msg_disconnect())
                         if self.game:
                             self.game.game_over = True
+                        self._notify_disconnect()
                         break
                     continue
                 mtype = msg.get("type")
@@ -272,6 +353,7 @@ class NetworkDuel:
                     # 把 DISCONNECT 也放入 pending，确保 provider 能收到
                     with self._pending_lock:
                         self._pending_messages.append(msg)
+                    self._notify_disconnect()
                     break
                 else:
                     # 将非 SYNC_HASH 消息暂存，避免被当前线程丢弃
@@ -326,18 +408,20 @@ class NetworkDuel:
             return pending
 
         # 连接已断开：直接返回 DISCONNECT，避免无限轮询
-        if not self.conn._running:
+        if not self.conn.is_running():
             if self.game:
                 self.game.game_over = True
+            self._notify_disconnect()
             return msg_disconnect()
 
         try:
             msg = self.conn.msg_queue.get(timeout=timeout)
         except queue.Empty:
             # 超时后再检查一次连接状态
-            if self.conn and not self.conn._running:
+            if self.conn and not self.conn.is_running():
                 if self.game:
                     self.game.game_over = True
+                self._notify_disconnect()
                 return msg_disconnect()
             return None
 
@@ -348,11 +432,84 @@ class NetworkDuel:
             self._handle_sync_hash_msg(msg)
             return None
         if mtype in ("GAMEOVER", "DISCONNECT"):
+            if mtype == "DISCONNECT":
+                self._notify_disconnect()
             return msg
 
         with self._pending_lock:
             self._pending_messages.append(msg)
         return None
+
+    def _validate_remote_action(self, action: Dict[str, Any], game: Game) -> bool:
+        """校验远端行动在当前游戏状态下是否合法。用于基本反作弊与防状态分叉。"""
+        if not action:
+            return False
+        active = game.current_player
+        atype = action.get("type")
+
+        if atype == "play":
+            serial = action.get("serial")
+            target = action.get("target")
+            ok, reason = active.card_can_play(serial, target)
+            if not ok:
+                print(f"[Net] 非法远端 play 行动: {reason}")
+                return False
+            for sac in action.get("sacrifices", []):
+                if not isinstance(sac, Minion) or sac.owner != active:
+                    print("[Net] 非法献祭目标")
+                    return False
+            return True
+
+        if atype == "set_attack_targets":
+            pos = action.get("pos")
+            m = game.board.get_minion_at(pos)
+            if not m or m.owner != active or not m.can_attack_this_turn(game.current_turn):
+                print("[Net] 非法攻击预设源")
+                return False
+            candidates = get_attack_target_candidates(m, game)
+            for t in action.get("targets", []):
+                if t not in candidates:
+                    print(f"[Net] 非法攻击目标 {t}")
+                    return False
+            return True
+
+        if atype == "set_effect_target":
+            pos = action.get("pos")
+            m = game.board.get_minion_at(pos)
+            if not m or m.owner != active:
+                print("[Net] 非法效果指向源")
+                return False
+            return True
+
+        if atype == "exchange":
+            if active.immersion_points.get(Pack.DISCRETE, 0) < 1:
+                print("[Net] 非法兑换：无离散沉浸")
+                return False
+            if active.t_point < 1:
+                print("[Net] 非法兑换：T点不足")
+                return False
+            return True
+
+        if atype == "exchange_squirrel":
+            if active.immersion_points.get(Pack.UNDERWORLD, 0) < 2:
+                print("[Net] 非法松鼠兑换：冥刻沉浸不足")
+                return False
+            if active.squirrel_exchanged_this_turn:
+                print("[Net] 非法松鼠兑换：本回合已兑换")
+                return False
+            if not active.squirrel_deck:
+                print("[Net] 非法松鼠兑换：牌堆为空")
+                return False
+            if active.t_point < 1:
+                print("[Net] 非法松鼠兑换：T点不足")
+                return False
+            return True
+
+        if atype == "brake":
+            return True
+
+        print(f"[Net] 未知行动类型: {atype}")
+        return False
 
     def _make_action_provider(self):
         def provider(game, active, opponent):
@@ -360,17 +517,16 @@ class NetworkDuel:
                 # 通知 GUI
                 if self.local_turn_callback:
                     self.local_turn_callback()
-                # 阻塞等待本地玩家提交 action（带超时，避免永久死锁）
+                # 等待本地玩家提交 action；不再使用 5 秒超时回退
                 self._local_turn_event.set()
-                while not self._local_action_event.wait(timeout=5.0):
-                    if game.game_over or not (self.conn and self.conn._running):
-                        self._local_turn_event.clear()
-                        return None
+                if not self._wait_for_local_event(self._local_action_event, game):
+                    self._local_turn_event.clear()
+                    return {"type": "brake"}
                 self._local_action_event.clear()
                 self._local_turn_event.clear()
                 action = self._local_action
                 self._local_action = None
-                if action and self.conn and self.conn._running:
+                if action and self.conn and self.conn.is_running():
                     self.conn.send(msg_action(action))
                 return action
             else:
@@ -382,7 +538,18 @@ class NetworkDuel:
                     if msg:
                         mtype = msg.get("type")
                         if mtype == "ACTION":
-                            return deserialize_action(msg, game.board)
+                            try:
+                                action = deserialize_action(msg, game.board)
+                            except DesyncError as e:
+                                print(f"[Net] {e}")
+                                game.game_over = True
+                                self._notify_disconnect()
+                                return {"type": "brake"}
+                            if self._validate_remote_action(action, game):
+                                return action
+                            print("[Net] 收到非法远端行动，终止对局")
+                            game.game_over = True
+                            return {"type": "brake"}
                         if mtype == "DISCONNECT":
                             print("[Net] 对手断开连接")
                         if mtype in ("GAMEOVER", "DISCONNECT"):
@@ -413,12 +580,11 @@ class NetworkDuel:
                 self._discover_event.clear()
                 if self.discover_request_callback:
                     self.discover_request_callback(names)
-                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
-                while not self._discover_event.wait(timeout=5.0):
-                    if game.game_over or not (self.conn and self.conn._running):
-                        return candidates[0] if candidates else None
+                # 等待本地玩家选择；不再使用 5 秒超时回退
+                if not self._wait_for_local_event(self._discover_event, game):
+                    return candidates[0] if candidates else None
                 chosen_name = self._discover_result if self._discover_result is not None else names[0]
-                if self.conn and self.conn._running:
+                if self.conn and self.conn.is_running():
                     self.conn.send(msg_discover(names, chosen_name))
                 for d in candidates:
                     if getattr(d, "name", str(d)) == chosen_name:
@@ -432,6 +598,11 @@ class NetworkDuel:
                     if msg:
                         mtype = msg.get("type")
                         if mtype == "DISCOVER":
+                            chosen_name = msg.get("chosen")
+                            if chosen_name not in names:
+                                print(f"[Net] 非法 Discover 选择 {chosen_name}")
+                                game.game_over = True
+                                return candidates[0] if candidates else None
                             return _resolve_discover(msg, candidates)
                         if mtype == "DISCONNECT":
                             print("[Net] 对手断开连接")
@@ -456,12 +627,11 @@ class NetworkDuel:
                 self._choice_event.clear()
                 if self.choice_request_callback:
                     self.choice_request_callback(options, title)
-                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
-                while not self._choice_event.wait(timeout=5.0):
-                    if game.game_over or not (self.conn and self.conn._running):
-                        return options[0] if options else None
+                # 等待本地玩家选择；不再使用 5 秒超时回退
+                if not self._wait_for_local_event(self._choice_event, game):
+                    return options[0] if options else None
                 chosen = self._choice_result if self._choice_result in options else options[0]
-                if self.conn and self.conn._running:
+                if self.conn and self.conn.is_running():
                     from .net_protocol import msg_choice
                     self.conn.send(msg_choice(options, chosen, title))
                 return chosen
@@ -474,6 +644,9 @@ class NetworkDuel:
                         mtype = msg.get("type")
                         if mtype == "CHOICE":
                             chosen = msg["chosen"]
+                            if chosen not in options:
+                                print(f"[Net] 非法 Choice 选择 {chosen}")
+                                game.game_over = True
                             return chosen if chosen in options else options[0]
                         if mtype == "DISCONNECT":
                             print("[Net] 对手断开连接")
@@ -498,12 +671,11 @@ class NetworkDuel:
                 self._targeting_event.clear()
                 if self.targeting_request_callback:
                     self.targeting_request_callback(request, valid_targets)
-                # 带超时轮询，避免 GUI 未响应或网络断开时死锁
-                while not self._targeting_event.wait(timeout=5.0):
-                    if game.game_over or not (self.conn and self.conn._running):
-                        return None
+                # 等待本地玩家指向；不再使用 5 秒超时回退
+                if not self._wait_for_local_event(self._targeting_event, game):
+                    return None
                 result = self._targeting_result
-                if self.conn and self.conn._running:
+                if self.conn and self.conn.is_running():
                     from .net_protocol import _serialize_target
                     self.conn.send(msg_targeting(
                         getattr(request.source, "name", str(request.source)),
@@ -518,7 +690,13 @@ class NetworkDuel:
                     if msg:
                         mtype = msg.get("type")
                         if mtype == "TARGETING":
-                            return _deserialize_target(msg.get("target"), game.board)
+                            try:
+                                return _deserialize_target(msg.get("target"), game.board)
+                            except DesyncError as e:
+                                print(f"[Net] {e}")
+                                game.game_over = True
+                                self._notify_disconnect()
+                                return None
                         if mtype == "DISCONNECT":
                             print("[Net] 对手断开连接")
                         if mtype in ("GAMEOVER", "DISCONNECT"):
@@ -553,14 +731,13 @@ class NetworkDuel:
             self._mulligan_event.clear()
             if self.mulligan_request_callback:
                 self.mulligan_request_callback(self.local_player)
-            # 带超时轮询，避免 GUI 未响应或网络断开时死锁
-            while not self._mulligan_event.wait(timeout=5.0):
-                if game.game_over or not (self.conn and self.conn._running):
-                    return
+            # 等待本地玩家换牌；不再使用 5 秒超时回退
+            if not self._wait_for_local_event(self._mulligan_event, game):
+                return
             local_indices = self._mulligan_result or []
 
             # 2. 发送本地结果给对方
-            if self.conn and self.conn._running:
+            if self.conn and self.conn.is_running():
                 from .net_protocol import msg_mulligan
                 self.conn.send(msg_mulligan(local_indices))
 
@@ -613,5 +790,8 @@ class NetworkDuel:
             except Exception:
                 pass
             self.conn.close()
+        # 等待同步线程结束
+        if self._sync_hash_thread and self._sync_hash_thread.is_alive():
+            self._sync_hash_thread.join(timeout=2.0)
         # 关闭 ngrok 隧道
         self._stop_ngrok_tunnel()

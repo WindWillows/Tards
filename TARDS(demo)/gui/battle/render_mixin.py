@@ -21,6 +21,7 @@ from tards.card_db import DEFAULT_REGISTRY
 from gui.theme import UI_THEME
 from gui.utils import _insert_rich_detail
 from gui.battle.render_utils import rounded_rect, calc_tab_width
+from gui.dialogs import SacrificeDialog, ChoiceDialog, DiscoverDialog
 
 
 class RenderMixin:

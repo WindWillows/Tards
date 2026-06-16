@@ -2,33 +2,66 @@ import json
 import queue
 import socket
 import threading
+import time
 from typing import Any, Dict, Optional
 
 
+HEARTBEAT_INTERVAL = 15.0
+HEARTBEAT_TIMEOUT = 45.0
+
+
+class DesyncError(Exception):
+    """状态同步失败，无法安全继续对局。"""
+
+
 class GameConnection:
-    """基于 TCP + JSON 的游戏连接封装。"""
+    """基于 TCP + JSON 的游戏连接封装。
+
+    新增特性：
+    - 应用层心跳（PING/PONG），及时发现半开连接；
+    - 连接状态锁，避免 send/recv/close 之间的竞态；
+    - 断线时向消息队列放入 DISCONNECT。
+    """
 
     def __init__(self, sock: socket.socket, addr: str):
         self.sock = sock
         self.addr = addr
+        # 读取超时，让 _recv_loop 有机会检查 _running
+        self.sock.settimeout(1.0)
         self.msg_queue: queue.Queue[Dict[str, Any]] = queue.Queue()
-        self._lock = threading.Lock()
+        self._send_lock = threading.Lock()
+        self._state_lock = threading.Lock()
         self._running = True
         self._recv_thread: Optional[threading.Thread] = None
+        self._last_recv_time = time.time()
+        self._heartbeat_stop = threading.Event()
+        self._heartbeat_thread: Optional[threading.Thread] = None
+
+    def is_running(self) -> bool:
+        with self._state_lock:
+            return self._running
+
+    def _stop(self) -> None:
+        with self._state_lock:
+            self._running = False
+        self._heartbeat_stop.set()
 
     def start_listening(self):
-        """启动后台接收线程。"""
+        """启动后台接收线程与心跳线程。"""
         self._recv_thread = threading.Thread(target=self._recv_loop, daemon=True)
         self._recv_thread.start()
+        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        self._heartbeat_thread.start()
 
     def _recv_loop(self):
         """持续接收以换行符分隔的 JSON 消息，放入 msg_queue。"""
         buffer = b""
-        while self._running:
+        while self.is_running():
             try:
                 chunk = self.sock.recv(4096)
                 if not chunk:
                     break
+                self._last_recv_time = time.time()
                 buffer += chunk
                 while b"\n" in buffer:
                     line, buffer = buffer.split(b"\n", 1)
@@ -36,50 +69,72 @@ class GameConnection:
                         continue
                     try:
                         msg = json.loads(line.decode("utf-8"))
-                        self.msg_queue.put(msg)
                     except (json.JSONDecodeError, UnicodeDecodeError) as e:
                         print(f"[Net] 消息解析失败: {e} | raw={line[:100]}")
+                        continue
+                    mtype = msg.get("type")
+                    # 心跳消息不进入业务队列
+                    if mtype == "PING":
+                        self.send(msg_pong())
+                        continue
+                    if mtype == "PONG":
+                        continue
+                    self.msg_queue.put(msg)
+            except socket.timeout:
+                continue
             except OSError:
                 break
-        self._running = False
-        self.msg_queue.put({"type": "DISCONNECT"})
+        self._stop()
+        self.msg_queue.put(msg_disconnect())
+
+    def _heartbeat_loop(self):
+        """定期发送 PING，并检测是否长时间未收到任何数据。"""
+        while not self._heartbeat_stop.wait(timeout=HEARTBEAT_INTERVAL):
+            if not self.is_running():
+                break
+            if time.time() - self._last_recv_time > HEARTBEAT_TIMEOUT:
+                print(f"[Net] 心跳超时，关闭连接 {self.addr}")
+                self.close()
+                break
+            self.send(msg_ping())
 
     def send(self, msg: Dict[str, Any]):
         """发送一条 JSON 消息。"""
-        if not self._running:
+        if not self.is_running():
             return
         data = json.dumps(msg, ensure_ascii=False).encode("utf-8") + b"\n"
-        with self._lock:
+        with self._send_lock:
             try:
                 self.sock.sendall(data)
             except OSError:
-                self._running = False
+                self._stop()
 
     def close(self):
-        self._running = False
-        try:
-            self.sock.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass
-        try:
-            self.sock.close()
-        except OSError:
-            pass
+        self._stop()
+        with self._send_lock:
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                self.sock.close()
+            except OSError:
+                pass
 
 
 def start_host(port: int = 9876) -> GameConnection:
     """启动服务端并阻塞等待一个客户端连接。"""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(("0.0.0.0", port))
-    s.listen(1)
-    print(f"[Host] 等待连接于 0.0.0.0:{port} ...")
-    conn, addr = s.accept()
-    print(f"[Host] 客户端已连接: {addr}")
-    s.close()
-    gc = GameConnection(conn, str(addr))
-    gc.start_listening()
-    return gc
+    try:
+        s.bind(("0.0.0.0", port))
+        s.listen(1)
+        print(f"[Host] 等待连接于 0.0.0.0:{port} ...")
+        conn, addr = s.accept()
+        print(f"[Host] 客户端已连接: {addr}")
+        return GameConnection(conn, str(addr))
+    finally:
+        s.close()
 
 
 def connect_to_host(ip: str, port: int = 9876) -> GameConnection:
@@ -87,9 +142,7 @@ def connect_to_host(ip: str, port: int = 9876) -> GameConnection:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, port))
     print(f"[Client] 已连接到 {ip}:{port}")
-    gc = GameConnection(s, f"{ip}:{port}")
-    gc.start_listening()
-    return gc
+    return GameConnection(s, f"{ip}:{port}")
 
 
 # ========== 消息辅助构造 ==========
@@ -138,6 +191,14 @@ def msg_mulligan(indices: list) -> Dict[str, Any]:
 def msg_disconnect() -> Dict[str, Any]:
     """断开连接通知消息。"""
     return {"type": "DISCONNECT"}
+
+
+def msg_ping() -> Dict[str, Any]:
+    return {"type": "PING"}
+
+
+def msg_pong() -> Dict[str, Any]:
+    return {"type": "PONG"}
 
 
 # ========== Action 序列化/反序列化 ==========
@@ -220,16 +281,18 @@ def _deserialize_target(data: Any, board) -> Any:
         if "pos" in data:
             r, c = data["pos"]
             pos = (r, c)
-            # 优先通过 sync_id 查找（更稳定）
             sid = data.get("sync_id")
             if sid is not None:
                 m = board.get_minion_by_sync_id(sid)
                 if m and m.is_alive():
                     return m
-                # sync_id 已死亡或不存在，标记为潜在不同步
-                if sid in getattr(board, "_dead_sync_ids", set()):
-                    print(f"[Net] 警告：目标 sync_id={sid} 已死亡，回退到位置 {pos}")
-            # Fallback：通过位置查找当前 occupant
+                # sync_id 已失效 => 状态不同步，直接终止对局
+                if board.game_ref:
+                    board.game_ref.game_over = True
+                raise DesyncError(
+                    f"目标 sync_id={sid} 已失效（位置 {pos}），双方状态不同步"
+                )
+            # 没有 sync_id 的旧式消息才允许按位置回退
             m = board.get_minion_at(pos)
             return m if m else pos
         if "player_side" in data:

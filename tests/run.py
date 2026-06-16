@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""零依赖测试运行器 — 自动发现并执行 tests/test_regression.py 中的 test_* 函数。"""
+"""零依赖测试运行器 — 自动发现并执行 tests/test_*.py 中的 test_* 函数。"""
 
 from __future__ import annotations
 
+import glob
 import importlib
 import inspect
+import os
 import sys
 import traceback
 from typing import Any, Callable, List, Tuple
 
 # 确保项目根目录在 sys.path 中
-import os
-
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
@@ -42,13 +42,24 @@ def _run_single(name: str, fn: Callable) -> Tuple[bool, str]:
 
 
 def main(argv: List[str]) -> int:
-    # 导入测试模块
-    import tests.test_regression as reg_mod
+    # 发现并导入所有 tests/test_*.py 模块
+    test_files = sorted(glob.glob(os.path.join(os.path.dirname(__file__), "test_*.py")))
+    modules = []
+    for path in test_files:
+        mod_name = os.path.splitext(os.path.basename(path))[0]
+        full_name = f"tests.{mod_name}"
+        try:
+            mod = importlib.import_module(full_name)
+            importlib.reload(mod)
+            modules.append(mod)
+        except Exception as e:
+            print(f"[FAIL] 导入 {full_name} 失败: {e}")
+            return 1
 
-    # 如果需要重新加载（开发时反复运行）
-    importlib.reload(reg_mod)
-
-    tests = _discover_tests(reg_mod)
+    tests: List[Tuple[str, Callable]] = []
+    for mod in modules:
+        tests.extend(_discover_tests(mod))
+    tests.sort(key=lambda x: x[0])
 
     # 名称过滤
     if argv:

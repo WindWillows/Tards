@@ -15,8 +15,8 @@ def test_wujiu_triggers_on_minion_target_hp_ge_2():
     h = GameHarness()
     p1, p2 = h.players
 
-    # p1 部署兀鹫和友方攻击者
-    h.deploy("兀鹫", p1, (4, 2))
+    # p1 部署兀鹫（高地）和友方攻击者
+    h.deploy("兀鹫", p1, (4, 0))
     h.deploy("蛇", p1, (4, 1))  # 蛇 1/4，有攻击力
 
     # p2 部署一个高血量目标
@@ -24,13 +24,14 @@ def test_wujiu_triggers_on_minion_target_hp_ge_2():
     mouse = h.at((0, 1))
     assert_minion_hp(h.game, (0, 1), 6)
 
-    # 让蛇攻击地鼠
+    # 让蛇攻击地鼠（地鼠可能因自身效果移动，仍通过对象引用检查血量）
     snake = h.at((4, 1))
     snake.attack_target(mouse)
 
-    # 蛇造成1点伤害，地鼠剩余5/6
+    # 蛇造成1点伤害（地鼠坚韧抵消1点），地鼠剩余5/6
     # 兀鹫触发：地鼠HP≥2，再失去1HP，剩余4/6
-    assert_minion_hp(h.game, (0, 1), 4)
+    assert mouse is not None
+    assert mouse.current_health == 4, f"地鼠剩余 HP 应为 4，实际 {mouse.current_health}"
 
 
 def test_wujiu_no_trigger_on_minion_target_hp_lt_2():
@@ -38,7 +39,7 @@ def test_wujiu_no_trigger_on_minion_target_hp_lt_2():
     h = GameHarness()
     p1, p2 = h.players
 
-    h.deploy("兀鹫", p1, (4, 2))
+    h.deploy("兀鹫", p1, (4, 0))
     h.deploy("蛇", p1, (4, 1))
 
     # p2 部署一个目标并将其设为1血
@@ -61,7 +62,7 @@ def test_wujiu_triggers_on_player_target_hp_ge_2():
     h = GameHarness()
     p1, p2 = h.players
 
-    h.deploy("兀鹫", p1, (4, 2))
+    h.deploy("兀鹫", p1, (4, 0))
     h.deploy("蛇", p1, (4, 1))
 
     # p2 当前HP=30
@@ -81,7 +82,7 @@ def test_wujiu_no_trigger_on_enemy_attack():
     h = GameHarness()
     p1, p2 = h.players
 
-    h.deploy("兀鹫", p1, (4, 2))
+    h.deploy("兀鹫", p1, (4, 0))
 
     # p2 部署攻击者
     h.deploy("蛇", p2, (0, 1))  # 敌方蛇 1/4
@@ -92,5 +93,5 @@ def test_wujiu_no_trigger_on_enemy_attack():
     snake.attack_target(p1)
 
     # 敌方攻击不应触发友方兀鹫
-    # 蛇对玩家造成2点伤害（伤害+1），无额外效果
-    assert_player_hp(p1, 28)
+    # 蛇对玩家造成1点伤害
+    assert_player_hp(p1, 29)

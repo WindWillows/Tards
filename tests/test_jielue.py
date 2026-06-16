@@ -66,12 +66,12 @@ def test_jielue_synergy_draws_card():
     card = create_card_by_name("火把", p2)
     p2.card_deck.append(card)
 
-    # p2 在同一列部署两个异象（书架 3T + 钓鱼竿 4T）
+    # p2 在同一列（河岸）部署两个异象（书架 3T + 钓鱼竿 4T）
     # 书架是合法目标，钓鱼竿不合法但提供协同
-    h.deploy("书架", p2, (0, 2))
-    h.deploy("钓鱼竿", p2, (1, 2))
-    assert_minion_exists(h.game, (0, 2), "书架")
-    assert_minion_exists(h.game, (1, 2), "钓鱼竿")
+    h.deploy("书架", p2, (0, 3))
+    h.deploy("钓鱼竿", p2, (1, 3))
+    assert_minion_exists(h.game, (0, 3), "书架")
+    assert_minion_exists(h.game, (1, 3), "钓鱼竿")
 
     # p1 打出劫掠
     h.give_hand(p1, "劫掠")
@@ -79,8 +79,8 @@ def test_jielue_synergy_draws_card():
     assert result, "劫掠应成功执行"
 
     # 书架被消灭，钓鱼竿存活
-    assert_board_empty(h.game, (0, 2))
-    assert_minion_exists(h.game, (1, 2), "钓鱼竿")
+    assert_board_empty(h.game, (0, 3))
+    assert_minion_exists(h.game, (1, 3), "钓鱼竿")
 
     # p1 从 p2 牌库顶抽到了火把
     assert_hand_contains(p1, "火把")
@@ -91,9 +91,9 @@ def test_jielue_no_valid_target():
     h = GameHarness()
     p1, p2 = h.players
 
-    # p2 只部署一个 4T 的钓鱼竿（不合法目标）
-    h.deploy("钓鱼竿", p2, (0, 2))
-    assert_minion_exists(h.game, (0, 2), "钓鱼竿")
+    # p2 只部署一个 4T 的钓鱼竿（不合法目标），钓鱼竿只能放在河岸
+    h.deploy("钓鱼竿", p2, (0, 3))
+    assert_minion_exists(h.game, (0, 3), "钓鱼竿")
 
     # p1 打出劫掠，没有合法目标
     h.give_hand(p1, "劫掠")
@@ -102,7 +102,7 @@ def test_jielue_no_valid_target():
     assert not result, "劫掠应因无合法目标而失败"
 
     # 钓鱼竿仍在场上
-    assert_minion_exists(h.game, (0, 2), "钓鱼竿")
+    assert_minion_exists(h.game, (0, 3), "钓鱼竿")
 
 
 def test_jielue_cost_boundary_includes_3t():
