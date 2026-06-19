@@ -3,3 +3,4 @@ from . import discrete
 from . import underworld
 from . import blood
 from . import general
+from . import miracle

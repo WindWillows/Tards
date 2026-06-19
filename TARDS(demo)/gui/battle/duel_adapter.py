@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional
 
 from local_duel import LocalDuel
-from tards.net_game import NetworkDuel
+from tards.net.net_game import NetworkDuel
 
 
 class DuelAdapter:
@@ -92,6 +92,30 @@ class DuelAdapter:
     @resolve_step_callback.setter
     def resolve_step_callback(self, value: Optional[Callable[[], None]]) -> None:
         self._duel.resolve_step_callback = value
+
+    @property
+    def disconnect_callback(self) -> Optional[Callable[[], None]]:
+        return getattr(self._duel, "disconnect_callback", None)
+
+    @disconnect_callback.setter
+    def disconnect_callback(self, value: Optional[Callable[[], None]]) -> None:
+        self._duel.disconnect_callback = value
+
+    @property
+    def resolve_column_delay(self) -> float:
+        return getattr(self._duel, "resolve_column_delay", 0.0)
+
+    @resolve_column_delay.setter
+    def resolve_column_delay(self, value: float) -> None:
+        self._duel.resolve_column_delay = value
+
+    @property
+    def _remote_decision_state(self) -> Optional[str]:
+        return getattr(self._duel, "_remote_decision_state", None)
+
+    @_remote_decision_state.setter
+    def _remote_decision_state(self, value: Optional[str]) -> None:
+        self._duel._remote_decision_state = value
 
     # ------------------------------------------------------------------
     # 提交通用方法

@@ -25,8 +25,7 @@ class BattleState:
     _tooltip: Optional[Any] = None
     _tooltip_source: Optional[Any] = None
 
-    # 待播放数据 / 游戏线程
-    _pending_play_data: Optional[Dict[str, Any]] = None
+    # 游戏线程
     _game_thread: Optional[Any] = None
 
     # 指向模式
@@ -65,6 +64,9 @@ class BattleState:
     _last_discarded_info: Dict[str, Any] = field(default_factory=dict)
     _history_phase: Optional[str] = None
     _history_action_counter: int = 0
+
+    # 最近动作高亮 / 事件条
+    _recent_events: List[Dict[str, Any]] = field(default_factory=list)  # 每个元素: {"time": float, "text": str, "positions": List[tuple]}
 
     # Mulligan（开局手牌调整）状态
     _mulligan_overlay: Optional[Any] = None

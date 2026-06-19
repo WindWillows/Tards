@@ -7,8 +7,8 @@ from typing import Any, List
 
 import tkinter as tk
 
-from tards.card_db import DEFAULT_REGISTRY
-from tards.deck import Deck
+from tards.data.card_db import DEFAULT_REGISTRY
+from tards.data.deck import Deck
 
 from gui.theme import _RULE_TERM_PATTERN, _DETAIL_TERM_PATTERN
 

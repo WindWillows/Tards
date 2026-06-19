@@ -2,7 +2,7 @@
 # 由 translate_packs.py 翻译生成
 
 from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY
-from tards.targets import target_none, target
+from tards.core.targets import target_none, target
 from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand
 from .blood_effects import *
 
@@ -123,7 +123,7 @@ register_card(
     immersion_level=2,
     attack=3,
     health=6,
-    tags=['生物'],
+    tags=[],
     description="结算阶段结束：场上每有1个具有恐惧的异象，你获得1点HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_bishop_special,
@@ -149,10 +149,9 @@ register_card(
     cost_str="1T",
     card_type=CardType.MINION,
     pack=Pack.BLOOD,
-    rarity=Rarity.IRON,
-    immersion_level=1,
     attack=0,
     health=2,
+    is_token=True,
     keywords={"恐惧": True, "协同": True},
     tags=['生物'],
     description="无法被异象选中。",
@@ -170,7 +169,7 @@ register_card(
     attack=3,
     health=3,
     keywords={"两栖": True},
-    tags=['两栖', '生物'],
+    tags=['两栖'],
     description="受到伤害时，你获得等量HP。",
     targets_fn=target("position", friendly=True),
     special_fn=_tianlairenou_special,
@@ -312,7 +311,7 @@ register_card(
     pack=Pack.BLOOD,
     rarity=Rarity.IRON,
     immersion_level=1,
-    tags=['生物'],
+    tags=[],
     is_token=True,
     description="场上每有1个具有恐惧的异象 使1个纯净异象获得+1/1。",
     targets_fn=target_none,
@@ -335,7 +334,7 @@ register_card(
 )
 
 register_card(
-    name="炸弹人",
+    name="纠缠血流",
     cost_str="4T",
     card_type=CardType.MINION,
     pack=Pack.BLOOD,
@@ -381,7 +380,7 @@ register_card(
 )
 
 register_card(
-    name="锯片",
+    name="诅咒岩",
     cost_str="3T",
     card_type=CardType.MINION,
     pack=Pack.BLOOD,

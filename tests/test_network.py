@@ -7,11 +7,17 @@ import threading
 import time
 from typing import Optional, Tuple
 
-from tards.card_db import DEFAULT_REGISTRY
+# 副作用：注册所有卡包，确保 DEFAULT_REGISTRY 已填充
+import card_pools.blood
+import card_pools.discrete
+import card_pools.general
+import card_pools.underworld
+
+from tards.data.card_db import DEFAULT_REGISTRY
 from tards.cards import Minion
-from tards.deck_io import list_saved_decks, load_deck
-from tards.net_game import NetworkDuel
-from tards.net_protocol import (
+from tards.data.deck_io import list_saved_decks, load_deck
+from tards.net.net_game import NetworkDuel
+from tards.net.net_protocol import (
     DesyncError,
     GameConnection,
     _deserialize_target,
@@ -21,7 +27,7 @@ from tards.net_protocol import (
     msg_chat,
     msg_disconnect,
 )
-from tards.player import Player
+from tards.core.player import Player
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +208,16 @@ def test_action_roundtrip() -> None:
     assert restored["sacrifices"] == [m]
 
 
+def test_bell_brake_action_roundtrip() -> None:
+    """拍铃/拉闸的 ACTION 消息应能正确序列化与反序列化。"""
+    board = _FakeBoard([])
+    for atype in ("bell", "brake"):
+        msg = msg_action({"type": atype})
+        restored = deserialize_action(msg, board)
+        assert restored is not None, f"{atype} 反序列化不应返回 None"
+        assert restored["type"] == atype
+
+
 def test_validate_deck_list_valid() -> None:
     names = list_saved_decks()
     assert names, "没有可用卡组做校验测试"
@@ -239,3 +255,70 @@ def test_validate_deck_list_wrong_size() -> None:
     )
     err = duel._validate_deck_list(["火把"] * 5, {})
     assert err is not None, "牌数不足应被判为非法"
+
+
+def test_submit_local_action_queues_target_actions() -> None:
+    """目标设置类 action 可以批量入队，按顺序取出。"""
+    duel = NetworkDuel(
+        Player(0, "p", "Net", []),
+        [],
+        is_host=True,
+    )
+    duel.submit_local_action({"type": "set_attack_targets", "pos": (4, 0), "targets": []})
+    duel.submit_local_action({"type": "set_effect_target", "pos": (4, 1), "target": (3, 1)})
+    duel.submit_local_action({"type": "set_attack_targets", "pos": (4, 2), "targets": []})
+
+    assert duel._local_action_queue.qsize() == 3
+    assert duel._local_action_event.is_set()
+
+    assert duel._local_action_queue.get()["pos"] == (4, 0)
+    assert duel._local_action_queue.get()["target"] == (3, 1)
+    assert duel._local_action_queue.get()["pos"] == (4, 2)
+
+
+def test_submit_local_action_replaces_stale_primary_actions() -> None:
+    """高频输入时，新主行动应替换旧主行动；目标设置类行动保留。"""
+    duel = NetworkDuel(
+        Player(0, "p", "Net", []),
+        [],
+        is_host=True,
+    )
+    duel.submit_local_action({"type": "bell"})
+    duel.submit_local_action({"type": "brake"})
+    duel.submit_local_action({"type": "play", "serial": 1})
+    duel.submit_local_action({"type": "play", "serial": 2})
+    duel.submit_local_action({"type": "set_attack_targets", "pos": (4, 0), "targets": []})
+    duel.submit_local_action({"type": "set_attack_targets", "pos": (4, 1), "targets": []})
+    duel.submit_local_action({"type": "exchange", "card_name": "青金石"})
+
+    # 目标设置保留 2 个，主行动只保留最新的 1 个
+    actions = []
+    while not duel._local_action_queue.empty():
+        actions.append(duel._local_action_queue.get())
+
+    target_actions = [a for a in actions if a["type"] == "set_attack_targets"]
+    primary_actions = [a for a in actions if a["type"] != "set_attack_targets"]
+
+    assert len(target_actions) == 2
+    assert len(primary_actions) == 1
+    assert primary_actions[0]["type"] == "exchange"
+    assert primary_actions[0]["card_name"] == "青金石"
+
+
+def test_close_does_not_renotify_disconnect() -> None:
+    """本地主动 close() 后，disconnect_callback 不应被再次触发。"""
+    duel = NetworkDuel(
+        Player(0, "p", "Net", []),
+        [],
+        is_host=True,
+    )
+    calls = []
+    duel.disconnect_callback = lambda: calls.append(1)
+
+    duel.close()
+    assert duel._disconnect_notified is True
+
+    # 模拟 _recv_loop 再次尝试通知（已被去重）
+    duel._notify_disconnect()
+    duel._notify_disconnect()
+    assert len(calls) == 0, "本地主动关闭后不应再触发 disconnect_callback"

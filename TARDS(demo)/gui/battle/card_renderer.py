@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover
 
 from tards import MinionCard, Strategy, Conspiracy, MineralCard
 from tards.assets import get_asset_manager
-from tards.card_db import DEFAULT_REGISTRY
+from tards.data.card_db import DEFAULT_REGISTRY
 from gui.theme import UI_THEME
 from gui.battle.render_utils import (
     calc_tab_width,
@@ -311,12 +311,16 @@ class CardRenderer:
             traceback.print_exc()
 
     def _on_hand_enter(self, card: Any, serial: str) -> None:
-        """鼠标进入手牌：先更新右侧面板详情，再尝试高亮可部署位置。"""
+        """鼠标进入手牌：先更新右侧面板详情，再尝试高亮可部署位置，最后显示费用预览。"""
         self.frame._update_detail_text(card)
         try:
             self.frame._preview_deploy_positions(serial)
         except Exception as exc:  # noqa: BLE001 (预览失败不应影响详情展示)
             print(f"[警告] 预览部署位置失败 [{getattr(card, 'name', serial)}]: {exc}")
+        try:
+            self.frame._show_cost_preview(card, serial)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[警告] 费用预览失败 [{getattr(card, 'name', serial)}]: {exc}")
 
     def _draw_shown_fold(self, cvs: tk.Canvas, card: Any, cw: int, ch: int, offset_y: int) -> None:
         """绘制已展示给对手的折痕标记。"""

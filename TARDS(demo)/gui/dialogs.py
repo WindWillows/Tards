@@ -10,10 +10,32 @@ from tkinter import messagebox
 
 from tards import Minion
 from tards.assets import get_asset_manager
-from tards.card_db import DEFAULT_REGISTRY
+from tards.data.card_db import DEFAULT_REGISTRY
 
 from gui.theme import UI_THEME
 from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
+
+
+def _center_dialog_over_board(dialog: tk.Toplevel, parent) -> None:
+    """将弹窗定位到 parent 中棋盘 canvas 的中央。"""
+    canvas = getattr(parent, "canvas", None)
+    if canvas is None:
+        return
+    parent.update_idletasks()
+    dialog.update_idletasks()
+    dw = dialog.winfo_width()
+    dh = dialog.winfo_height()
+    # 使用 parent 的根坐标 + canvas 在 parent 内的偏移，避免弹窗未映射时 winfo_rootx 为 0
+    px = parent.winfo_rootx()
+    py = parent.winfo_rooty()
+    cx = px + canvas.winfo_x()
+    cy = py + canvas.winfo_y()
+    cw = canvas.winfo_width()
+    ch = canvas.winfo_height()
+    x = cx + max(0, (cw - dw) // 2)
+    y = cy + max(0, (ch - dh) // 2)
+    dialog.geometry(f"+{x}+{y}")
+
 
 try:
     from PIL import Image, ImageDraw, ImageTk  # noqa: F401
@@ -135,6 +157,7 @@ class SacrificeDialog(tk.Toplevel):
                                       command=self._confirm, state=tk.DISABLED)
         self.confirm_btn.pack(pady=5)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+        _center_dialog_over_board(self, parent)
 
     def _toggle(self, idx: int):
         if idx in self.selected:
@@ -300,7 +323,7 @@ class DiscoverDialog(tk.Toplevel):
 
             # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
             if defn:
-                from tards.card_db import CardType
+                from tards.data.card_db import CardType
                 if defn.card_type == CardType.MINION:
                     draw_minion_stat_badges(
                         cvs, defn.attack or 0, defn.health or 1, cw, ch, offset_y=0
@@ -310,6 +333,8 @@ class DiscoverDialog(tk.Toplevel):
             cvs.bind("<Button-1>", lambda e, n=name: self._choose(n))
             cvs.bind("<Enter>", lambda e, cvs=cvs: cvs.config(cursor="hand2"))
             cvs.bind("<Leave>", lambda e, cvs=cvs: cvs.config(cursor=""))
+
+        _center_dialog_over_board(self, parent)
 
     def _choose(self, name: str):
         self.on_choose(name)
@@ -429,7 +454,7 @@ class ChoiceDialog(tk.Toplevel):
 
                 # 类型由卡牌外形区分；异象卡用左/下角彩色徽章显示攻击/生命
                 if defn:
-                    from tards.card_db import CardType
+                    from tards.data.card_db import CardType
                     if defn.card_type == CardType.MINION:
                         draw_minion_stat_badges(
                             cvs, defn.attack or 0, defn.health or 1, cw, ch, offset_y=0
@@ -451,6 +476,8 @@ class ChoiceDialog(tk.Toplevel):
                                 relief=tk.RAISED, bd=1,
                                 command=lambda o=opt: self._choose(o))
                 btn.pack(side=tk.LEFT, padx=5)
+
+        _center_dialog_over_board(self, parent)
 
     def _choose(self, option: str):
         self.on_choose(option)
@@ -504,6 +531,7 @@ class EffectTargetDialog(tk.Toplevel):
                                relief=tk.RAISED, bd=1,
                                command=self._on_close)
         cancel_btn.pack(pady=10)
+        _center_dialog_over_board(self, parent)
 
     def _choose(self, minion):
         self.grab_release()
@@ -537,6 +565,7 @@ class NumericChoiceDialog(tk.Toplevel):
                             bg="#e3f2fd", activebackground="#bbdefb",
                             command=lambda o=opt: self._choose(o))
             btn.pack(side=tk.LEFT, padx=5)
+        _center_dialog_over_board(self, parent)
 
     def _choose(self, option: int):
         self.on_choose(option)

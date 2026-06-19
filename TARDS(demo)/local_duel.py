@@ -62,6 +62,7 @@ class LocalDuel:
         )
         self.game.choice_provider = self._make_choice_provider()
         self.game.resolve_step_callback = self.resolve_step_callback
+        self.game.resolve_column_delay = getattr(self, "resolve_column_delay", 0.0)
         self.game.start_game()
         if self.game_over_callback and self.game.game_over:
             self.game_over_callback(self.game.winner.name if self.game.winner else None)

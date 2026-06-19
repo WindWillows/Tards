@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional
 
 # 导入关键词列表用于匹配
 from tards.constants import GENERAL_KEYWORDS, TAG_TOKENS
-from tards.card_db import Rarity
-from tards.cost import Cost
+from tards.data.card_db import Rarity
+from tards.core.cost import Cost
 
 # 导入标签覆盖表（为描述中才有标签的卡牌补充标签）
 try:
@@ -816,7 +816,7 @@ def generate_file(cards: List[Dict[str, Any]], filename: str, pack_enum: str) ->
         '# 由 translate_packs.py 翻译生成',
         '',
         'from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY',
-        'from tards.targets import target_friendly_positions, target_none, target_any_minion, target_enemy_minions, target_enemy_player, target_self, target_friendly_minions',
+        'from tards.core.targets import target_friendly_positions, target_none, target_any_minion, target_enemy_minions, target_enemy_player, target_self, target_friendly_minions',
         'from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand',
     ]
     # 使用 importlib 直接加载 effects 文件，避免触发 card_pools/__init__.py

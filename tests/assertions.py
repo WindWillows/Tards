@@ -6,11 +6,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from tards.cards import Minion
 from tards.game import Game
-from tards.player import Player
+from tards.core.player import Player
 
 
 def _fmt_pos(pos: Tuple[int, int]) -> str:
-    from tards.board import Board
+    from tards.core.board import Board
     r, c = pos
     col_name = Board.COL_NAMES[c] if 0 <= c < 5 else str(c)
     return f"({r},{col_name})"

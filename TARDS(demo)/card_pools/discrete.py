@@ -2,7 +2,7 @@
 # 由 translate_packs.py 翻译生成
 
 from tards import register_card, CardType, Pack, Rarity, DEFAULT_REGISTRY
-from tards.targets import target_none, target, target_mix
+from tards.core.targets import target_none, target, target_mix
 from tards.auto_effects import move_enemy_to_friendly, swap_units, return_to_hand
 from .discrete_effects import *
 

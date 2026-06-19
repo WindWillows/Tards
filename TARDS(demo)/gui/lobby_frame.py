@@ -11,10 +11,10 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Optional
 
 from tards import Player
-from tards.card_db import DEFAULT_REGISTRY, Pack
-from tards.deck import Deck
-from tards.deck_io import list_saved_decks, load_deck
-from tards.net_game import NetworkDuel
+from tards.data.card_db import DEFAULT_REGISTRY, Pack
+from tards.data.deck import Deck
+from tards.data.deck_io import list_saved_decks, load_deck
+from tards.net.net_game import NetworkDuel
 
 from gui.theme import UI_THEME
 from gui.utils import _deck_defs_list

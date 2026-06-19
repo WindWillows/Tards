@@ -7,8 +7,7 @@ from typing import Any, Dict, Optional
 
 import tkinter as tk
 
-from tards.card_db import Pack
-from tards.net_game import NetworkDuel
+from tards.data.card_db import Pack
 from gui.theme import UI_THEME
 
 
@@ -148,7 +147,7 @@ class InfoRenderer:
         """更新右侧'当前资源'面板（网络对局显示本地玩家，本地对局显示当前回合玩家）。"""
         game = self.frame.duel.game
         active = game.current_player if game else None
-        display_player = self.frame.local_player if isinstance(self.frame.duel, NetworkDuel) else active
+        display_player = self.frame.local_player if self.frame.duel.is_remote else active
         if not display_player:
             if hasattr(self.frame, "res_panel") and self.frame.res_panel.winfo_exists():
                 self.frame.res_panel.config(text="当前资源")
@@ -191,7 +190,7 @@ class InfoRenderer:
         """同步"抽松鼠"复选框状态（仅本地玩家可操作）。"""
         game = self.frame.duel.game
         active = game.current_player if game else None
-        if active and (not isinstance(self.frame.duel, NetworkDuel) or active == self.frame.local_player):
+        if active and (not self.frame.duel.is_remote or active == self.frame.local_player):
             has_underworld = active.immersion_points.get(Pack.UNDERWORLD, 0) >= 1
             if has_underworld and active.squirrel_deck:
                 self.frame.squirrel_draw_cb.pack(side=tk.LEFT)

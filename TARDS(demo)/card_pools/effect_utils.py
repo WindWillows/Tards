@@ -17,10 +17,10 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Un
 
 if TYPE_CHECKING:
     from tards.cards import Card, Minion, MinionCard
-    from tards.cost import Cost
+    from tards.core.cost import Cost
     from tards.game import Game
-    from tards.player import Player
-    from tards.board import Board
+    from tards.core.player import Player
+    from tards.core.board import Board
 
 
 # =============================================================================
@@ -48,7 +48,7 @@ ENCHANTED_BOOK_POOL = [
 
 def get_enchanted_book_definitions() -> List[Any]:
     """获取附魔书开发池中的所有卡牌定义（已过滤掉注册表中不存在的）。"""
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     result = []
     for name in ENCHANTED_BOOK_POOL:
         card_def = DEFAULT_REGISTRY.get(name)
@@ -77,9 +77,9 @@ def deal_damage_to_minion(
     if not target.is_alive():
         print(f"  [警告] deal_damage_to_minion 目标 {target.name} 已死亡")
         return 0
-    before_hp = target.health
+    before_hp = target.current_health
     target.take_damage(damage, source)
-    actual = max(0, before_hp - max(0, target.health))
+    actual = max(0, before_hp - max(0, target.current_health))
     return actual
 
 
@@ -157,8 +157,8 @@ def summon_token(
     若未指定 summon_turn，默认使用当前回合数。
     """
     from tards.cards import MinionCard, Minion
-    from tards.cost import Cost
-    from tards.card_db import DEFAULT_REGISTRY, CardType
+    from tards.core.cost import Cost
+    from tards.data.card_db import DEFAULT_REGISTRY, CardType
 
     # 尝试从注册表获取定义作为默认值
     actual_attack = attack
@@ -352,7 +352,7 @@ def transform_minion_to(minion: "Minion", target_name: str, game: "Game") -> Opt
 
     保持位置不变，不触发亡语。新异象的 summon_turn 继承旧异象。
     """
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     target_def = DEFAULT_REGISTRY.get(target_name)
     if not target_def:
         print(f"  变形失败：找不到卡牌定义 [{target_name}]")
@@ -659,7 +659,7 @@ def create_echo_card(source_card: "MinionCard", echo_level: int) -> "MinionCard"
     （2T/1/1，special=None，关键词继承原卡，echo_level=n-1）。
     """
     from tards.cards import MinionCard
-    from tards.cost import Cost
+    from tards.core.cost import Cost
 
     echo = MinionCard(
         name=source_card.name,
@@ -781,7 +781,7 @@ def has_tag(obj: Any, tag: str) -> bool:
 
 def get_card_defs_by_tag(tag: str) -> List[Any]:
     """从注册表获取所有带某标签的卡牌定义。"""
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     return [c for c in DEFAULT_REGISTRY._cards.values() if has_tag(c, tag)]
 
 
@@ -912,7 +912,7 @@ def remove_draw_trigger(card: "Card") -> None:
 
 def get_card_definition(name: str) -> Optional[Any]:
     """从全局注册表查询卡牌定义。"""
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     return DEFAULT_REGISTRY.get(name)
 
 
@@ -1162,7 +1162,7 @@ def on_before_destroy(minion: "Minion", game: "Game", callback: Callable,
 
 def give_card_by_name(player: "Player", name: str, reason: str = "") -> bool:
     """将指定名称的卡牌定义加入玩家手牌（或弃牌堆）。"""
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     card_def = DEFAULT_REGISTRY.get(name)
     if not card_def:
         return False
@@ -2459,7 +2459,11 @@ def minions_deployed_this_turn(game: "Game", player: "Player") -> int:
     if not h:
         return 0
     from tards.constants import EVENT_DEPLOYED
-    return len(h.query_events(event_type=EVENT_DEPLOYED, filter_fn=lambda e: getattr(e.get("minion"), "owner", None) is player))
+    return len(h.query_events(
+        turn=game.current_turn,
+        event_type=EVENT_DEPLOYED,
+        filter_fn=lambda e: getattr(e.get("minion"), "owner", None) is player,
+    ))
 
 
 def strategies_played_this_turn(game: "Game", player: "Player") -> int:
@@ -2470,8 +2474,9 @@ def strategies_played_this_turn(game: "Game", player: "Player") -> int:
     from tards.constants import EVENT_CARD_PLAYED
     from tards.cards import Strategy
     return len(h.query_events(
+        turn=game.current_turn,
         event_type=EVENT_CARD_PLAYED,
-        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Strategy)
+        filter_fn=lambda e: e.get("player") is player and isinstance(e.get("card"), Strategy),
     ))
 
 
@@ -2483,8 +2488,9 @@ def total_strategies_played_this_turn(game: "Game") -> int:
     from tards.constants import EVENT_CARD_PLAYED
     from tards.cards import Strategy
     return len(h.query_events(
+        turn=game.current_turn,
         event_type=EVENT_CARD_PLAYED,
-        filter_fn=lambda e: isinstance(e.get("card"), Strategy)
+        filter_fn=lambda e: isinstance(e.get("card"), Strategy),
     ))
 
 
@@ -3055,7 +3061,7 @@ def perform_attack_action(minion: "Minion", game: "Game") -> None:
         return
 
     from tards.cards import Minion
-    from tards.player import Player
+    from tards.core.player import Player
 
     base_col = minion.position[1]
     opponent = game.p2 if minion.owner == game.p1 else game.p1

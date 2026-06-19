@@ -1,0 +1,95 @@
+[09:34:30.226] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:汞雾, from_loc=None, to_loc=hand}
+  p1 获得 [汞雾]
+[09:34:30.226] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:汞雾}
+[09:34:30.226] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:汞雾, by_draw=True}
+[09:34:30.226] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-2}
+p1 受到 2 点伤害，剩余 28 HP
+[09:34:30.227] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=2}
+[09:34:30.227] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-2, old=30, new=28}
+  汞雾抽取：p1 失去2点HP
+[09:34:30.227] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-2}
+p2 受到 2 点伤害，剩余 28 HP
+[09:34:30.227] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p2, player=Player:p2, damage=2}
+[09:34:30.227] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-2, old=30, new=28}
+  汞雾抽取：p2 失去2点HP
+  p1 抽取了: 汞雾
+[09:34:30.229] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:高炉, from_loc=None, to_loc=hand}
+  p1 获得 [高炉]
+[09:34:30.229] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:高炉}
+[09:34:30.229] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:高炉, by_draw=True}
+[09:34:30.229] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MineralCard:铁锭, from_loc=None, to_loc=hand}
+  p1 获得 [铁锭]
+  p1 抽取了: 高炉
+[09:34:30.231] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:奇怪的蛹, from_loc=None, to_loc=hand}
+  p1 获得 [奇怪的蛹]
+[09:34:30.231] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:奇怪的蛹}
+[09:34:30.231] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:奇怪的蛹, by_draw=True}
+  p1 抽取了: 奇怪的蛹
+[09:34:30.232] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:食蚁兽, from_loc=None, to_loc=hand}
+  p1 获得 [食蚁兽]
+[09:34:30.232] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:食蚁兽}
+[09:34:30.232] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:食蚁兽, by_draw=True}
+  p1 抽取了: 食蚁兽
+[09:34:30.234] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+[09:34:30.234] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:火灵, from_loc=None, to_loc=hand}
+  p1 获得 [火灵]
+[09:34:30.234] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:水漫缮写室, from_loc=None, to_loc=hand}
+  p1 获得 [水漫缮写室]
+[09:34:30.234] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:水漫缮写室}
+[09:34:30.234] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:水漫缮写室, by_draw=True}
+[09:34:30.235] [EVENT] type=card_moved | source=None | listeners=1 | data={card=MinionCard:书架, from_loc=hand, to_loc=deck}
+  水漫缮写室：手牌被移出，费用减少2T（累计减免 2T）
+[09:34:30.235] [RESPONSE] card_moved -> wrapper | status=OK | changes=[no_state_change]
+  水漫缮写室：书架 被洗入卡组
+p1 生命上限增加 3，当前生命 30
+[09:34:30.235] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=3}
+p1 恢复 3 点生命，剩余 33 HP
+[09:34:30.235] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=3, old=30, new=33}
+  水漫缮写室：获得 3 点HP
+  p1 抽取了: 水漫缮写室
+[09:34:30.236] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:纠缠血流, from_loc=None, to_loc=hand}
+  p1 获得 [纠缠血流]
+[09:34:30.236] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:纠缠血流}
+[09:34:30.237] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:纠缠血流, by_draw=True}
+  p1 抽取了: 纠缠血流
+[09:34:30.238] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:血痂, from_loc=None, to_loc=hand}
+  p1 获得 [血痂]
+[09:34:30.238] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:血痂}
+[09:34:30.238] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:血痂, by_draw=True}
+[09:34:30.238] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3}
+p1 受到 3 点伤害，剩余 27 HP
+[09:34:30.238] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=3}
+[09:34:30.238] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3, old=30, new=27}
+  血痂 抽取：p1 受到3点伤害
+  p1 抽取了: 血痂
+[09:34:30.240] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[09:34:30.240] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (4, 0) 召唤了 书架
+[09:34:30.240] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:火灵, minion=Minion:火灵, player=Player:p2, position=tuple}
+  [效果触发] _huoling_special (火灵)
+  火灵 获得亡语
+[09:34:30.241] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:火灵, player=Player:p2, card=MinionCard:火灵}
+  p2 在 (0, 0) 召唤了 火灵
+[09:34:30.241] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:雪降, from_loc=None, to_loc=hand}
+  p1 获得 [雪降]
+[09:34:30.241] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=Strategy:雪降}
+[09:34:30.241] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=Strategy:雪降, by_draw=True}
+  雪降 抽取：p1 消耗3S
+  书架 获得关键词 [冰冻]
+  火灵 获得关键词 [冰冻]
+  雪降 抽取：冰冻了 2 个异象
+  p1 抽取了: 雪降
+
+===== 抽取效果检查结果 =====
+[OK] 汞雾
+[OK] 高炉
+[OK] 奇怪的蛹
+[OK] 食蚁兽
+[OK] 水漫缮写室
+[OK] 纠缠血流
+[OK] 血痂
+[OK] 雪降
+============================
+全部正常

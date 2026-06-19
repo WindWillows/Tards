@@ -8,7 +8,7 @@ from typing import Any
 import tkinter as tk
 
 from tards import Minion, MinionCard
-from tards.card_db import DEFAULT_REGISTRY, Pack
+from tards.data.card_db import DEFAULT_REGISTRY, Pack
 from gui.theme import UI_THEME
 from gui.utils import _insert_rich_detail
 
@@ -78,8 +78,18 @@ class DetailRenderer:
             # 关键词
             kw_dict = card.display_keywords
         else:
-            # 手牌
-            lines.append(f"费用: {getattr(card, 'cost', '?')}")
+            # 手牌：显示经过费用修正后的实际费用
+            cost = getattr(card, "cost", None)
+            active = None
+            if getattr(self.frame, "duel", None) and self.frame.duel.game:
+                active = self.frame.duel.game.current_player
+            owner = getattr(card, "owner", None) or active
+            if owner and hasattr(owner, "_get_play_cost"):
+                try:
+                    cost = owner._get_play_cost(card)
+                except Exception:
+                    pass
+            lines.append(f"费用: {cost if cost is not None else '?'}")
             if isinstance(card, MinionCard):
                 lines.append(f"攻击/生命: {card.attack}/{card.health}")
             kw_dict = getattr(card, "keywords", None) or {}

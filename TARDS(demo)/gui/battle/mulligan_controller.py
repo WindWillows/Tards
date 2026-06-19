@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from gui.theme import UI_THEME
 from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
-from tards.asset_manager import get_asset_manager
+from tards.assets import get_asset_manager
 
 
 class MulliganController:

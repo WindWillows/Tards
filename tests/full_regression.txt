@@ -1,0 +1,1339 @@
+============================================================
+发现 91 个测试
+============================================================
+  [PASS] test_action_roundtrip
+[12:34:30.841] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1, position=tuple}
+[12:34:30.842] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:白鼬, player=Player:p1, card=MinionCard:白鼬}
+  p1 在 (4, 0) 召唤了 白鼬
+[12:34:30.842] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:烈焰人, minion=Minion:烈焰人, player=Player:p2, position=tuple}
+  [效果触发] _lieyanren_special (烈焰人)
+  烈焰人 获得亡语
+[12:34:30.842] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:烈焰人, player=Player:p2, card=MinionCard:烈焰人}
+  p2 在 (0, 0) 召唤了 烈焰人
+[12:34:30.842] [EVENT] type=before_damage | source=Minion:烈焰人 | listeners=0 | data={target=Minion:白鼬, damage=1, source_minion=Minion:烈焰人, source_type=, is_combat_damage=False}
+  白鼬 受到 1 点伤害，剩余 5/6
+  白鼬 被消灭了！
+  [连锁] 消灭 [白鼬]
+[12:34:30.843] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1}
+[12:34:30.843] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1, position=tuple}
+[12:34:30.843] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1, position=tuple}
+[12:34:30.843] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:白鼬, player=Player:p1}
+[12:34:30.843] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1}
+[12:34:30.843] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:白鼬, minion=Minion:白鼬, player=Player:p1}
+  白鼬 被消灭
+  白鼬受到战斗伤害后自毁
+[12:34:30.843] [EVENT] type=damaged | source=Minion:烈焰人 | listeners=0 | data={target=Minion:白鼬, actual=1, original=1, source_minion=Minion:烈焰人, source_type=, is_combat_damage=False}
+[12:34:30.843] [EVENT] type=after_damage | source=Minion:烈焰人 | listeners=1 | data={target=Minion:白鼬, actual=1, original=1, source_minion=Minion:烈焰人, source_type=, is_combat_damage=False}
+[12:34:30.843] [RESPONSE] after_damage -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_baiyou_combat_death
+[12:34:30.846] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=None, to_loc=hand}
+  p1 获得 [猫]
+  [PASS] test_blood_cost_minion_with_enough_b_point_skips_sacrifice
+[12:34:30.850] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-5}
+p1 受到 5 点伤害，剩余 25 HP
+  p1 血契沉浸度触发：受到不小于3点伤害，获得3S
+[12:34:30.850] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=5}
+[12:34:30.850] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-5, old=30, new=25}
+  [PASS] test_blood_immersion_2_damage_trigger
+[12:34:30.853] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2, position=tuple}
+  [效果触发] _hu_tiger_special (狐)
+  虎：p2 的友方异象获得全局绝缘
+[12:34:30.853] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:狐, player=Player:p2, card=MinionCard:狐}
+  p2 在 (0, 0) 召唤了 狐
+[12:34:30.853] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=None, to_loc=hand}
+  p1 获得 [不寐]
+[12:34:30.853] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [不寐]}
+  [结算] 打出 [不寐]
+[12:34:30.853] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=hand, to_loc=resolving}
+[12:34:30.853] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:30.854] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:狐}
+  狐 被消灭了！
+  狐 被消灭
+  不寐：消灭 狐
+[12:34:30.854] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=resolving, to_loc=discard}
+[12:34:30.854] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:不寐}
+  [连锁] 消灭 [狐]
+[12:34:30.854] [EVENT] type=before_destroy | source=None | listeners=1 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2}
+  虎：p2 的友方异象失去全局绝缘
+[12:34:30.854] [RESPONSE] before_destroy -> wrapper | status=OK | changes=[no_state_change]
+[12:34:30.854] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2, position=tuple}
+[12:34:30.854] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2, position=tuple}
+[12:34:30.854] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:狐, player=Player:p2}
+[12:34:30.854] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2}
+[12:34:30.854] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:狐, minion=Minion:狐, player=Player:p2}
+  [PASS] test_bumei_destroy_level3_minion
+[12:34:30.856] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:骨王, from_loc=None, to_loc=hand}
+  p2 获得 [骨王]
+[12:34:30.856] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=None, to_loc=hand}
+  p1 获得 [不寐]
+[12:34:30.856] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [不寐]}
+  [结算] 打出 [不寐]
+[12:34:30.856] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=hand, to_loc=resolving}
+[12:34:30.856] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:骨王, from_loc=hand, to_loc=discard}
+[12:34:30.857] [EVENT] type=discarded | source=None | listeners=0 | data={player=Player:p2, card=Strategy:骨王, reason=effect}
+  p2 弃置了 [骨王]
+  不寐：对手弃置 骨王
+[12:34:30.857] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=resolving, to_loc=discard}
+[12:34:30.857] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:不寐}
+  [PASS] test_bumei_discard_opponent_level3_hand
+[12:34:30.859] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=None, to_loc=hand}
+  p1 获得 [不寐]
+[12:34:30.859] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [不寐]}
+  [结算] 打出 [不寐]
+[12:34:30.859] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=hand, to_loc=resolving}
+  不寐：对手手中没有沉浸度为3的牌，该分支无法执行
+[12:34:30.859] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:不寐, from_loc=resolving, to_loc=discard}
+[12:34:30.859] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:不寐}
+  [PASS] test_bumei_fizzles_gracefully_when_no_targets
+[12:34:30.861] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:30.862] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:30.862] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:30.862] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [劫掠]}
+  [结算] 打出 [劫掠]
+[12:34:30.862] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:30.862] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:30.862] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+  书架 被消灭了！
+  书架 被消灭
+[12:34:30.862] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=resolving, to_loc=discard}
+[12:34:30.862] [EVENT] type=card_played | source=None | listeners=1 | data={player=Player:p1, card=Strategy:劫掠}
+[12:34:30.862] [RESPONSE] card_played -> <lambda> | status=OK | changes=[no_state_change]
+  [连锁] 消灭 [书架]
+[12:34:30.863] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:30.863] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:30.863] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:30.863] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:30.863] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:30.863] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  [PASS] test_card_played_event_emitted_after_strategy_effect
+[12:34:30.864] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:臭虫, minion=Minion:臭虫, player=Player:p1, position=tuple}
+  [效果触发] _chouchong_special (臭虫)
+[12:34:30.865] [EVENT] type=deployed | source=None | listeners=1 | data={minion=Minion:臭虫, player=Player:p1, card=MinionCard:臭虫}
+[12:34:30.865] [RESPONSE] deployed -> wrapper | status=OK | changes=[no_state_change]
+  p1 在 (4, 2) 召唤了 臭虫
+[12:34:30.865] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:烈焰人, minion=Minion:烈焰人, player=Player:p2, position=tuple}
+  [效果触发] _lieyanren_special (烈焰人)
+  烈焰人 获得亡语
+[12:34:30.865] [EVENT] type=deployed | source=None | listeners=1 | data={minion=Minion:烈焰人, player=Player:p2, card=MinionCard:烈焰人}
+[12:34:30.865] [RESPONSE] deployed -> wrapper | status=OK | changes=[no_state_change]
+  p2 在 (0, 2) 召唤了 烈焰人
+  [PASS] test_chouchong_aura
+  [PASS] test_close_does_not_renotify_disconnect
+  [PASS] test_connection_roundtrip
+  [PASS] test_cost_conversion_boundary
+  [PASS] test_deserialize_dead_sync_id_raises
+  [PASS] test_deserialize_missing_sync_id_fallback_to_position
+  [PASS] test_deserialize_player_target
+[12:34:30.870] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1, position=tuple}
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  凋零骷髅 获得亡语
+[12:34:30.870] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:凋零骷髅, player=Player:p1, card=MinionCard:凋零骷髅}
+  p1 在 (4, 2) 召唤了 凋零骷髅
+[12:34:30.870] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:萤石, minion=Minion:萤石, player=Player:p2, position=tuple}
+  [效果触发] _yingshi_special (萤石)
+[12:34:30.870] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:萤石, player=Player:p2, card=MinionCard:萤石}
+  p2 在 (0, 2) 召唤了 萤石
+  萤石 永久获得 +0攻/+5血，当前 0/4
+  萤石 恢复 5 点生命，剩余 9/9
+[12:34:30.871] [EVENT] type=before_attack | source=Minion:凋零骷髅 | listeners=0 | data={target=Minion:萤石, attacker=Minion:凋零骷髅, defender=Minion:萤石}
+  凋零骷髅 攻击 萤石，造成 3 点伤害
+[12:34:30.871] [EVENT] type=before_damage | source=Minion:凋零骷髅 | listeners=0 | data={target=Minion:萤石, damage=3, source_minion=Minion:凋零骷髅, source_type=combat, is_combat_damage=True}
+  萤石 受到 3 点伤害，剩余 6/9
+[12:34:30.871] [EVENT] type=damaged | source=Minion:凋零骷髅 | listeners=1 | data={target=Minion:萤石, actual=3, original=3, source_minion=Minion:凋零骷髅, source_type=combat, is_combat_damage=True}
+[12:34:30.871] [RESPONSE] damaged -> wrapper | status=OK | changes=[no_state_change]
+[12:34:30.871] [EVENT] type=after_damage | source=Minion:凋零骷髅 | listeners=0 | data={target=Minion:萤石, actual=3, original=3, source_minion=Minion:凋零骷髅, source_type=combat, is_combat_damage=True}
+[12:34:30.871] [EVENT] type=attacked | source=Minion:凋零骷髅 | listeners=0 | data={target=Minion:萤石, attacker=Minion:凋零骷髅, defender=Minion:萤石}
+[12:34:30.871] [EVENT] type=after_attack | source=Minion:凋零骷髅 | listeners=0 | data={target=Minion:萤石, attacker=Minion:凋零骷髅, defender=Minion:萤石}
+[12:34:30.871] [EVENT] type=turn_end | source=None | listeners=1 | data={first=Player:p1, second=Player:p2}
+  萤石 永久获得 -1攻/-1血，当前 -1/6
+  萤石 因凋零骷髅的伤害获得-1/1
+[12:34:30.871] [RESPONSE] turn_end -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_diaolingkulou_damage_debuffs_target_at_turn_end
+[12:34:30.873] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1, position=tuple}
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  凋零骷髅 获得亡语
+[12:34:30.874] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:凋零骷髅, player=Player:p1, card=MinionCard:凋零骷髅}
+  p1 在 (4, 2) 召唤了 凋零骷髅
+[12:34:30.874] [EVENT] type=before_attack | source=Minion:凋零骷髅 | listeners=0 | data={target=Player:p2, attacker=Minion:凋零骷髅, defender=Player:p2}
+  凋零骷髅 直接攻击 p2，造成 3 点伤害
+[12:34:30.874] [EVENT] type=before_health_change | source=Minion:凋零骷髅 | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-3}
+p2 受到 3 点伤害，剩余 27 HP
+[12:34:30.874] [EVENT] type=player_damage | source=Minion:凋零骷髅 | listeners=1 | data={target=Player:p2, player=Player:p2, damage=3}
+[12:34:30.874] [RESPONSE] player_damage -> wrapper | status=OK | changes=[no_state_change]
+[12:34:30.874] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-3, old=30, new=27}
+[12:34:30.874] [EVENT] type=attacked | source=Minion:凋零骷髅 | listeners=0 | data={target=Player:p2, attacker=Minion:凋零骷髅, defender=Player:p2}
+[12:34:30.875] [EVENT] type=after_attack | source=Minion:凋零骷髅 | listeners=0 | data={target=Player:p2, attacker=Minion:凋零骷髅, defender=Player:p2}
+[12:34:30.875] [EVENT] type=turn_end | source=None | listeners=1 | data={first=Player:p1, second=Player:p2}
+[12:34:30.875] [EVENT] type=card_removed_from_deck | source=None | listeners=0 | data={card=MinionCard:书架, player=Player:p2}
+  p2 牌库顶的 书架 被移除
+  p2 因凋零骷髅的伤害被移除卡组顶 书架
+[12:34:30.875] [RESPONSE] turn_end -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_diaolingkulou_damage_to_player_mills_card
+[12:34:30.877] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1, position=tuple}
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  [效果触发] _diaolingkulou_special (凋零骷髅)
+  凋零骷髅 获得亡语
+[12:34:30.877] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:凋零骷髅, player=Player:p1, card=MinionCard:凋零骷髅}
+  p1 在 (4, 2) 召唤了 凋零骷髅
+  凋零骷髅 被消灭了！
+  [连锁] 消灭 [凋零骷髅]
+[12:34:30.877] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1}
+[12:34:30.877] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1, position=tuple}
+[12:34:30.878] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1, position=tuple}
+[12:34:30.878] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:凋零骷髅, player=Player:p1}
+[12:34:30.878] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1}
+[12:34:30.878] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:凋零骷髅, minion=Minion:凋零骷髅, player=Player:p1}
+  [连锁] 亡语 [凋零骷髅]
+  凋零骷髅 的亡语触发
+  p1 凋零骷髅亡语：获得 [凋零骷髅头]
+  [PASS] test_diaolingkulou_deathrattle_gives_token
+[12:34:30.880] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:鸥, minion=Minion:鸥, player=Player:p1, position=tuple}
+  [效果触发] _ou_special (鸥)
+  鸥 获得亡语
+[12:34:30.880] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:鸥, player=Player:p1, card=MinionCard:鸥}
+  p1 在 (4, 4) 召唤了 鸥
+[12:34:30.880] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:长翅座首, minion=Minion:长翅座首, player=Player:p1, position=tuple}
+  [效果触发] _avian_top_special (长翅座首)
+[12:34:30.880] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:长翅座首, player=Player:p1, card=MinionCard:长翅座首}
+  p1 在 (4, 1) 召唤了 长翅座首
+[12:34:30.880] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:破风底座, minion=Minion:破风底座, player=Player:p1, position=tuple}
+  [效果触发] _avian_bottom_special (破风底座)
+[12:34:30.880] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:破风底座, player=Player:p1, card=MinionCard:破风底座}
+  雕像拼装开始：长翅座首 + 破风底座，配对，将于第 0 结算阶段结束时生效
+  p1 在 (4, 0) 召唤了 破风底座
+  雕像 [长翅座首 + 破风底座] 拼装完成！
+  [连锁] 长翅座首 激活
+  [连锁] 破风底座 融合
+  [连锁] 移除雕像组件
+[12:34:30.881] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:长翅座首, minion=Minion:长翅座首, player=Player:p1, position=tuple}
+[12:34:30.881] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:长翅座首, minion=Minion:长翅座首, player=Player:p1, position=tuple}
+[12:34:30.881] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:破风底座, minion=Minion:破风底座, player=Player:p1, position=tuple}
+[12:34:30.881] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:破风底座, minion=Minion:破风底座, player=Player:p1, position=tuple}
+  [PASS] test_direct_summoned_avian_statues_fuse_via_special_fn
+  [PASS] test_disconnect_detection
+[12:34:30.885] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:独脚大盗, from_loc=None, to_loc=hand}
+  p1 获得 [独脚大盗]
+[12:34:30.885] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:独脚大盗, from_loc=hand, to_loc=resolving}
+[12:34:30.885] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:独脚大盗, player=Player:p1, minion=Minion:独脚大盗, card=MinionCard:独脚大盗, position=tuple}
+[12:34:30.885] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:独脚大盗, minion=Minion:独脚大盗, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 独脚大盗
+  [效果触发] _dujiaodadao_special (独脚大盗)
+[12:34:30.886] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+[12:34:30.886] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:书架}
+[12:34:30.886] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:书架, by_draw=True}
+  p1 抽取了: 书架
+[12:34:30.886] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:独脚大盗, player=Player:p1, card=MinionCard:独脚大盗}
+[12:34:30.886] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:独脚大盗, player=Player:p1, minion=Minion:独脚大盗, card=MinionCard:独脚大盗, position=tuple}
+[12:34:30.886] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:独脚大盗, player=Player:p1}
+[12:34:30.886] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:独脚大盗, from_loc=resolving, to_loc=board}
+[12:34:30.886] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:独脚大盗}
+  [PASS] test_dujiaodadao_draws_opponent_top
+[12:34:30.888] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=None, to_loc=hand}
+  p1 获得 [钝锈指针]
+[12:34:30.888] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=hand, to_loc=resolving}
+[12:34:30.889] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3}
+p1 受到 3 点伤害，剩余 27 HP
+[12:34:30.889] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=3}
+[12:34:30.889] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3, old=30, new=27}
+  钝锈指针：p1 受到3点伤害
+  钝锈指针：本轮结算阶段将被跳过
+[12:34:30.889] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:含垢齿轮, from_loc=None, to_loc=deck}
+  钝锈指针：1张含垢齿轮洗入卡组
+[12:34:30.889] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=resolving, to_loc=discard}
+[12:34:30.889] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:钝锈指针}
+[12:34:30.889] [EVENT] type=turn_start | source=None | listeners=1 | data={first=Player:p1, second=Player:p2}
+[12:34:30.889] [RESPONSE] turn_start -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_dunxiu_zhizhen_does_not_block_turn_start
+[12:34:30.892] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=None, to_loc=hand}
+  p1 获得 [钝锈指针]
+[12:34:30.892] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=hand, to_loc=resolving}
+[12:34:30.892] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3}
+p1 受到 3 点伤害，剩余 27 HP
+[12:34:30.892] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=3}
+[12:34:30.892] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3, old=30, new=27}
+  钝锈指针：p1 受到3点伤害
+  钝锈指针：本轮结算阶段将被跳过
+[12:34:30.893] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:含垢齿轮, from_loc=None, to_loc=deck}
+  钝锈指针：1张含垢齿轮洗入卡组
+[12:34:30.893] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:钝锈指针, from_loc=resolving, to_loc=discard}
+[12:34:30.893] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:钝锈指针}
+  [PASS] test_dunxiu_zhizhen_skips_resolve
+  [PASS] test_game_logger_create_for_battle_rotates_automatically
+  [PASS] test_game_logger_keeps_recent_10_battle_logs
+[12:34:30.977] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:过曝！, from_loc=None, to_loc=hand}
+  p1 获得 [过曝！]
+  [PASS] test_guobao_cost_capped_at_zero
+[12:34:30.980] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:过曝！, from_loc=None, to_loc=hand}
+  p1 获得 [过曝！]
+  [PASS] test_guobao_cost_reduction
+[12:34:30.984] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:含垢齿轮, from_loc=None, to_loc=hand}
+  p1 获得 [含垢齿轮]
+[12:34:30.985] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:含垢齿轮, from_loc=hand, to_loc=resolving}
+[12:34:30.985] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3}
+p1 受到 3 点伤害，剩余 27 HP
+[12:34:30.985] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=3}
+[12:34:30.985] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3, old=30, new=27}
+  含垢齿轮：p1 受到3点伤害
+  含垢齿轮：p1 获得双倍血契
+[12:34:30.985] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:含垢齿轮, from_loc=resolving, to_loc=discard}
+[12:34:30.985] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:含垢齿轮}
+  [PASS] test_hangou_chilun_double_blood
+[12:34:30.989] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:鹤, minion=Minion:鹤, player=Player:p1, position=tuple}
+  [效果触发] _he_special (鹤)
+[12:34:30.990] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:鹤, player=Player:p1, card=MinionCard:鹤}
+  p1 在 (4, 0) 召唤了 鹤
+[12:34:30.990] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[12:34:30.990] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_he_no_target_skips
+[12:34:30.994] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:鹤, minion=Minion:鹤, player=Player:p1, position=tuple}
+  [效果触发] _he_special (鹤)
+[12:34:30.994] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:鹤, player=Player:p1, card=MinionCard:鹤}
+  p1 在 (4, 0) 召唤了 鹤
+[12:34:30.995] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:30.995] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:30.995] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+  鹤：重置 书架 的攻击力与防御力为 0/3
+[12:34:30.995] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=1}
+p1 恢复 1 点生命，剩余 26 HP
+[12:34:30.995] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=1, old=25, new=26}
+  鹤：p1 获得+1HP
+[12:34:30.995] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_he_resolve_effect_target
+[12:34:30.999] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:鹤, minion=Minion:鹤, player=Player:p1, position=tuple}
+  [效果触发] _he_special (鹤)
+[12:34:31.000] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:鹤, player=Player:p1, card=MinionCard:鹤}
+  p1 在 (4, 0) 召唤了 鹤
+[12:34:31.000] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:31.000] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:31.000] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:31.000] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:31.000] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[12:34:31.000] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_he_target_removed_skips
+[12:34:31.005] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[12:34:31.005] [EVENT] type=before_health_change | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3}
+p1 受到 3 点伤害，剩余 27 HP
+[12:34:31.006] [EVENT] type=player_damage | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, damage=3}
+[12:34:31.006] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-3, old=30, new=27}
+  [PASS] test_health_lost_this_phase_uses_current_history_api
+  [PASS] test_heartbeat_keeps_connection_alive
+[12:34:32.013] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+[12:34:32.013] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:亡灵, minion=Minion:亡灵, player=Player:p1, position=tuple}
+  [效果触发] _wangling_special (亡灵)
+[12:34:32.013] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:亡灵, player=Player:p1, card=MinionCard:亡灵}
+  p1 在 (3, 0) 召唤了 亡灵
+[12:34:32.013] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:亡灵, minion=Minion:亡灵, player=Player:p1, position=tuple}
+  [效果触发] _wangling_special (亡灵)
+[12:34:32.014] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:亡灵, player=Player:p1, card=MinionCard:亡灵}
+  p1 在 (3, 1) 召唤了 亡灵
+  [PASS] test_helper_considers_blood_sacrifice
+[12:34:32.019] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+  [效果触发] _baoweizhe_special (保卫者)
+[12:34:32.019] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:保卫者, player=Player:p2, card=MinionCard:保卫者}
+  p2 在 (0, 0) 召唤了 保卫者
+[12:34:32.019] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:轰击, from_loc=None, to_loc=hand}
+  p1 获得 [轰击]
+[12:34:32.019] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:轰击, from_loc=hand, to_loc=resolving}
+  [策略触发] _hongji_effect
+[12:34:32.019] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.020] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:保卫者}
+  保卫者 被消灭了！
+  [连锁] 消灭 [保卫者]
+[12:34:32.020] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+[12:34:32.020] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+[12:34:32.020] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+[12:34:32.020] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:保卫者, player=Player:p2}
+[12:34:32.020] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+[12:34:32.020] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+  保卫者 被消灭
+[12:34:32.020] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:TNT炮, from_loc=None, to_loc=hand}
+  p1 获得 [TNT炮]
+  p1 获得 TNT炮
+  轰击：将 TNT炮 加入手牌
+[12:34:32.020] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:轰击, from_loc=resolving, to_loc=discard}
+[12:34:32.020] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:轰击}
+  [PASS] test_hongji_targets_injured_minion
+[12:34:32.025] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:唤魔者, minion=Minion:唤魔者, player=Player:p1, position=tuple}
+  [效果触发] _huanmozhe_special (唤魔者)
+[12:34:32.026] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:唤魔者, player=Player:p1, card=MinionCard:唤魔者}
+  p1 在 (3, 0) 召唤了 唤魔者
+[12:34:32.026] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+  唤魔者 没有预设召唤位置，跳过召唤
+[12:34:32.026] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+测试通过：未预设目标时未召唤精灵
+  [PASS] test_huanmozhe_no_preset_no_summon
+[12:34:32.031] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:唤魔者, minion=Minion:唤魔者, player=Player:p1, position=tuple}
+  [效果触发] _huanmozhe_special (唤魔者)
+[12:34:32.031] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:唤魔者, player=Player:p1, card=MinionCard:唤魔者}
+  p1 在 (3, 0) 召唤了 唤魔者
+[12:34:32.032] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[12:34:32.032] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:电灵, player=Player:p1, minion=Minion:电灵, card=MinionCard:电灵, position=tuple}
+[12:34:32.032] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:电灵, minion=Minion:电灵, player=Player:p1, position=tuple}
+  p1 在 (3, 1) 部署了 电灵
+  [效果触发] _dianling_special (电灵)
+  电灵 获得亡语
+[12:34:32.032] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:电灵, player=Player:p1, card=MinionCard:电灵}
+[12:34:32.032] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:电灵, player=Player:p1, minion=Minion:电灵, card=MinionCard:电灵, position=tuple}
+[12:34:32.032] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:电灵, player=Player:p1}
+  电灵 获得迅捷
+[12:34:32.032] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+测试通过：在 (3, 1) 召唤出 电灵，具有迅捷
+  [PASS] test_huanmozhe_preset_position
+[12:34:32.037] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.038] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 2) 召唤了 书架
+[12:34:32.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:32.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:32.038] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.038] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:32.038] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.038] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.038] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.038] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:32.038] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.038] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  书架 被消灭
+[12:34:32.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=resolving, to_loc=discard}
+[12:34:32.039] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:劫掠}
+  [PASS] test_jielue_basic_destroy
+[12:34:32.044] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:末影人, minion=Minion:末影人, player=Player:p2, position=tuple}
+  [效果触发] _moyiren_special (末影人)
+  末影人 获得亡语
+[12:34:32.044] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:末影人, player=Player:p2, card=MinionCard:末影人}
+  p2 在 (0, 2) 召唤了 末影人
+[12:34:32.044] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:32.044] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:32.045] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.045] [EVENT] type=targeting_cancelled | source=None | listeners=0 | data={request=TargetingRequest, reason=无合法目标}
+  [PASS] test_jielue_cost_boundary_excludes_4t
+[12:34:32.050] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2, position=tuple}
+  [效果触发] _ehan_special (恶魂)
+  恶魂 获得亡语
+[12:34:32.050] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:恶魂, player=Player:p2, card=MinionCard:恶魂}
+  p2 在 (0, 2) 召唤了 恶魂
+[12:34:32.050] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:32.051] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:32.051] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.051] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:恶魂}
+  恶魂 被消灭了！
+  [连锁] 消灭 [恶魂]
+[12:34:32.051] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2}
+[12:34:32.051] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2, position=tuple}
+[12:34:32.051] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2, position=tuple}
+[12:34:32.051] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:恶魂, player=Player:p2}
+[12:34:32.051] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2}
+[12:34:32.051] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:恶魂, minion=Minion:恶魂, player=Player:p2}
+  [连锁] 亡语 [恶魂]
+  恶魂 的亡语触发
+  p2 恶魂亡语：获得 [恶魂之泪]
+  恶魂 被消灭
+[12:34:32.051] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=resolving, to_loc=discard}
+[12:34:32.051] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:劫掠}
+  [PASS] test_jielue_cost_boundary_includes_3t
+[12:34:32.057] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:钓鱼竿, minion=Minion:钓鱼竿, player=Player:p2, position=tuple}
+  [效果触发] _diaoyugan_special (钓鱼竿)
+[12:34:32.057] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:钓鱼竿, player=Player:p2, card=MinionCard:钓鱼竿}
+  p2 在 (0, 3) 召唤了 钓鱼竿
+[12:34:32.057] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:32.057] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:32.058] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.058] [EVENT] type=targeting_cancelled | source=None | listeners=0 | data={request=TargetingRequest, reason=无合法目标}
+  [PASS] test_jielue_no_valid_target
+[12:34:32.064] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.064] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 3) 召唤了 书架
+[12:34:32.064] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:钓鱼竿, minion=Minion:钓鱼竿, player=Player:p2, position=tuple}
+  [效果触发] _diaoyugan_special (钓鱼竿)
+[12:34:32.064] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:钓鱼竿, player=Player:p2, card=MinionCard:钓鱼竿}
+  p2 在 (1, 3) 召唤了 钓鱼竿
+[12:34:32.065] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+[12:34:32.065] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=hand, to_loc=resolving}
+  [策略触发] _jielue_strategy
+[12:34:32.065] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.065] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:32.065] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.065] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.065] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.065] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:32.065] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.065] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  书架 被消灭
+[12:34:32.065] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:火把, from_loc=None, to_loc=hand}
+  p1 获得 [火把]
+[12:34:32.065] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:火把}
+[12:34:32.065] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:火把, by_draw=True}
+  p1 抽取了: 火把
+[12:34:32.065] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=resolving, to_loc=discard}
+[12:34:32.065] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:劫掠}
+  [PASS] test_jielue_synergy_draws_card
+[12:34:32.072] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:劫掠兽, minion=Minion:劫掠兽, player=Player:p1, position=tuple}
+  [效果触发] _jielueshou_special (劫掠兽)
+[12:34:32.072] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:劫掠兽, player=Player:p1, card=MinionCard:劫掠兽}
+  p1 在 (4, 0) 召唤了 劫掠兽
+[12:34:32.072] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=None, to_loc=hand}
+  p1 获得 [时空灵]
+[12:34:32.072] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=hand, to_loc=resolving}
+[12:34:32.073] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:时空灵, player=Player:p1, minion=Minion:时空灵, card=MinionCard:时空灵, position=tuple}
+[12:34:32.073] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1, position=tuple}
+  p1 在 (4, 1) 部署了 时空灵
+  [效果触发] _shikongling_special (时空灵)
+  时空灵 获得亡语
+  时空灵 的 坚韧 减少 1，当前 已移除
+  时空灵 进入战场，获得-1HP和-1坚韧
+  时空灵 被消灭了！
+  [连锁] 消灭 [时空灵]
+[12:34:32.073] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1}
+[12:34:32.073] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1, position=tuple}
+[12:34:32.073] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1, position=tuple}
+[12:34:32.073] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:时空灵, player=Player:p1}
+[12:34:32.073] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1}
+[12:34:32.073] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1}
+  [连锁] 亡语 [时空灵]
+  时空灵 的亡语触发
+  p1 牌库已空，虚空侵蚀！失去 1 点生命
+p1 失去 1 点生命值，剩余 29 HP
+[12:34:32.073] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:时空灵, player=Player:p1, card=MinionCard:时空灵}
+[12:34:32.073] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:时空灵, player=Player:p1, minion=Minion:时空灵, card=MinionCard:时空灵, position=tuple}
+[12:34:32.073] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:时空灵, player=Player:p1}
+[12:34:32.073] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=resolving, to_loc=board}
+[12:34:32.073] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:时空灵}
+  [PASS] test_jielueshou_kills_1hp_minion_on_deploy
+[12:34:32.080] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1, position=tuple}
+  [效果触发] _jingxiliwu_special (惊喜礼物)
+  惊喜礼物 获得亡语
+[12:34:32.080] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:惊喜礼物, player=Player:p1, card=MinionCard:惊喜礼物}
+  p1 在 (4, 2) 召唤了 惊喜礼物
+  惊喜礼物 被消灭了！
+  [连锁] 消灭 [惊喜礼物]
+[12:34:32.080] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1}
+[12:34:32.080] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1, position=tuple}
+[12:34:32.080] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1, position=tuple}
+[12:34:32.081] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:惊喜礼物, player=Player:p1}
+[12:34:32.081] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1}
+[12:34:32.081] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:惊喜礼物, minion=Minion:惊喜礼物, player=Player:p1}
+  [连锁] 亡语 [惊喜礼物]
+  惊喜礼物 的亡语触发
+[12:34:32.081] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=None, to_loc=hand}
+  p1 获得 [时空灵]
+[12:34:32.081] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:时空灵}
+[12:34:32.081] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:时空灵, by_draw=True}
+  p1 抽取了: 时空灵
+  惊喜礼物：p1 抽1张牌
+[12:34:32.081] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=None, to_loc=hand}
+  p2 获得 [时空灵]
+[12:34:32.081] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p2, card=MinionCard:时空灵}
+[12:34:32.081] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p2, card=MinionCard:时空灵, by_draw=True}
+[12:34:32.081] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:时空灵, from_loc=None, to_loc=hand}
+  p2 获得 [时空灵]
+[12:34:32.081] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p2, card=MinionCard:时空灵}
+[12:34:32.081] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p2, card=MinionCard:时空灵, by_draw=True}
+  p2 抽取了: 时空灵, 时空灵
+  惊喜礼物：p2 抽2张牌
+  惊喜礼物 被消灭
+  [PASS] test_jingxiliwu_deathrattle_draws
+[12:34:32.088] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:狂风, from_loc=None, to_loc=hand}
+  p1 获得 [狂风]
+[12:34:32.088] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [狂风]}
+  [结算] 打出 [狂风]
+[12:34:32.088] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:狂风, from_loc=hand, to_loc=resolving}
+  狂风：p2 无法部署异象，直到下结算阶段结束
+[12:34:32.088] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:狂风, from_loc=resolving, to_loc=discard}
+[12:34:32.089] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:狂风}
+[12:34:32.089] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:烛烟, from_loc=None, to_loc=hand}
+  p2 获得 [烛烟]
+[12:34:32.089] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=action, first=Player:p1, second=Player:p2}
+[出牌阶段]
+
+  >>> p1 的回合 (T点:4, HP:30)
+    手牌: (空)
+  p1 拉闸
+[12:34:32.089] [EVENT] type=brake | source=None | listeners=0 | data={player=Player:p1}
+
+  >>> p2 的回合 (T点:10, HP:30)
+    手牌: [1]烛烟(0 1/2)
+  全局部署限制阻止了 烛烟 的部署
+
+  >>> p2 的回合 (T点:10, HP:30)
+    手牌: [1]烛烟(0 1/2)
+  p2 拉闸
+[12:34:32.089] [EVENT] type=brake | source=None | listeners=0 | data={player=Player:p2}
+  双方均已拉闸，出牌阶段结束
+[12:34:32.089] [EVENT] type=phase_end | source=None | listeners=0 | data={phase=action, first=Player:p1, second=Player:p2}
+
+========== 回合 1 | 先手: p1 ==========
+[12:34:32.089] [EVENT] type=turn_start | source=None | listeners=0 | data={turn=1, first=Player:p1, second=Player:p2}
+[12:34:32.089] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=draw, first=Player:p1, second=Player:p2}
+[抽牌阶段]
+  p2 牌库已空，虚空侵蚀！失去 1 点生命
+p2 失去 1 点生命值，剩余 29 HP
+  p1 T槽=1，获得 1 T点
+  p2 T槽=1，获得 1 T点
+[12:34:32.089] [EVENT] type=phase_end | source=None | listeners=0 | data={phase=draw, first=Player:p1, second=Player:p2}
+[12:34:32.089] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=action, first=Player:p1, second=Player:p2}
+[出牌阶段]
+
+  >>> p1 的回合 (T点:1, HP:30)
+    手牌: (空)
+  p1 拉闸
+[12:34:32.089] [EVENT] type=brake | source=None | listeners=0 | data={player=Player:p1}
+
+  >>> p2 的回合 (T点:1, HP:29)
+    手牌: [1]烛烟(0 1/2)
+  p2 拉闸
+[12:34:32.089] [EVENT] type=brake | source=None | listeners=0 | data={player=Player:p2}
+  双方均已拉闸，出牌阶段结束
+[12:34:32.089] [EVENT] type=phase_end | source=None | listeners=0 | data={phase=action, first=Player:p1, second=Player:p2}
+[12:34:32.089] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[结算阶段]
+    高地      山脊      中路      河岸      水路    
+[0]        |        |        |        |       
+[1]        |        |        |        |       
+[2]        |        |        |        |       
+[3]        |        |        |        |       
+[4]        |        |        |        |       
+[12:34:32.089] [EVENT] type=phase_end | source=None | listeners=0 | data={phase=resolve, first=Player:p1, second=Player:p2}
+[12:34:32.089] [EVENT] type=turn_end | source=None | listeners=0 | data={turn=1, first=Player:p1, second=Player:p2}
+  狂风：p2 的部署限制已解除
+  [PASS] test_kuangfeng_blocks_opponent_deploy_then_expires
+[12:34:32.097] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:探索, from_loc=None, to_loc=hand}
+  p1 获得 [探索]
+[12:34:32.097] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=None, to_loc=hand}
+  p1 获得 [骷髅马骑士]
+[12:34:32.097] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=hand, to_loc=resolving}
+[12:34:32.097] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.097] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1, position=tuple}
+  p1 在 (4, 2) 部署了 骷髅马骑士
+  [效果触发] _kuloumaqishi_special (骷髅马骑士)
+  骷髅马骑士：所有手牌+1T花费
+[12:34:32.097] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:骷髅马骑士, player=Player:p1, card=MinionCard:骷髅马骑士}
+[12:34:32.097] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.097] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:骷髅马骑士, player=Player:p1}
+[12:34:32.097] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=resolving, to_loc=board}
+[12:34:32.098] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:骷髅马骑士}
+[12:34:32.098] [EVENT] type=turn_end | source=None | listeners=1 | data={turn=1, first=Player:p1, second=Player:p2}
+  骷髅马骑士效果结束：手牌花费恢复
+[12:34:32.098] [RESPONSE] turn_end -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_kuloumaqishi_cost_modifier_removed_after_next_turn
+[12:34:32.105] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:探索, from_loc=None, to_loc=hand}
+  p1 获得 [探索]
+[12:34:32.106] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=None, to_loc=hand}
+  p1 获得 [骷髅马骑士]
+[12:34:32.106] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=hand, to_loc=resolving}
+[12:34:32.106] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.106] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1, position=tuple}
+  p1 在 (4, 2) 部署了 骷髅马骑士
+  [效果触发] _kuloumaqishi_special (骷髅马骑士)
+  骷髅马骑士：所有手牌+1T花费
+[12:34:32.106] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:骷髅马骑士, player=Player:p1, card=MinionCard:骷髅马骑士}
+[12:34:32.106] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.106] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:骷髅马骑士, player=Player:p1}
+[12:34:32.106] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=resolving, to_loc=board}
+[12:34:32.106] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:骷髅马骑士}
+  骷髅马骑士 被消灭了！
+  [连锁] 消灭 [骷髅马骑士]
+[12:34:32.106] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1}
+[12:34:32.106] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1, position=tuple}
+[12:34:32.107] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1, position=tuple}
+[12:34:32.107] [EVENT] type=death | source=None | listeners=1 | data={minion=Minion:骷髅马骑士, player=Player:p1}
+  骷髅马骑士效果结束：手牌花费恢复
+[12:34:32.107] [RESPONSE] death -> on_death | status=OK | changes=[no_state_change]
+[12:34:32.107] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1}
+[12:34:32.107] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1}
+  骷髅马骑士 被消灭
+  [PASS] test_kuloumaqishi_cost_modifier_removed_on_death
+[12:34:32.115] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:探索, from_loc=None, to_loc=hand}
+  p1 获得 [探索]
+[12:34:32.115] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=None, to_loc=hand}
+  p1 获得 [骷髅马骑士]
+[12:34:32.115] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=hand, to_loc=resolving}
+[12:34:32.115] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.116] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:骷髅马骑士, minion=Minion:骷髅马骑士, player=Player:p1, position=tuple}
+  p1 在 (4, 2) 部署了 骷髅马骑士
+  [效果触发] _kuloumaqishi_special (骷髅马骑士)
+  骷髅马骑士：所有手牌+1T花费
+[12:34:32.116] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:骷髅马骑士, player=Player:p1, card=MinionCard:骷髅马骑士}
+[12:34:32.116] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:骷髅马骑士, player=Player:p1, minion=Minion:骷髅马骑士, card=MinionCard:骷髅马骑士, position=tuple}
+[12:34:32.116] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:骷髅马骑士, player=Player:p1}
+[12:34:32.116] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:骷髅马骑士, from_loc=resolving, to_loc=board}
+[12:34:32.116] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:骷髅马骑士}
+[12:34:32.116] [EVENT] type=turn_end | source=None | listeners=1 | data={turn=1, first=Player:p1, second=Player:p2}
+  骷髅马骑士效果结束：手牌花费恢复
+[12:34:32.116] [RESPONSE] turn_end -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_kuloumaqishi_cost_modifier_removed_when_resolve_skipped
+[12:34:32.124] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:灵动, from_loc=None, to_loc=hand}
+  p1 获得 [灵动]
+[12:34:32.124] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [灵动]}
+  [结算] 打出 [灵动]
+[12:34:32.124] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:灵动, from_loc=hand, to_loc=resolving}
+  灵动：p1 将 1 张折算花费最小的牌移到牌库顶
+  灵动：p2 将 2 张折算花费最小的牌移到牌库顶
+[12:34:32.124] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:灵动, from_loc=resolving, to_loc=discard}
+[12:34:32.125] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:灵动}
+  [PASS] test_lingdong_moves_cheapest_cards_to_top
+[12:34:32.133] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.133] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (4, 1) 召唤了 书架
+[12:34:32.133] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.134] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (4, 2) 召唤了 书架
+[12:34:32.134] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.134] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (3, 0) 召唤了 书架
+[12:34:32.134] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.134] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (3, 1) 召唤了 书架
+[12:34:32.134] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.134] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (3, 2) 召唤了 书架
+[12:34:32.134] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=None, to_loc=hand}
+  p1 获得 [流明]
+[12:34:32.134] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=hand, to_loc=resolving}
+[12:34:32.134] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:流明, player=Player:p1, minion=Minion:流明, card=MinionCard:流明, position=tuple}
+[12:34:32.135] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:流明, minion=Minion:流明, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 流明
+  [效果触发] _liuming_special (流明)
+  流明：消耗 6S
+[12:34:32.135] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:风灵, minion=Minion:风灵, player=Player:p1, position=tuple}
+  [效果触发] _fengling_special (风灵)
+  风灵 获得亡语
+[12:34:32.135] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:风灵, player=Player:p1, card=MinionCard:风灵}
+  p1 在 (4, 3) 召唤了 风灵
+  流明：召唤 风灵 至 (4, 3)
+[12:34:32.135] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:时空灵, minion=Minion:时空灵, player=Player:p1, position=tuple}
+  [效果触发] _shikongling_special (时空灵)
+  时空灵 获得亡语
+[12:34:32.135] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:时空灵, player=Player:p1, card=MinionCard:时空灵}
+  p1 在 (3, 3) 召唤了 时空灵
+  流明：召唤 时空灵 至 (3, 3)
+  流明：没有合法位置召唤 时空灵
+[12:34:32.135] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:流明, player=Player:p1, card=MinionCard:流明}
+[12:34:32.135] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:流明, player=Player:p1, minion=Minion:流明, card=MinionCard:流明, position=tuple}
+[12:34:32.135] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:流明, player=Player:p1}
+[12:34:32.135] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=resolving, to_loc=board}
+[12:34:32.135] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:流明}
+  [PASS] test_liuming_does_not_summon_spirits_to_water
+[12:34:32.145] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=None, to_loc=hand}
+  p1 获得 [流明]
+[12:34:32.145] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=hand, to_loc=resolving}
+[12:34:32.145] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:流明, player=Player:p1, minion=Minion:流明, card=MinionCard:流明, position=tuple}
+[12:34:32.145] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:流明, minion=Minion:流明, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 流明
+  [效果触发] _liuming_special (流明)
+  流明：消耗 6S
+[12:34:32.146] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:水灵, minion=Minion:水灵, player=Player:p1, position=tuple}
+  [效果触发] _shuiling_special (水灵)
+  水灵 获得亡语
+[12:34:32.146] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:水灵, player=Player:p1, card=MinionCard:水灵}
+  p1 在 (3, 2) 召唤了 水灵
+  流明：召唤 水灵 至 (3, 2)
+[12:34:32.146] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:血灵, minion=Minion:血灵, player=Player:p1, position=tuple}
+  [效果触发] _xueling_special (血灵)
+  血灵 获得亡语
+[12:34:32.146] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:血灵, player=Player:p1, card=MinionCard:血灵}
+  p1 在 (3, 0) 召唤了 血灵
+  流明：召唤 血灵 至 (3, 0)
+[12:34:32.147] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:火灵, minion=Minion:火灵, player=Player:p1, position=tuple}
+  [效果触发] _huoling_special (火灵)
+  火灵 获得亡语
+[12:34:32.147] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:火灵, player=Player:p1, card=MinionCard:火灵}
+  p1 在 (3, 3) 召唤了 火灵
+  流明：召唤 火灵 至 (3, 3)
+[12:34:32.147] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:流明, player=Player:p1, card=MinionCard:流明}
+[12:34:32.147] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:流明, player=Player:p1, minion=Minion:流明, card=MinionCard:流明, position=tuple}
+[12:34:32.147] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:流明, player=Player:p1}
+[12:34:32.147] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:流明, from_loc=resolving, to_loc=board}
+[12:34:32.147] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:流明}
+  [PASS] test_liuming_random_summon
+[12:34:32.156] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:猫, minion=Minion:猫, player=Player:p1, position=tuple}
+[12:34:32.157] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, card=MinionCard:猫}
+  p1 在 (4, 0) 召唤了 猫
+[12:34:32.157] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=None, to_loc=hand}
+  p1 获得 [猫]
+[12:34:32.157] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=None, to_loc=hand}
+  p1 获得 [猫]
+[12:34:32.157] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=hand, to_loc=resolving}
+  献祭 猫（免疫献祭，异象保留），获得 1B
+[12:34:32.158] [EVENT] type=sacrifice | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, blood=1, required_blood=1, total_blood=1}
+[12:34:32.158] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:32.158] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:猫, minion=Minion:猫, player=Player:p1, position=tuple}
+  p1 在 (4, 1) 部署了 猫
+[12:34:32.158] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, card=MinionCard:猫}
+[12:34:32.158] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:32.158] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:猫, player=Player:p1}
+[12:34:32.158] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=resolving, to_loc=board}
+[12:34:32.158] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:猫}
+[12:34:32.158] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=hand, to_loc=resolving}
+  献祭 猫（免疫献祭，异象保留），获得 1B
+[12:34:32.159] [EVENT] type=sacrifice | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, blood=1, required_blood=1, total_blood=1}
+[12:34:32.159] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:32.159] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:猫, minion=Minion:猫, player=Player:p1, position=tuple}
+  p1 在 (4, 2) 部署了 猫
+[12:34:32.159] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, card=MinionCard:猫}
+[12:34:32.159] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:32.159] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:猫, player=Player:p1}
+[12:34:32.159] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=resolving, to_loc=board}
+[12:34:32.159] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:猫}
+  [PASS] test_mao_infinite_sacrifice
+[12:34:32.168] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:鹏, minion=Minion:鹏, player=Player:p1, position=tuple}
+  鹏 因鹏获得休眠2
+[12:34:32.168] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:鹏, player=Player:p1, card=MinionCard:鹏}
+  p1 在 (4, 0) 召唤了 鹏
+[12:34:32.169] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:松鼠, from_loc=None, to_loc=hand}
+  p1 获得 [松鼠]
+[12:34:32.169] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:松鼠, from_loc=hand, to_loc=resolving}
+[12:34:32.169] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:松鼠, player=Player:p1, minion=Minion:松鼠, card=MinionCard:松鼠, position=tuple}
+[12:34:32.169] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:松鼠, minion=Minion:松鼠, player=Player:p1, position=tuple}
+  p1 在 (4, 1) 部署了 松鼠
+  松鼠 因鹏获得休眠2
+[12:34:32.169] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:松鼠, player=Player:p1, card=MinionCard:松鼠}
+[12:34:32.169] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:松鼠, player=Player:p1, minion=Minion:松鼠, card=MinionCard:松鼠, position=tuple}
+[12:34:32.169] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:松鼠, player=Player:p1}
+[12:34:32.169] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:松鼠, from_loc=resolving, to_loc=board}
+[12:34:32.169] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:松鼠}
+  [PASS] test_peng_deploy_hook_signature
+  [PASS] test_ping_not_queued
+[12:34:32.681] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+  [PASS] test_playable_minion_card_enters_targeting
+[12:34:32.692] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.692] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 1) 召唤了 书架
+[12:34:32.692] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2, position=tuple}
+  [效果触发] _huoba_special (火把)
+[12:34:32.692] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:火把, player=Player:p2, card=MinionCard:火把}
+  p2 在 (0, 3) 召唤了 火把
+[12:34:32.693] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:潜行者, minion=Minion:潜行者, player=Player:p1, position=tuple}
+  [效果触发] _qianxingzhe_special (潜行者)
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:32.693] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.693] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.693] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.693] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:32.693] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.693] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  书架 被消灭
+  潜行者消灭了距离最近的 书架
+[12:34:32.693] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:潜行者, player=Player:p1, card=MinionCard:潜行者}
+  p1 在 (4, 1) 召唤了 潜行者
+  [PASS] test_qianxingzhe_kills_nearest_enemy
+[12:34:32.703] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:潜行者, minion=Minion:潜行者, player=Player:p1, position=tuple}
+  [效果触发] _qianxingzhe_special (潜行者)
+  潜行者：场上没有其他异象
+[12:34:32.703] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:潜行者, player=Player:p1, card=MinionCard:潜行者}
+  p1 在 (4, 2) 召唤了 潜行者
+  [PASS] test_qianxingzhe_no_other_minions
+[12:34:32.713] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.713] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (4, 0) 召唤了 书架
+[12:34:32.713] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2, position=tuple}
+  [效果触发] _huoba_special (火把)
+[12:34:32.714] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:火把, player=Player:p2, card=MinionCard:火把}
+  p2 在 (0, 2) 召唤了 火把
+[12:34:32.714] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:潜行者, minion=Minion:潜行者, player=Player:p1, position=tuple}
+  [效果触发] _qianxingzhe_special (潜行者)
+  火把 被消灭了！
+  [连锁] 消灭 [火把]
+[12:34:32.714] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2}
+[12:34:32.714] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2, position=tuple}
+[12:34:32.714] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2, position=tuple}
+[12:34:32.714] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:火把, player=Player:p2}
+[12:34:32.714] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2}
+[12:34:32.714] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:火把, minion=Minion:火把, player=Player:p2}
+  火把 被消灭
+  潜行者消灭了距离最近的 火把
+[12:34:32.715] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:潜行者, player=Player:p1, card=MinionCard:潜行者}
+  p1 在 (3, 2) 召唤了 潜行者
+  [PASS] test_qianxingzhe_prefers_enemy_when_tied
+  [PASS] test_register_terrain_enforcement_without_owner_does_not_crash
+  [PASS] test_render_mixin_dialog_imports
+  [PASS] test_render_mixin_has_create_tab_gradient_photo
+  [PASS] test_serialize_deserialize_minion
+[12:34:32.776] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p1, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.776] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p1, card=MinionCard:书架}
+  p1 在 (4, 0) 召唤了 书架
+[12:34:32.776] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:扇子, from_loc=None, to_loc=hand}
+  p1 获得 [扇子]
+[12:34:32.776] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:扇子, from_loc=hand, to_loc=resolving}
+  [策略触发] _shanzi_strategy (书架)
+[12:34:32.777] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:32.777] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+  书架 获得关键词 [空袭]
+  p1 牌库已空，虚空侵蚀！失去 1 点生命
+p1 失去 1 点生命值，剩余 29 HP
+  扇子：书架 获得空袭直到结算阶段结束，p1 抽1张牌
+[12:34:32.777] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:扇子, from_loc=resolving, to_loc=discard}
+[12:34:32.777] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:扇子}
+  [PASS] test_shanzi_grants_airraid
+[12:34:32.787] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:矢量炮, from_loc=None, to_loc=hand}
+  p1 获得 [矢量炮]
+[12:34:32.787] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:矢量炮, from_loc=hand, to_loc=resolving}
+[12:34:32.788] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:矢量炮, player=Player:p1, minion=Minion:矢量炮, card=MinionCard:矢量炮, position=tuple}
+[12:34:32.788] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:矢量炮, minion=Minion:矢量炮, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 矢量炮
+[12:34:32.788] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:矢量炮, player=Player:p1, card=MinionCard:矢量炮}
+[12:34:32.788] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:矢量炮, player=Player:p1, minion=Minion:矢量炮, card=MinionCard:矢量炮, position=tuple}
+[12:34:32.788] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:矢量炮, player=Player:p1}
+[12:34:32.788] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:矢量炮, from_loc=resolving, to_loc=board}
+[12:34:32.788] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:矢量炮}
+  [PASS] test_shiliangpao_can_deploy
+  [PASS] test_statue_cards_bind_effects_through_special_fn
+  [PASS] test_submit_local_action_queues_target_actions
+  [PASS] test_submit_local_action_replaces_stale_primary_actions
+[12:34:32.799] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+  [PASS] test_submit_play_does_not_write_history
+[12:34:32.811] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.811] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:32.812] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.812] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 1) 召唤了 书架
+[12:34:32.812] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=None, to_loc=hand}
+  p1 获得 [天下无“双”]
+[12:34:32.812] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=hand, to_loc=resolving}
+  天下无双：书架 失去1点HP
+  天下无双：书架 失去1点HP
+[12:34:32.812] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=resolving, to_loc=discard}
+[12:34:32.812] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:天下无“双”}
+  [PASS] test_tianxia_wushuang_always_fires_once
+[12:34:32.823] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.823] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:32.824] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=None, to_loc=hand}
+  p1 获得 [天下无“双”]
+[12:34:32.824] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=hand, to_loc=resolving}
+  天下无双：书架 失去1点HP
+[12:34:32.824] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=resolving, to_loc=discard}
+[12:34:32.824] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:天下无“双”}
+  [PASS] test_tianxia_wushuang_deals_one_to_single_even_hp_minion
+[12:34:32.836] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.836] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:32.836] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.836] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 1) 召唤了 书架
+[12:34:32.837] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.837] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 2) 召唤了 书架
+[12:34:32.837] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=None, to_loc=hand}
+  p1 获得 [天下无“双”]
+[12:34:32.837] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=hand, to_loc=resolving}
+  天下无双：书架 失去1点HP
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:32.837] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.837] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.837] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:32.837] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:32.837] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.837] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:32.837] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=resolving, to_loc=discard}
+[12:34:32.837] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:天下无“双”}
+  [PASS] test_tianxia_wushuang_one_hp_board_kills_exactly_one
+[12:34:32.850] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.850] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:32.850] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:32.851] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 1) 召唤了 书架
+[12:34:32.851] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=None, to_loc=hand}
+  p1 获得 [天下无“双”]
+[12:34:32.851] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=hand, to_loc=resolving}
+  天下无双：书架 失去1点HP
+  天下无双：书架 失去1点HP
+[12:34:32.851] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:天下无“双”, from_loc=resolving, to_loc=discard}
+[12:34:32.851] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:天下无“双”}
+  [PASS] test_tianxia_wushuang_repeats_while_even_hp_exists
+[12:34:32.868] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+  [PASS] test_unplayable_minion_card_is_silently_ignored
+[12:34:32.883] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:劫掠, from_loc=None, to_loc=hand}
+  p1 获得 [劫掠]
+  [PASS] test_unplayable_strategy_card_is_silently_ignored
+  错误：卡牌 [不存在的卡牌] 未在注册表中找到
+  [PASS] test_validate_deck_list_invalid
+  [PASS] test_validate_deck_list_valid
+  [PASS] test_validate_deck_list_wrong_size
+[12:34:32.900] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:亡灵, minion=Minion:亡灵, player=Player:p1, position=tuple}
+  [效果触发] _wangling_special (亡灵)
+[12:34:32.900] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:亡灵, player=Player:p1, card=MinionCard:亡灵}
+  p1 在 (4, 2) 召唤了 亡灵
+[12:34:32.900] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=resolve, first=Player:p1, second=Player:p2}
+  [PASS] test_wangling_deploy_and_attack
+[12:34:32.915] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:兀鹫, minion=Minion:兀鹫, player=Player:p1, position=tuple}
+  [效果触发] _wujiu_special (兀鹫)
+[12:34:32.915] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:兀鹫, player=Player:p1, card=MinionCard:兀鹫}
+  p1 在 (4, 0) 召唤了 兀鹫
+[12:34:32.916] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:蛇, minion=Minion:蛇, player=Player:p2, position=tuple}
+  [效果触发] _she_special (蛇)
+  蛇 获得亡语
+[12:34:32.916] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:蛇, player=Player:p2, card=MinionCard:蛇}
+  p2 在 (0, 1) 召唤了 蛇
+[12:34:32.916] [EVENT] type=before_attack | source=Minion:蛇 | listeners=0 | data={target=Player:p1, attacker=Minion:蛇, defender=Player:p1}
+  蛇 直接攻击 p1，造成 1 点伤害
+[12:34:32.916] [EVENT] type=before_health_change | source=Minion:蛇 | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-1}
+p1 受到 1 点伤害，剩余 29 HP
+[12:34:32.916] [EVENT] type=player_damage | source=Minion:蛇 | listeners=0 | data={target=Player:p1, player=Player:p1, damage=1}
+[12:34:32.916] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p1, player=Player:p1, delta=-1, old=30, new=29}
+[12:34:32.916] [EVENT] type=attacked | source=Minion:蛇 | listeners=0 | data={target=Player:p1, attacker=Minion:蛇, defender=Player:p1}
+[12:34:32.917] [EVENT] type=after_attack | source=Minion:蛇 | listeners=1 | data={target=Player:p1, attacker=Minion:蛇, defender=Player:p1}
+[12:34:32.917] [RESPONSE] after_attack -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_wujiu_no_trigger_on_enemy_attack
+[12:34:32.931] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:兀鹫, minion=Minion:兀鹫, player=Player:p1, position=tuple}
+  [效果触发] _wujiu_special (兀鹫)
+[12:34:32.931] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:兀鹫, player=Player:p1, card=MinionCard:兀鹫}
+  p1 在 (4, 0) 召唤了 兀鹫
+[12:34:32.931] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:蛇, minion=Minion:蛇, player=Player:p1, position=tuple}
+  [效果触发] _she_special (蛇)
+  蛇 获得亡语
+[12:34:32.932] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:蛇, player=Player:p1, card=MinionCard:蛇}
+  p1 在 (4, 1) 召唤了 蛇
+[12:34:32.932] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:地鼠, minion=Minion:地鼠, player=Player:p2, position=tuple}
+  [效果触发] _dishu_special (地鼠)
+[12:34:32.932] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:地鼠, player=Player:p2, card=MinionCard:地鼠}
+  p2 在 (0, 1) 召唤了 地鼠
+[12:34:32.932] [EVENT] type=before_attack | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+[12:34:32.932] [EVENT] type=before_move | source=Minion:地鼠 | listeners=0 | data={old_pos=tuple, new_pos=tuple, minion=Minion:地鼠}
+[12:34:32.933] [EVENT] type=moved | source=Minion:地鼠 | listeners=0 | data={old_pos=tuple, new_pos=tuple, minion=Minion:地鼠}
+  地鼠移动到 (1, 1) 替 地鼠 挡刀
+[12:34:32.933] [RESPONSE] before_attack -> wrapper | status=OK | changes=[no_state_change]
+  蛇 攻击 地鼠，造成 1 点伤害
+[12:34:32.933] [EVENT] type=before_damage | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, damage=1, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+[12:34:32.933] [RESPONSE] before_damage -> wrapper | status=OK | changes=[no_state_change]
+  地鼠 受到 0 点伤害，剩余 1/6
+[12:34:32.933] [EVENT] type=damaged | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, actual=0, original=1, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+[12:34:32.933] [EVENT] type=after_damage | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, actual=0, original=1, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+  地鼠 的尖刺反弹 1 点伤害
+[12:34:32.933] [EVENT] type=before_damage | source=None | listeners=1 | data={target=Minion:蛇, damage=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.933] [RESPONSE] before_damage -> wrapper | status=OK | changes=[no_state_change]
+  蛇 受到 1 点伤害，剩余 3/4
+[12:34:32.933] [EVENT] type=damaged | source=None | listeners=0 | data={target=Minion:蛇, actual=1, original=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.933] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:蛇, actual=1, original=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.933] [EVENT] type=attacked | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+[12:34:32.933] [EVENT] type=after_attack | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+[12:34:32.933] [RESPONSE] after_attack -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_wujiu_no_trigger_on_minion_target_hp_lt_2
+[12:34:32.948] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:兀鹫, minion=Minion:兀鹫, player=Player:p1, position=tuple}
+  [效果触发] _wujiu_special (兀鹫)
+[12:34:32.948] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:兀鹫, player=Player:p1, card=MinionCard:兀鹫}
+  p1 在 (4, 0) 召唤了 兀鹫
+[12:34:32.948] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:蛇, minion=Minion:蛇, player=Player:p1, position=tuple}
+  [效果触发] _she_special (蛇)
+  蛇 获得亡语
+[12:34:32.948] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:蛇, player=Player:p1, card=MinionCard:蛇}
+  p1 在 (4, 1) 召唤了 蛇
+[12:34:32.953] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:地鼠, minion=Minion:地鼠, player=Player:p2, position=tuple}
+  [效果触发] _dishu_special (地鼠)
+[12:34:32.953] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:地鼠, player=Player:p2, card=MinionCard:地鼠}
+  p2 在 (0, 1) 召唤了 地鼠
+[12:34:32.953] [EVENT] type=before_attack | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+[12:34:32.953] [EVENT] type=before_move | source=Minion:地鼠 | listeners=0 | data={old_pos=tuple, new_pos=tuple, minion=Minion:地鼠}
+[12:34:32.953] [EVENT] type=moved | source=Minion:地鼠 | listeners=0 | data={old_pos=tuple, new_pos=tuple, minion=Minion:地鼠}
+  地鼠移动到 (1, 1) 替 地鼠 挡刀
+[12:34:32.953] [RESPONSE] before_attack -> wrapper | status=OK | changes=[no_state_change]
+  蛇 攻击 地鼠，造成 1 点伤害
+[12:34:32.953] [EVENT] type=before_damage | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, damage=1, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+  蛇：目标HP(6)不小于自身HP(4)，伤害+1
+[12:34:32.953] [RESPONSE] before_damage -> wrapper | status=OK | changes=[no_state_change]
+  地鼠 受到 1 点伤害，剩余 5/6
+[12:34:32.953] [EVENT] type=damaged | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, actual=1, original=2, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+[12:34:32.954] [EVENT] type=after_damage | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, actual=1, original=2, source_minion=Minion:蛇, source_type=combat, is_combat_damage=True}
+  地鼠 的尖刺反弹 1 点伤害
+[12:34:32.954] [EVENT] type=before_damage | source=None | listeners=1 | data={target=Minion:蛇, damage=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.954] [RESPONSE] before_damage -> wrapper | status=OK | changes=[no_state_change]
+  蛇 受到 1 点伤害，剩余 3/4
+[12:34:32.954] [EVENT] type=damaged | source=None | listeners=0 | data={target=Minion:蛇, actual=1, original=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.954] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:蛇, actual=1, original=1, source_minion=None, source_type=combat, is_combat_damage=True}
+[12:34:32.954] [EVENT] type=attacked | source=Minion:蛇 | listeners=0 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+[12:34:32.954] [EVENT] type=after_attack | source=Minion:蛇 | listeners=1 | data={target=Minion:地鼠, attacker=Minion:蛇, defender=Minion:地鼠}
+  兀鹫：蛇 攻击后，地鼠 失去1点HP（剩余 4）
+[12:34:32.954] [RESPONSE] after_attack -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_wujiu_triggers_on_minion_target_hp_ge_2
+[12:34:32.971] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:兀鹫, minion=Minion:兀鹫, player=Player:p1, position=tuple}
+  [效果触发] _wujiu_special (兀鹫)
+[12:34:32.971] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:兀鹫, player=Player:p1, card=MinionCard:兀鹫}
+  p1 在 (4, 0) 召唤了 兀鹫
+[12:34:32.972] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:蛇, minion=Minion:蛇, player=Player:p1, position=tuple}
+  [效果触发] _she_special (蛇)
+  蛇 获得亡语
+[12:34:32.972] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:蛇, player=Player:p1, card=MinionCard:蛇}
+  p1 在 (4, 1) 召唤了 蛇
+[12:34:32.972] [EVENT] type=before_attack | source=Minion:蛇 | listeners=0 | data={target=Player:p2, attacker=Minion:蛇, defender=Player:p2}
+  蛇 直接攻击 p2，造成 1 点伤害
+[12:34:32.972] [EVENT] type=before_health_change | source=Minion:蛇 | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-1}
+p2 受到 1 点伤害，剩余 29 HP
+[12:34:32.972] [EVENT] type=player_damage | source=Minion:蛇 | listeners=0 | data={target=Player:p2, player=Player:p2, damage=1}
+[12:34:32.972] [EVENT] type=health_changed | source=None | listeners=0 | data={target=Player:p2, player=Player:p2, delta=-1, old=30, new=29}
+[12:34:32.972] [EVENT] type=attacked | source=Minion:蛇 | listeners=0 | data={target=Player:p2, attacker=Minion:蛇, defender=Player:p2}
+[12:34:32.972] [EVENT] type=after_attack | source=Minion:蛇 | listeners=1 | data={target=Player:p2, attacker=Minion:蛇, defender=Player:p2}
+p2 失去 1 点生命值，剩余 28 HP
+  兀鹫：蛇 攻击后，p2 失去1点HP（剩余 28）
+[12:34:32.972] [RESPONSE] after_attack -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_wujiu_triggers_on_player_target_hp_ge_2
+[12:34:32.988] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=None, to_loc=hand}
+  p1 获得 [污煤]
+[12:34:32.988] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [污煤]}
+  [结算] 打出 [污煤]
+[12:34:32.988] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=hand, to_loc=resolving}
+[12:34:32.988] [EVENT] type=t_max_changed | source=None | listeners=0 | data={player=Player:p1, old=0, new=1}
+[12:34:32.988] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:漩涡, from_loc=None, to_loc=hand}
+  p1 获得 [漩涡]
+[12:34:32.988] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=Strategy:漩涡}
+[12:34:32.988] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=Strategy:漩涡, by_draw=True}
+  p1 抽取了: 漩涡
+  污煤：p1 获得1个T槽，抽1张牌，T槽自然上限-2
+[12:34:32.988] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=resolving, to_loc=discard}
+[12:34:32.988] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:污煤}
+  [PASS] test_wumei_gain_t_slot_draw_and_reduce_natural_cap
+[12:34:33.004] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=None, to_loc=hand}
+  p1 获得 [污煤]
+[12:34:33.004] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [污煤]}
+  [结算] 打出 [污煤]
+[12:34:33.004] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=hand, to_loc=resolving}
+[12:34:33.004] [EVENT] type=t_max_changed | source=None | listeners=0 | data={player=Player:p1, old=0, new=1}
+[12:34:33.004] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:漩涡, from_loc=None, to_loc=hand}
+  p1 获得 [漩涡]
+[12:34:33.004] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p1, card=Strategy:漩涡}
+[12:34:33.004] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p1, card=Strategy:漩涡, by_draw=True}
+  p1 抽取了: 漩涡
+  污煤：p1 获得1个T槽，抽1张牌，T槽自然上限-2
+[12:34:33.004] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:污煤, from_loc=resolving, to_loc=discard}
+[12:34:33.005] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:污煤}
+[12:34:33.005] [EVENT] type=phase_start | source=None | listeners=0 | data={phase=draw, first=Player:p1, second=Player:p2}
+[抽牌阶段]
+[12:34:33.005] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:漩涡, from_loc=None, to_loc=hand}
+  p2 获得 [漩涡]
+[12:34:33.005] [EVENT] type=draw | source=None | listeners=0 | data={player=Player:p2, card=Strategy:漩涡}
+[12:34:33.005] [EVENT] type=card_added_to_hand | source=None | listeners=0 | data={player=Player:p2, card=Strategy:漩涡, by_draw=True}
+  p2 抽取了: 漩涡
+  p1 牌库已空，虚空侵蚀！失去 1 点生命
+p1 失去 1 点生命值，剩余 29 HP
+  p1 T槽=8，获得 8 T点
+  p2 T槽=1，获得 1 T点
+[12:34:33.005] [EVENT] type=phase_end | source=None | listeners=0 | data={phase=draw, first=Player:p1, second=Player:p2}
+  [PASS] test_wumei_reduced_natural_cap_applies_in_draw_phase
+[12:34:33.021] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:显影室, minion=Minion:显影室, player=Player:p1, position=tuple}
+  [效果触发] _xianyingshi_special (显影室)
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] 监听器已注册，owner=显影室 at (4, 2)
+[12:34:33.021] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:显影室, player=Player:p1, card=MinionCard:显影室}
+  p1 在 (4, 2) 召唤了 显影室
+[12:34:33.021] [EVENT] type=phase_start | source=None | listeners=1 | data={phase=resolve, first=Player:p1, second=Player:p2}
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] on_phase_start 触发, phase=resolve, expected=resolve
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] minion.is_alive()=True
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] minion.position=(4, 2)
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] 在后排，前方位置=(3, 2)
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] 尝试召唤溴化银到 (3, 2)
+[12:34:33.021] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:溴化银, minion=Minion:溴化银, player=Player:p1, position=tuple}
+  [效果触发] _xiuhuayin_special (溴化银)
+  溴化银 获得亡语
+[12:34:33.022] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:溴化银, player=Player:p1, card=MinionCard:溴化银}
+  p1 在 (3, 2) 召唤了 溴化银
+<tards.player.Player object at 0x0000026C275C6120> [DEBUG 显影室] 在前方 (3, 2) 召唤溴化银成功
+[12:34:33.022] [RESPONSE] phase_start -> wrapper | status=OK | changes=[no_state_change]
+  [PASS] test_xianyingshi_summons_xiuhuayin
+[12:34:33.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:血瓶, from_loc=None, to_loc=hand}
+  p1 获得 [血瓶]
+[12:34:33.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=None, to_loc=hand}
+  p1 获得 [猫]
+[12:34:33.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:松鼠, from_loc=None, to_loc=hand}
+  p1 获得 [松鼠]
+[12:34:33.038] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:打出 [血瓶]}
+  [结算] 打出 [血瓶]
+[12:34:33.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:血瓶, from_loc=hand, to_loc=resolving}
+[12:34:33.038] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.038] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=MinionCard:松鼠}
+  p1 弃掉了 [松鼠]
+[12:34:33.038] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:血瓶, from_loc=resolving, to_loc=discard}
+[12:34:33.038] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=Strategy:血瓶}
+[12:34:33.039] [EVENT] type=before_stack_resolve | source=None | listeners=0 | data={frame=StackFrame:部署 [猫]}
+  [结算] 部署 [猫]
+[12:34:33.039] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=hand, to_loc=resolving}
+[12:34:33.039] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:33.039] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:猫, minion=Minion:猫, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 猫
+[12:34:33.039] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:猫, player=Player:p1, card=MinionCard:猫}
+[12:34:33.039] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:猫, player=Player:p1, minion=Minion:猫, card=MinionCard:猫, position=tuple}
+[12:34:33.039] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:猫, player=Player:p1}
+[12:34:33.039] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:猫, from_loc=resolving, to_loc=board}
+[12:34:33.039] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:猫}
+  [PASS] test_xueping_b_point_pays_minion_blood_cost
+[12:34:33.055] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+  [效果触发] _baoweizhe_special (保卫者)
+[12:34:33.056] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:保卫者, player=Player:p2, card=MinionCard:保卫者}
+  p2 在 (0, 0) 召唤了 保卫者
+[12:34:33.056] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:蠹虫, minion=Minion:蠹虫, player=Player:p2, position=tuple}
+  [效果触发] _shuaichong_special (蠹虫)
+  p2 牌库中没有蠹虫
+[12:34:33.056] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:蠹虫, player=Player:p2, card=MinionCard:蠹虫}
+  p2 在 (1, 0) 召唤了 蠹虫
+[12:34:33.056] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:竹心, from_loc=None, to_loc=hand}
+  p1 获得 [竹心]
+[12:34:33.057] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:竹心, from_loc=hand, to_loc=resolving}
+[12:34:33.057] [EVENT] type=before_deploy | source=Player:p1 | listeners=0 | data={target=Minion:竹心, player=Player:p1, minion=Minion:竹心, card=MinionCard:竹心, position=tuple}
+[12:34:33.057] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:竹心, minion=Minion:竹心, player=Player:p1, position=tuple}
+  p1 在 (4, 0) 部署了 竹心
+  [效果触发] _zhuxin_special (竹心)
+[12:34:33.057] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.057] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:保卫者}
+  保卫者 被消灭了！
+  [连锁] 消灭 [保卫者]
+[12:34:33.057] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+[12:34:33.057] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+[12:34:33.057] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2, position=tuple}
+[12:34:33.057] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:保卫者, player=Player:p2}
+[12:34:33.057] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+[12:34:33.057] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:保卫者, minion=Minion:保卫者, player=Player:p2}
+  保卫者 被消灭
+  竹心部署：消灭处于协同的 保卫者
+[12:34:33.057] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:竹心, player=Player:p1, card=MinionCard:竹心}
+[12:34:33.057] [EVENT] type=after_deploy | source=Player:p1 | listeners=0 | data={target=Minion:竹心, player=Player:p1, minion=Minion:竹心, card=MinionCard:竹心, position=tuple}
+[12:34:33.057] [EVENT] type=targeting_action_executed | source=None | listeners=0 | data={action=TargetingAction, minion=Minion:竹心, player=Player:p1}
+[12:34:33.057] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:竹心, from_loc=resolving, to_loc=board}
+[12:34:33.057] [EVENT] type=card_played | source=None | listeners=0 | data={player=Player:p1, card=MinionCard:竹心}
+  [PASS] test_zhuxin_deploy_targets_enemy_coordinated_minion
+[12:34:33.074] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:33.074] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:33.074] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:自由即奴役, from_loc=None, to_loc=hand}
+  p1 获得 [自由即奴役]
+[12:34:33.074] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.074] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+[12:34:33.074] [EVENT] type=before_damage | source=None | listeners=0 | data={target=Minion:书架, damage=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 受到 1 点伤害，剩余 2/3
+[12:34:33.074] [EVENT] type=damaged | source=None | listeners=1 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  p2 获得 [书]
+  p2 获得 书
+[12:34:33.075] [RESPONSE] damaged -> wrapper | status=OK | changes=[no_state_change]
+[12:34:33.075] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  自由即奴役：书架 受到1点伤害
+  自由即奴役：书架 仍存活，无回响
+  [PASS] test_ziyou_damages_but_not_kills_no_echo
+[12:34:33.091] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:33.092] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:33.092] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:自由即奴役, from_loc=None, to_loc=hand}
+  p1 获得 [自由即奴役]
+[12:34:33.092] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.092] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+[12:34:33.092] [EVENT] type=before_damage | source=None | listeners=0 | data={target=Minion:书架, damage=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 受到 1 点伤害，剩余 0/3
+[12:34:33.092] [EVENT] type=damaged | source=None | listeners=1 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  p2 获得 [书]
+  p2 获得 书
+[12:34:33.092] [RESPONSE] damaged -> wrapper | status=OK | changes=[no_state_change]
+[12:34:33.092] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:33.092] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.093] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.093] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.093] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:33.093] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.093] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  自由即奴役：书架 受到1点伤害
+[12:34:33.093] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+  自由即奴役：书架 已离开战场，回响加入手牌
+  [PASS] test_ziyou_kills_minion_and_adds_echo
+[12:34:33.110] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:33.110] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:33.110] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:自由即奴役, from_loc=None, to_loc=hand}
+  p1 获得 [自由即奴役]
+[12:34:33.110] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.110] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+[12:34:33.111] [EVENT] type=before_damage | source=None | listeners=0 | data={target=Minion:书架, damage=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 受到 1 点伤害，剩余 0/3
+[12:34:33.111] [EVENT] type=damaged | source=None | listeners=1 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  p2 获得 [书]
+  p2 获得 书
+[12:34:33.111] [RESPONSE] damaged -> wrapper | status=OK | changes=[no_state_change]
+[12:34:33.111] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:33.111] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.111] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.111] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.111] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:33.111] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.111] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  自由即奴役：书架 受到1点伤害
+  自由即奴役：书架 无源卡，无法生成回响
+  [PASS] test_ziyou_no_source_card_no_echo
+[12:34:33.129] [EVENT] type=entered_battlefield | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+  [效果触发] _shujia_special (书架)
+[12:34:33.129] [EVENT] type=deployed | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2, card=MinionCard:书架}
+  p2 在 (0, 0) 召唤了 书架
+[12:34:33.129] [EVENT] type=card_moved | source=None | listeners=0 | data={card=Strategy:自由即奴役, from_loc=None, to_loc=hand}
+  p1 获得 [自由即奴役]
+[12:34:33.129] [EVENT] type=targeting_request | source=None | listeners=0 | data={request=TargetingRequest, valid_targets=list}
+[12:34:33.129] [EVENT] type=targeting_completed | source=None | listeners=0 | data={request=TargetingRequest, target=Minion:书架}
+[12:34:33.129] [EVENT] type=before_damage | source=None | listeners=0 | data={target=Minion:书架, damage=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 受到 1 点伤害，剩余 0/3
+[12:34:33.130] [EVENT] type=damaged | source=None | listeners=1 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  p2 获得 [书]
+  p2 获得 书
+[12:34:33.130] [RESPONSE] damaged -> wrapper | status=OK | changes=[no_state_change]
+[12:34:33.130] [EVENT] type=after_damage | source=None | listeners=0 | data={target=Minion:书架, actual=1, original=1, source_minion=None, source_type=, is_combat_damage=False}
+  书架 被消灭了！
+  [连锁] 消灭 [书架]
+[12:34:33.130] [EVENT] type=before_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.130] [EVENT] type=before_remove | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.130] [EVENT] type=removed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2, position=tuple}
+[12:34:33.130] [EVENT] type=death | source=None | listeners=0 | data={minion=Minion:书架, player=Player:p2}
+[12:34:33.130] [EVENT] type=destroyed | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+[12:34:33.130] [EVENT] type=after_destroy | source=None | listeners=0 | data={target=Minion:书架, minion=Minion:书架, player=Player:p2}
+  自由即奴役：书架 受到1点伤害
+[12:34:33.130] [EVENT] type=card_moved | source=None | listeners=0 | data={card=MinionCard:书架, from_loc=None, to_loc=hand}
+  p1 获得 [书架]
+  自由即奴役：书架 已离开战场，回响加入手牌
+  [PASS] test_ziyou_one_hp_board_kills_exactly_one
+============================================================
+结果: 91/91 通过

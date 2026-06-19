@@ -1,4 +1,4 @@
-from .board import Board
+from .core.board import Board
 from .cards import Card, Conspiracy, MineralCard, Minion, MinionCard, Strategy
 from .constants import (
     EVENT_BELL,
@@ -17,10 +17,10 @@ from .constants import (
     COL_NAMES,
     GENERAL_KEYWORDS,
 )
-from .cost import Cost
+from .core.cost import Cost
 from .game import Game
-from .player import Player
-from .card_db import (
+from .core.player import Player
+from .data.card_db import (
     CardDefinition,
     CardRegistry,
     CardType,
@@ -29,9 +29,9 @@ from .card_db import (
     register_card,
     DEFAULT_REGISTRY,
 )
-from .deck import Deck
+from .data.deck import Deck
 from .effect_queue import EffectQueue
-from .targets import (
+from .core.targets import (
     target_any_minion,
     target_enemy_minions,
     target_enemy_player,

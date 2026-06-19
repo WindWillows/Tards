@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from tards.cards import Strategy
 from tards.constants import EVENT_CARD_ADDED_TO_HAND, EVENT_CARD_PLAYED, EVENT_PHASE_START
-from tards.cost import Cost
+from tards.core.cost import Cost
 from tests.assertions import (
     assert_board_empty,
     assert_event_count,
@@ -230,7 +230,7 @@ def test_blood_immersion_2_damage_trigger():
     h = GameHarness()
     p1, p2 = h.players
 
-    from tards.card_db import Pack
+    from tards.data.card_db import Pack
     p1.immersion_points[Pack.BLOOD] = 2
 
     p1.s_point = 0
@@ -528,7 +528,7 @@ def test_health_lost_this_phase_uses_current_history_api():
 
 def test_statue_cards_bind_effects_through_special_fn():
     """雕像牌的融合回调由 special_fn 部署时绑定，而不是直接挂在卡定义字段上。"""
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
 
     statue_names = [
         "节肢座首", "多足底座",
@@ -771,3 +771,273 @@ def test_jielueshou_kills_1hp_minion_on_deploy():
     h.give_hand(p1, "时空灵")
     assert h.play_minion(p1, "时空灵", (4, 1)), "时空灵应成功部署"
     assert h.at((4, 1)) is None, "HP=1 的时空灵应被劫掠兽效果消灭"
+
+
+# =============================================================================
+# N+7. 鹏的部署钩子签名
+# =============================================================================
+
+def test_peng_deploy_hook_signature():
+    """鹏：部署钩子应只接收被部署异象一个参数；此前 def deploy_hook(g, deployed)
+    导致 _default_minion_effect 调用 hook(minion) 时抛出 TypeError。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.deploy("鹏", p1, (4, 0))
+    h.give_hand(p1, "松鼠")
+    assert h.play_minion(p1, "松鼠", (4, 1)), "松鼠应成功部署"
+    assert_minion_keyword(h.game, (4, 1), "休眠", 2,
+                          msg="非飞禽且花费≤5的松鼠被鹏赋予休眠2")
+
+
+# =============================================================================
+# N+8. 狂风阻止对方部署并在下回合结束时解除
+# =============================================================================
+
+def test_kuangfeng_blocks_opponent_deploy_then_expires():
+    """狂风：对方在限制期间无法打出异象，下一回合结束时限制解除。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "狂风")
+    p1.t_point = 10
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "狂风"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "狂风应成功打出"
+    assert len(h.game._global_deploy_restrictions) == 1, "应存在全局部署限制"
+
+    # 给 p2 一张 0 费异象
+    h.give_hand(p2, "烛烟")
+    p2.t_point = 10
+    p2_serial = next((i + 1 for i, c in enumerate(p2.card_hand) if c.name == "烛烟"), None)
+    assert p2_serial is not None
+
+    attempts = [0]
+    def provider(game, active, opponent):
+        if active == p2 and attempts[0] == 0:
+            attempts[0] += 1
+            return {"type": "play", "serial": p2_serial, "target": (0, 2)}
+        return {"type": "brake"}
+
+    h.game.action_provider = provider
+    h.game.action_phase(p1, p2)
+    assert not h.game.board.minion_place, "狂风限制应阻止 p2 部署烛烟"
+
+    # 下一回合结束后限制解除
+    h.game.current_turn += 1
+    h.game.action_provider = lambda g, a, o: {"type": "brake"}
+    h.game.run_turn()
+    assert len(h.game._global_deploy_restrictions) == 0, "狂风限制应已解除"
+
+
+# =============================================================================
+# N+9. 血瓶提供的 B 点可用于支付异象鲜血费用
+# =============================================================================
+
+def test_xueping_b_point_pays_minion_blood_cost():
+    """血瓶：获得的 B 点可直接用于部署带鲜血费用的异象，无需额外献祭。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # 给 p1 血瓶、猫（1T1B）、松鼠（作为血瓶弃牌目标）
+    h.give_hand(p1, "血瓶", "猫", "松鼠")
+    p1.t_point = 4  # 3T 血瓶 + 1T 猫
+
+    # 固定指向提供商，让血瓶总是弃掉松鼠
+    def _pick_squirrel(game, request, valid_targets):
+        for t in valid_targets:
+            if getattr(t, "name", None) == "松鼠":
+                return t
+        return valid_targets[0] if valid_targets else None
+
+    h.game.targeting_provider = _pick_squirrel
+
+    # 打血瓶，获得 3B
+    xueping_serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "血瓶"), None)
+    assert xueping_serial is not None
+    assert p1.play_card(xueping_serial, target=None, game=h.game), "血瓶应成功打出"
+    assert p1.b_point == 3, "血瓶应提供 3B"
+
+    # 用 B 点支付猫的 1B 费用，无需献祭
+    mao_serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "猫"), None)
+    assert mao_serial is not None
+    assert p1.play_card(mao_serial, target=(4, 0), game=h.game), "猫应用血瓶B点成功部署"
+
+    assert h.at((4, 0)) is not None, "猫应被部署到 (4,0)"
+    assert h.at((4, 0)).name == "猫"
+    assert p1.b_point == 2, "应只消耗 1B，剩余 2B"
+
+
+# =============================================================================
+# N+10. 不寐抉择：消灭沉浸度为3的异象
+# =============================================================================
+
+def test_bumei_destroy_level3_minion():
+    """不寐：选择消灭分支后，可消灭场上一个沉浸度为3的异象。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # 部署一只沉浸度为3的异象（狐）
+    fox = h.deploy("狐", p2, (0, 0))
+    assert fox is not None
+    assert fox.is_alive()
+
+    h.give_hand(p1, "不寐")
+    p1.t_point = 3
+
+    # 强制选择“消灭”分支
+    h.game.choice_provider = lambda game, player, options, title: "消灭一个沉浸度为3的异象"
+
+    def _pick_fox(game, request, valid_targets):
+        for t in valid_targets:
+            if getattr(t, "name", None) == "狐":
+                return t
+        return valid_targets[0] if valid_targets else None
+
+    h.game.targeting_provider = _pick_fox
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "不寐"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "不寐应成功打出"
+
+    assert not fox.is_alive(), "狐应被不寐消灭"
+
+
+# =============================================================================
+# N+11. 不寐抉择：对手随机弃一张沉浸度为3的手牌
+# =============================================================================
+
+def test_bumei_discard_opponent_level3_hand():
+    """不寐：选择弃牌分支后，对手随机弃一张沉浸度为3的手牌。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    # 给对手一张沉浸度为3的手牌（骨王）
+    h.give_hand(p2, "骨王")
+    assert any(c.name == "骨王" for c in p2.card_hand)
+
+    h.give_hand(p1, "不寐")
+    p1.t_point = 3
+
+    # 强制选择“弃牌”分支
+    h.game.choice_provider = lambda game, player, options, title: "对手随机弃一张沉浸度为3的手牌"
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "不寐"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "不寐应成功打出"
+
+    assert not any(c.name == "骨王" for c in p2.card_hand), "骨王应从对手手牌中弃置"
+    assert any(c.name == "骨王" for c in p2.card_dis), "骨王应进入对手弃牌堆"
+
+
+# =============================================================================
+# N+12. 不寐无合法目标时仍应正常结算
+# =============================================================================
+
+def test_bumei_fizzles_gracefully_when_no_targets():
+    """不寐：两个分支均无合法目标时，仍弹出抉择并正常结算（不退回手牌）。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    h.give_hand(p1, "不寐")
+    p1.t_point = 3
+
+    # 强制选择弃牌分支，但对手手中没有沉浸度为3的牌
+    h.game.choice_provider = lambda game, player, options, title: "对手随机弃一张沉浸度为3的手牌"
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "不寐"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "不寐应正常结算"
+
+    # 卡牌应进入弃牌堆，而不是回到手牌
+    assert not any(c.name == "不寐" for c in p1.card_hand)
+    assert any(c.name == "不寐" for c in p1.card_dis)
+
+
+# =============================================================================
+# N+13. 污煤：获得T槽、抽牌并降低自然上限
+# =============================================================================
+
+def test_wumei_gain_t_slot_draw_and_reduce_natural_cap():
+    """污煤：获得1个T槽，抽1张牌，T槽自然上限-2。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import create_card_by_name
+    p1.card_deck.append(create_card_by_name("漩涡", p1))
+
+    h.give_hand(p1, "污煤")
+    p1.t_point = 1
+    p1.t_point_max = 0
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "污煤"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "污煤应成功打出"
+
+    assert p1.t_point_max == 1, "应获得1个T槽"
+    assert any(c.name == "漩涡" for c in p1.card_hand), "应抽1张牌"
+    assert p1._natural_t_max_cap_modifier == -2, "T槽自然上限修正应为-2"
+
+
+# =============================================================================
+# N+14. 污煤降低后的T槽自然上限生效
+# =============================================================================
+
+def test_wumei_reduced_natural_cap_applies_in_draw_phase():
+    """污煤：降低自然上限后，抽牌阶段T槽不再按原上限（10）增长。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import create_card_by_name
+    p1.card_deck.append(create_card_by_name("漩涡", p1))
+    p2.card_deck.append(create_card_by_name("漩涡", p2))
+
+    h.give_hand(p1, "污煤")
+    p1.t_point = 1
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "污煤"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "污煤应成功打出"
+
+    # 将T槽设为8，再经过一个非特殊回合的抽牌阶段
+    p1.t_point_max = 8
+    h.game.current_turn = 8
+    h.game.draw_phase(p1, p2)
+
+    assert p1.t_point_max == 8, "自然上限被污煤降至8后，T槽不应继续增长到9"
+
+
+# =============================================================================
+# N+15. 灵动：将双方牌库中折算花费最小的牌移到牌库顶
+# =============================================================================
+
+def test_lingdong_moves_cheapest_cards_to_top():
+    """灵动：双方牌库中折算花费最小的牌应被移到牌库顶（列表末尾）。"""
+    h = GameHarness()
+    p1, p2 = h.players
+
+    from card_pools.effect_utils import create_card_by_name
+
+    # p1 牌库：根除(5T) 漩涡(3T) 火灵(1T) → 最便宜的火灵移到顶
+    p1.card_deck = [
+        create_card_by_name("根除", p1),
+        create_card_by_name("漩涡", p1),
+        create_card_by_name("火灵", p1),
+    ]
+    # p2 牌库：火灵(1T) 根除(5T) 漩涡(3T) 火灵(1T) → 两张火灵移到顶（保持原有顺序）
+    p2.card_deck = [
+        create_card_by_name("火灵", p2),
+        create_card_by_name("根除", p2),
+        create_card_by_name("漩涡", p2),
+        create_card_by_name("火灵", p2),
+    ]
+
+    h.give_hand(p1, "灵动")
+    p1.t_point = 1
+
+    serial = next((i + 1 for i, c in enumerate(p1.card_hand) if c.name == "灵动"), None)
+    assert serial is not None
+    assert p1.play_card(serial, target=None, game=h.game), "灵动应成功打出"
+
+    assert p1.card_deck[-1].name == "火灵", "p1 最便宜的牌应移到牌库顶"
+    assert [c.name for c in p2.card_deck[-2:]] == ["火灵", "火灵"], "p2 两张最便宜的牌应移到牌库顶并保持顺序"

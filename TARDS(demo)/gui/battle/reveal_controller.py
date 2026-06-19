@@ -9,7 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from typing import TYPE_CHECKING, Any, List, Optional
 
-from tards.card_db import DEFAULT_REGISTRY
+from tards.data.card_db import DEFAULT_REGISTRY
 from tards.constants import EVENT_CARD_PLAYED, EVENT_DISCARDED, EVENT_MILLED
 from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
 
@@ -285,7 +285,7 @@ class RevealController:
             print("[Reveal]   边框绘制完成")
 
             # 肖像
-            from tards.asset_manager import get_asset_manager
+            from tards.assets import get_asset_manager
             am = get_asset_manager()
             img = None
             if getattr(card, "asset_id", None):

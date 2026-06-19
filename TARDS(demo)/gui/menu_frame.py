@@ -11,8 +11,8 @@ from tkinter import messagebox, scrolledtext, ttk
 from typing import TYPE_CHECKING, Optional
 
 from tards import Player
-from tards.card_db import DEFAULT_REGISTRY
-from tards.deck_io import list_saved_decks, load_deck
+from tards.data.card_db import DEFAULT_REGISTRY
+from tards.data.deck_io import list_saved_decks, load_deck
 
 from gui.theme import UI_THEME, _RULES_TEXT
 from gui.utils import _insert_rule_text, _deck_defs_list
@@ -155,9 +155,12 @@ class MenuFrame(tk.Frame):
         # 开发团队页
         team_frame = tk.Frame(content_frame, bg=UI_THEME["bg_main"])
         tk.Label(team_frame, text="开发人员名单", font=("Microsoft YaHei", 16, "bold"),
-                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=(40, 15))
-        tk.Label(team_frame, text="（等待完善中……）", font=("Microsoft YaHei", 12),
-                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_muted"]).pack()
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=(40, 10))
+        tk.Label(team_frame, text="（排名不分先后）", font=("Microsoft YaHei", 11),
+                 bg=UI_THEME["bg_main"], fg=UI_THEME["text_muted"]).pack(pady=(0, 15))
+        for name in ["蔡翔宇", "宋俐延", "李臻", "毛思远"]:
+            tk.Label(team_frame, text=name, font=("Microsoft YaHei", 13),
+                     bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"]).pack(pady=4)
 
         # 解析并插入规则内容
         rules_text.config(state=tk.NORMAL)

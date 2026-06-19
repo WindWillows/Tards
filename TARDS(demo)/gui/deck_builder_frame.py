@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING, Optional
 
 from tards import Minion, MinionCard
 from tards.assets import get_asset_manager
-from tards.card_db import DEFAULT_REGISTRY, Pack, CardType
+from tards.data.card_db import DEFAULT_REGISTRY, Pack, CardType
 from tards.cards import Conspiracy, MineralCard, Strategy
-from tards.deck import Deck
-from tards.deck_io import load_deck, save_deck
+from tards.data.deck import Deck
+from tards.data.deck_io import load_deck, save_deck
 
 from gui.theme import UI_THEME
 from gui.utils import _insert_rich_detail
@@ -956,7 +956,7 @@ class DeckBuilderFrame(tk.Frame):
             messagebox.showwarning("校验失败", "\n".join(errors))
             return
         self.deck.name = name
-        from tards.deck_io import DECKS_DIR
+        from tards.data.deck_io import DECKS_DIR
         existing = [f[:-5] for f in os.listdir(DECKS_DIR) if f.endswith(".json")]
 
         # 如果修改了卡组名，询问是否覆盖原卡组文件
@@ -989,7 +989,7 @@ class DeckBuilderFrame(tk.Frame):
             return
         if not messagebox.askyesno("删除确认", f"确定要删除卡组 [{name}] 吗？"):
             return
-        from tards.deck_io import DECKS_DIR
+        from tards.data.deck_io import DECKS_DIR
         path = os.path.join(DECKS_DIR, f"{name}.json")
         if os.path.exists(path):
             os.remove(path)

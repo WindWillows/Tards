@@ -8,9 +8,9 @@
 import random
 
 from tards import Pack, Rarity, CardType
-from tards.targets import target, target_mix
+from tards.core.targets import target, target_mix
 from tards.cards import Minion, MineralCard
-from tards.player import Player
+from tards.core.player import Player
 from card_pools.effect_decorator import special, strategy
 from card_pools.effect_utils import (
     ENCHANTED_BOOK_POOL,
@@ -436,7 +436,7 @@ def _zhulinggongbing_special(minion, player, game, extras=None):
         if not target or not isinstance(target, Minion):
             return
         if target.current_health <= 0 and not getattr(target, "_pending_death", False):
-            from tards.card_db import DEFAULT_REGISTRY
+            from tards.data.card_db import DEFAULT_REGISTRY
             glj_def = DEFAULT_REGISTRY.get("光灵箭")
             if glj_def:
                 glj = glj_def.to_game_card(player)
@@ -535,7 +535,7 @@ def _huanmozhe_special(minion, player, game, extras=None):
         minion.recalculate()
 
     def _summon_spirit(target_pos):
-        from tards.card_db import DEFAULT_REGISTRY, CardType
+        from tards.data.card_db import DEFAULT_REGISTRY, CardType
         spirits = [
             c for c in DEFAULT_REGISTRY.all_cards()
             if hasattr(c, "tags") and "精灵" in c.tags
@@ -618,7 +618,7 @@ def _jiangshicunmin_special(minion, player, game, extras=None):
     """僵尸村民：部署：将1张'金苹果'置入卡组顶。被'金苹果'指向时，抽1张牌，使你的所有手牌获得-1T花费。"""
 
     # 部署：将金苹果置入卡组顶
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     jpg_def = DEFAULT_REGISTRY.get("金苹果")
     if jpg_def:
         jpg_card = jpg_def.to_game_card(player)
@@ -830,7 +830,7 @@ def _tntpao_special(minion, player, game, extras=None):
 @special
 def _shanhun_special(minion, player, game, extras=None):
     """善魂：部署：指向1个异象。亡语：使其+2/2。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, board):
         return [m for m in board.minion_place.values() if m.is_alive()]
@@ -1422,7 +1422,7 @@ def _nishiz_special(minion, player, game, extras=None):
 @special
 def _dongxuezhizhu_special(minion, player, game, extras=None):
     """洞穴蜘蛛：部署：将1个异象的攻击力设为1。亡语：将1张"蜘蛛眼"加入手牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive()]
@@ -1445,7 +1445,7 @@ def _dongxuezhizhu_special(minion, player, game, extras=None):
         print(f"  {t.name} 的攻击力被设为1")
 
     def _deathrattle(m, p, b):
-        from tards.card_db import DEFAULT_REGISTRY
+        from tards.data.card_db import DEFAULT_REGISTRY
         zzy_def = DEFAULT_REGISTRY.get("蜘蛛眼")
         if zzy_def:
             zzy = zzy_def.to_game_card(p)
@@ -1472,7 +1472,7 @@ def _kuangche_special(minion, player, game, extras=None):
 @special
 def _moyingman_special(minion, player, game, extras=None):
     """末影螨：部署：对1个异象造成1点伤害。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive()]
@@ -1551,7 +1551,7 @@ def _weidaoshi_special(minion, player, game, extras=None):
 @special
 def _zhizhu_special(minion, player, game, extras=None):
     """蜘蛛：部署：使1个异象失去迅捷，高频和空袭。亡语：将1张"蜘蛛眼"加入手牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive()]
@@ -1670,7 +1670,7 @@ def _moyingzhenzhu_effect(player, target, game, extras=None):
     目标选择在 effect_fn 内部完成，不依赖 targets_fn / extra_targeting_stages。
     玩家取消时返回 False，由 play_fn() 自动回滚费用与卡牌。
     """
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     # 第一次指向请求
     req1 = TargetingRequest()
@@ -2046,7 +2046,7 @@ def _fumota_strategy(player, target, game, extras=None):
 def _gengzhi_strategy(player, target, game, extras=None):
     """耕殖：开发1张友好异象，抽1张牌。此前你每使用过1张“耕殖”，获得-1T花费。"""
     from tards import CardType, Pack
-    from tards.card_db import DEFAULT_REGISTRY
+    from tards.data.card_db import DEFAULT_REGISTRY
     # 开发离散卡包的友好异象
     game.develop_card(
         player,
@@ -2123,7 +2123,7 @@ def _zuanshibiao_strategy(player, target, game, extras=None):
 @strategy
 def _xueqiu_strategy(player, target, game, extras=None):
     """雪球：对一个异象造成1点伤害。然后若其HP不大于2，将其冰冻。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2154,7 +2154,7 @@ def _xueqiu_strategy(player, target, game, extras=None):
 @strategy
 def _zhizhuyan_strategy(player, target, game, extras=None):
     """蜘蛛眼：使1个异象获得-2攻击力。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2183,7 +2183,7 @@ def _zhizhuyan_strategy(player, target, game, extras=None):
 @strategy
 def _lieyanfen_strategy(player, target, game, extras=None):
     """烈焰粉：对一个异象及其相邻异象造成1点伤害。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2226,7 +2226,7 @@ def _diaolingkuloutou_strategy(player, target, game, extras=None):
 @strategy
 def _guanglingjian_strategy(player, target, game, extras=None):
     """光灵箭：使1个异象获得-1坚韧等级。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2255,7 +2255,7 @@ def _guanglingjian_strategy(player, target, game, extras=None):
 @strategy
 def _zhanlipin_strategy(player, target, game, extras=None):
     """战利品：触发1个异象的亡语。若是敌方异象，再抹除其亡语。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2323,7 +2323,7 @@ def _fuxing_effect(player, target, game, extras=None):
 @strategy
 def _yiqi_strategy(player, target, game, extras=None):
     """遗弃：将1个异象的HP设为1。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2379,7 +2379,7 @@ def _gaoshan_strategy(player, target, game, extras=None):
 @strategy
 def _yulin_effect(player, target, game, extras=None):
     """雨林：使1个异象获得亡语：随机消灭1个距离不大于3的敌方异象。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2529,7 +2529,7 @@ def _c418_effect(player, target, game, extras=None):
 @strategy
 def _shitiyaji_effect(player, target, game, extras=None):
     """实体挤压：指向1个异象，使其下一个出牌阶段开始时受到4点伤害并获得眩晕。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2576,7 +2576,7 @@ def _shitiyaji_effect(player, target, game, extras=None):
 @strategy
 def _zhenzhuta_effect(player, target, game, extras=None):
     """珍珠塔：开发4张卡组中的牌，将其花费设为4T。"""
-    from tards.cost import Cost
+    from tards.core.cost import Cost
 
     def _set_cost_4t(card):
         card.cost = Cost(t=4)
@@ -2615,7 +2615,7 @@ def _zhidaojishu_effect(player, target, game, extras=None):
 @strategy
 def _hongji_effect(player, target, game, extras=None):
     """轰击：消灭1个受伤异象，将1张"TNT炮"加入手牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.current_health < m.current_max_health]
@@ -2644,7 +2644,7 @@ def _hongji_effect(player, target, game, extras=None):
 @strategy
 def _tnt_strategy(player, target, game, extras=None):
     """TNT：对一个目标造成2点伤害。抽1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2676,7 +2676,7 @@ def _tnt_strategy(player, target, game, extras=None):
 @strategy
 def _hongshifen_strategy(player, target, game, extras=None):
     """红石粉：使1个非生命异象具有协同。抽1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2703,7 +2703,7 @@ def _hongshifen_strategy(player, target, game, extras=None):
 @strategy
 def _jinrenshu_strategy(player, target, game, extras=None):
     """禁人书：使1个异象及其相邻异象获得眩晕（持续到结算阶段结束）。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -2739,7 +2739,7 @@ _ehanglei_targets = target_mix(target("minion"), target("player", enemy=True))
 @strategy
 def _ehanglei_strategy(player, target, game, extras=None):
     """恶魂之泪：对1个目标造成2点伤害。对方随机弃1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3072,7 +3072,7 @@ def _huoyao_strategy(player, target, game, extras=None):
 @strategy
 def _cunzhuangyingxiong_strategy(player, target, game, extras=None):
     """村庄英雄：对1个异象及其相邻异象造成2点伤害。若有异象被消灭，将1张"村庄英雄"洗入 卡组。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3113,7 +3113,7 @@ def _cunzhuangyingxiong_strategy(player, target, game, extras=None):
 @strategy
 def _jielue_strategy(player, target, game, extras=None):
     """劫掠：消灭1个花费不大于3T的敌方异象。若其处于协同，从对方卡组顶抽1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3302,7 +3302,7 @@ def _huoshi_targets(player, board):
 @strategy
 def _huoshi_effect(player, target, game, extras=None):
     """火矢：使1个陆地异象获得+4攻击力。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and not b._is_water_at(m.position)]
@@ -3334,7 +3334,7 @@ def _hengsao_targets(player, board):
 @strategy
 def _hengsao_effect(player, target, game, extras=None):
     """横扫之刃：对1行异象造成3点伤害。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive()]
@@ -3378,7 +3378,7 @@ def _erdiao_effect(player, target, game, extras=None):
 @strategy
 def _zhongcheng_effect(player, target, game, extras=None):
     """忠诚：使1个友方异象获得亡语：将本异象的复制加入手牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
@@ -3413,7 +3413,7 @@ def _zhongcheng_effect(player, target, game, extras=None):
 @strategy
 def _jitui_effect(player, target, game, extras=None):
     """击退：将1个异象返回其所有者手牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3450,7 +3450,7 @@ def _shenhaitansuozhe_extra_targets(player, board):
 @strategy
 def _shenhaitansuozhe_effect(player, target, game, extras=None):
     """深海探索者：使1个水路异象获得+2/2 或 对其造成6点伤害。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     # 阶段1：选择效果模式
     req1 = TargetingRequest()
@@ -3499,7 +3499,7 @@ def _shenhaitansuozhe_effect(player, target, game, extras=None):
 @strategy
 def _baohu_effect(player, target, game, extras=None):
     """保护：使1个异象获得+0/3 和坚韧1。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3709,9 +3709,9 @@ def _yelian_effect(player, target, game, extras=None):
 def _cuiruotongmeng_effect(player, target, game, extras=None):
     """脆弱同盟：消灭1个友方异象，将2张具有迅捷的"恶魂"加入战场，结算阶段结束时，将其移除。"""
     from tards.cards import MinionCard, Minion
-    from tards.cost import Cost
+    from tards.core.cost import Cost
     import random
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
@@ -3855,7 +3855,7 @@ def _zhushi_effect(player, target, game, extras=None):
 @strategy
 def _mishi_effect(player, target, game, extras=None):
     """迷失：移除1个异象，将其2张复制置入其所有者卡组顶。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -3930,7 +3930,7 @@ def _yuguwajue_effect(player, target, game, extras=None):
         return True
 
     # 3. 让玩家选择放置位置
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     empties = empty_positions(player, game.board)
     if not empties:
@@ -3994,7 +3994,7 @@ def _chuizhushujing_effect(player, target, game, extras=None, card=None):
     if card:
         new_card = copy.copy(card)
         # 费用+1
-        from tards.cost import Cost
+        from tards.core.cost import Cost
         new_card.cost = copy.copy(card.cost)
         new_card.cost.t += 1
         # 抽牌数+1
@@ -4129,7 +4129,7 @@ STRATEGY_MAP = {
 @special
 def _jiangshizhuren_special(minion, player, game, extras=None):
     """僵尸猪人：部署：与1个敌方异象对战。若将其消灭，获得-1攻击力。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.owner != p]
@@ -4160,7 +4160,7 @@ def _jiangshizhuren_special(minion, player, game, extras=None):
 @strategy
 def _guaiwulieren_strategy(player, target, game, extras=None):
     """怪物猎人：使1个友方生物异象+1/3，然后与1个敌方异象对战。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     # 阶段1：选择友方异象
     def friendly_scope(p, b):
@@ -4221,7 +4221,7 @@ def _tansuo_strategy(player, target, game, extras=None):
 @strategy
 def _jinpingguo_strategy(player, target, game, extras=None):
     """金苹果：抉择：使1个异象获得+1/2，或使你获得+4HP。若指向僵尸村民，两项都触发。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4640,7 +4640,7 @@ def _qingjinshi_mineral(player, game):
 @strategy
 def _fengli_effect(player, target, game, extras=None):
     """锋利：对一个异象造成6点伤害。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4691,7 +4691,7 @@ def _xingyunfangkuai_effect(player, target, game, extras=None):
 @strategy
 def _bingshuangxingzhe_effect(player, target, game, extras=None):
     """冰霜行者：冰冻1个异象及其相邻异象。抽1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4741,7 +4741,7 @@ def _naijiu_effect(player, target, game, extras=None):
 @strategy
 def _wasan_tianyi_effect(player, target, game, extras=None):
     """挖三填一：移除1个异象。下个抽牌阶段，将其返回战场。其所有者抽1张牌。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4807,7 +4807,7 @@ def _wasan_tianyi_effect(player, target, game, extras=None):
 
 def _yanhuozhixing_effect(player, target, game, extras=None):
     """焰火之星：对1个异象造成6点伤害，溢出伤害随机分配至所有敌方目标。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4854,7 +4854,7 @@ def _yanhuozhixing_effect(player, target, game, extras=None):
 @strategy
 def _jinxiguapian_effect(player, target, game, extras=None):
     """金西瓜片：使1个异象获得：结算阶段开始：获得+1/1。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -4892,7 +4892,7 @@ def _jinxiguapian_effect(player, target, game, extras=None):
 @strategy
 def _yinyu_effect(player, target, game, extras=None):
     """阴雨：对1个非高地异象造成2点伤害，将其攻击力设为0直到结算阶段结束。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and not m.keywords.get("高地", False)]
@@ -4951,7 +4951,7 @@ def _anye_effect(player, target, game, extras=None):
 @strategy
 def _poxi_effect(player, target, game, extras=None):
     """破袭：使1个友方异象与1个攻击力最低的敌方异象对战。若将其消灭，获得+1HP并重复此流程。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
@@ -5182,7 +5182,7 @@ def _linjiepoint_effect(player, target, game, extras=None):
 @strategy
 def _yaoshuijian_effect(player, target, game, extras=None):
     """药水箭：使1个异象+1/2，抽1张牌。若指向非生命异象，所有友方非生命异象+2HP。"""
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
     from tards.cards import Minion
 
     def scope(p, board):
@@ -5228,7 +5228,7 @@ def _yaoshuijian_effect(player, target, game, extras=None):
 def _yanhuaqiaochi_effect(player, target, game, extras=None):
     """烟花鞘翅：将卡组中一张具有迅捷的异象加入手牌，将其部署花费设为0直到出牌阶段结束。"""
     from tards.cards import MinionCard
-    from tards.cost_modifier import CostModifier
+    from tards.core.cost_modifier import CostModifier
 
     # 使用 search_deck 从卡组中搜索迅捷异象
     candidates = search_deck(player, lambda c: isinstance(c, MinionCard) and c.keywords.get("迅捷"))
@@ -5264,7 +5264,7 @@ def _menchuanchuansuo_effect(player, target, game, extras=None):
     """门船穿梭：使1个友方异象返回手牌，将其花费设为1I直到结算阶段结束。
     然后若其上回合在场上，使其部署时具有迅捷。
     """
-    from tards.targeting import TargetingRequest
+    from tards.core.targeting import TargetingRequest
 
     def scope(p, b):
         return [m for m in b.minion_place.values() if m.is_alive() and m.owner == p]
@@ -5296,7 +5296,7 @@ def _menchuanchuansuo_effect(player, target, game, extras=None):
 
     if target_card:
         # 保存原花费
-        from tards.cost import Cost
+        from tards.core.cost import Cost
         original_cost = target_card.cost.copy()
         target_card.cost = Cost(minerals={"I": 1})
         print(f"  门船穿梭：{target_card.name} 的花费设为1I")

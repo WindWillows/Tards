@@ -10,7 +10,6 @@ import tkinter as tk
 
 from tards import Minion, MinionCard, Strategy
 from tards.assets import get_asset_manager
-from tards.net_game import NetworkDuel
 from gui.theme import UI_THEME
 from gui.battle.render_utils import (
     create_minion_portrait_photo,
@@ -324,6 +323,8 @@ class BoardRenderer:
         self.canvas.delete("minion")
         self.canvas.delete("target_hint")
         self.canvas.delete("deploy_preview")
+        self.canvas.delete("resolve_column_highlight")
+        self.canvas.delete("recent_event_highlight")
         if not frame.duel.game:
             return
 
@@ -563,11 +564,46 @@ class BoardRenderer:
                                                  fill="#fffbeb", stipple="gray50",
                                                  tags="target_hint")
 
+        # 结算阶段高亮当前正在结算的列
+        if (game.current_phase == "resolve"
+                and getattr(game, "_current_resolve_column", None) is not None):
+            col = game._current_resolve_column
+            x1 = col * cell_size + offset_x
+            x2 = x1 + cell_size
+            y1 = offset_y
+            y2 = offset_y + 5 * cell_size
+            self.canvas.create_rectangle(
+                x1, y1, x2, y2,
+                outline="", width=0,
+                fill=UI_THEME["btn_danger_bg"], stipple="gray50",
+                tags="resolve_column_highlight",
+            )
+
+        # 最近动作高亮（伤害/死亡/治疗等事件发生的格子）
+        import time
+        now = time.time()
+        recent_events = getattr(frame, "_recent_events", [])
+        for event in recent_events:
+            age = now - event.get("time", 0)
+            if age > 2.5:
+                continue
+            for pos in event.get("positions", []):
+                if isinstance(pos, tuple) and len(pos) == 2:
+                    er, ec = pos
+                    ecx, ecy, _ = _cell_center(er, ec)
+                    # 越新越粗
+                    width = max(2, 5 - int(age))
+                    self.canvas.create_rectangle(
+                        ecx - 38, ecy - 38, ecx + 38, ecy + 38,
+                        outline=UI_THEME["danger"], width=width,
+                        tags="recent_event_highlight",
+                    )
+
     def preview_deploy_positions(self, frame: Any, serial: int) -> None:
         """悬停手牌时预览合法目标位置（绿色虚线方框）。"""
         if not frame.duel.game:
             return
-        active = frame.local_player if isinstance(frame.duel, NetworkDuel) else frame.duel.game.current_player
+        active = frame.local_player if frame.duel.is_remote else frame.duel.game.current_player
         card = active._get_hand_card(serial) if active else None
         if card is None:
             return

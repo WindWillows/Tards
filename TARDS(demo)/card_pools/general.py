@@ -1,124 +1,22 @@
-# 通用卡包定义文件
+# 通用卡包注册表
 
 from tards import register_card, CardType, Pack, Rarity
-from tards.targets import target, target_none
-from card_pools.effect_decorator import special
-from card_pools.effect_utils import add_deathrattle, deal_damage_to_minion, buff_minion, on, destroy_minion
-import random
+from tards.core.targets import target, target_none
 
-
-# =============================================================================
-# 精灵系列
-# =============================================================================
-
-@special
-def _huoling_special(minion, player, game, extras=None):
-    """火灵：亡语：对伤害来源造成2点伤害。"""
-    def _dr(m, p, b):
-        source = getattr(m, "_last_damage_source", None)
-        if source and source.is_alive():
-            g = b.game_ref
-            deal_damage_to_minion(source, 2, source=m, game=g)
-        else:
-            print(f"  {m.name} 亡语触发，但找不到有效的伤害来源")
-    add_deathrattle(minion, _dr)
-
-
-@special
-def _shikongling_special(minion, player, game, extras=None):
-    """时空灵：亡语：抽1张牌。"""
-    def _dr(m, p, b):
-        g = b.game_ref
-        p.draw_card(1, game=g)
-    add_deathrattle(minion, _dr)
-
-
-@special
-def _dianling_special(minion, player, game, extras=None):
-    """电灵：亡语：随机眩晕一个敌方异象。"""
-    def _dr(m, p, b):
-        enemies = [e for e in b.minion_place.values() if e.owner != p and e.is_alive()]
-        if enemies:
-            target_minion = random.choice(enemies)
-            target_minion.base_keywords["眩晕"] = 1
-            target_minion.recalculate()
-            print(f"  {target_minion.name} 被眩晕1回合")
-        else:
-            print(f"  {m.name} 亡语触发，但场上没有敌方异象")
-    add_deathrattle(minion, _dr)
-
-
-@special
-def _xueling_special(minion, player, game, extras=None):
-    """血灵：亡语：你获得+2HP。"""
-    def _dr(m, p, b):
-        p.health_change(2)
-    add_deathrattle(minion, _dr)
-
-
-@special
-def _shuiling_special(minion, player, game, extras=None):
-    """水灵：亡语：下一个出牌阶段开始时，获得1T。"""
-    def _dr(m, p, b):
-        g = b.game_ref
-        if not g:
-            return
-        lid = [None]
-        def _callback(event):
-            if event.data.get("phase") == g.PHASE_ACTION:
-                p.t_point_change(1)
-                print(f"  {p.name} 水灵亡语触发，获得1T")
-                if lid[0] is not None:
-                    g.history.unlisten(lid[0])
-        lid[0] = on("phase_start", _callback, g)
-    add_deathrattle(minion, _dr)
-
-
-@special
-def _fengling_special(minion, player, game, extras=None):
-    """风灵：亡语：使一个随机敌方异象获得-1攻击力。"""
-    def _dr(m, p, b):
-        enemies = [e for e in b.minion_place.values() if e.owner != p and e.is_alive()]
-        if enemies:
-            target_minion = random.choice(enemies)
-            buff_minion(target_minion, atk_delta=-1)
-            print(f"  {target_minion.name} 被风灵亡语减1攻击力")
-        else:
-            print(f"  {m.name} 亡语触发，但场上没有敌方异象")
-    add_deathrattle(minion, _dr)
-
-
-# =============================================================================
-# 策略卡效果函数
-# =============================================================================
-
-def _xuanwo_effect(player, target, game, extras=None):
-    """漩涡：抽2张牌。"""
-    player.draw_card(2, game=game)
-    print(f"  漩涡：{player.name} 抽2张牌")
-    return True
-
-
-def _genchu_effect(player, target, game, extras=None):
-    """根除：消灭一个异象。"""
-    if target and hasattr(target, "is_alive") and target.is_alive():
-        destroy_minion(target, game)
-        return True
-    print("  根除：未选择有效目标")
-    return False
-
-
-@special
-def _jingxiliwu_special(minion, player, game, extras=None):
-    """惊喜礼物：亡语：你抽1张牌，对手抽2张牌。"""
-    def _dr(m, p, b):
-        g = b.game_ref
-        opponent = g.p2 if p == g.p1 else g.p1
-        p.draw_card(1, game=g)
-        print(f"  惊喜礼物：{p.name} 抽1张牌")
-        opponent.draw_card(2, game=g)
-        print(f"  惊喜礼物：{opponent.name} 抽2张牌")
-    add_deathrattle(minion, _dr)
+from card_pools.general_effects import (
+    _huoling_special,
+    _shikongling_special,
+    _dianling_special,
+    _xueling_special,
+    _shuiling_special,
+    _fengling_special,
+    _jingxiliwu_special,
+    _xuanwo_effect,
+    _genchu_effect,
+    _lingdong_effect,
+    _wumei_effect,
+    _bumei_effect,
+)
 
 
 # =============================================================================
@@ -243,6 +141,42 @@ register_card(
     description="消灭一个异象。",
     targets_fn=target("minion"),
     effect_fn=_genchu_effect,
+)
+
+register_card(
+    name="灵动",
+    cost_str="1T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.GENERAL,
+    rarity=Rarity.SILVER,
+    immersion_level=0,
+    description="将双方抽牌堆中所有折算花费最小的牌移动到各自的抽牌堆顶。",
+    targets_fn=target_none,
+    effect_fn=_lingdong_effect,
+)
+
+register_card(
+    name="污煤",
+    cost_str="1T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.GENERAL,
+    rarity=Rarity.GOLD,
+    immersion_level=0,
+    description="获得1个T槽，抽1张牌。你失去2个T槽自然上限。",
+    targets_fn=target_none,
+    effect_fn=_wumei_effect,
+)
+
+register_card(
+    name="不寐",
+    cost_str="3T",
+    card_type=CardType.STRATEGY,
+    pack=Pack.GENERAL,
+    rarity=Rarity.SILVER,
+    immersion_level=0,
+    description="抉择：消灭一个沉浸度为3的异象；或对手随机弃一张沉浸度为3的手牌。",
+    targets_fn=target_none,
+    effect_fn=_bumei_effect,
 )
 
 register_card(

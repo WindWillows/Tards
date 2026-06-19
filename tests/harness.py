@@ -13,7 +13,7 @@ import card_pools.underworld
 from tards.cards import Minion, Strategy
 from tards.constants import EVENT_CARD_PLAYED, EVENT_PHASE_START
 from tards.game import Game
-from tards.player import Player
+from tards.core.player import Player
 
 
 class GameHarness:

@@ -17,15 +17,19 @@ except Exception:  # pragma: no cover
     _PIL_AVAILABLE = False
 
 from tards.cards import MineralCard
-from tards.card_db import DEFAULT_REGISTRY
+from tards.data.card_db import DEFAULT_REGISTRY
 from gui.theme import UI_THEME
 from gui.utils import _insert_rich_detail
-from gui.battle.render_utils import rounded_rect, calc_tab_width
+from gui.battle.render_utils import rounded_rect, calc_tab_width, create_tab_gradient_photo
 from gui.dialogs import SacrificeDialog, ChoiceDialog, DiscoverDialog
 
 
 class RenderMixin:
     """提供 BattleFrame 共用的渲染/绘制/日志辅助方法。"""
+
+    def _create_tab_gradient_photo(self, *args, **kwargs):
+        """生成带标签的稀有度渐变卡牌背景图（委托给 render_utils）。"""
+        return create_tab_gradient_photo(*args, **kwargs)
 
     def _build_player_info_panel(self, parent, player, is_local):
         """构建单个玩家信息面板（紧凑卡片式），返回包含所有 widget 的字典。"""
@@ -176,6 +180,9 @@ class RenderMixin:
         self.detail_text.config(state=tk.NORMAL)
         _insert_rich_detail(self.detail_text, "悬停卡牌查看详情")
         self.detail_text.config(state=tk.DISABLED)
+        # 同时清除费用预览
+        if hasattr(self, "_clear_cost_preview"):
+            self._clear_cost_preview()
 
     def _clear_preview(self):
         """清除部署位置预览。"""

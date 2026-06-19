@@ -63,4 +63,10 @@ agent_team_config.json
 TARDS-demo-*.zip
 TARDS*.zip
 Tards*.zip
+*.pdf
+*.lnk
 tests_output.txt
+
+# Auto-downloaded built-in agent skills (keep project-specific skills explicitly tracked)
+.agents/skills/early-report-ask-often/
+.agents/skills/math-paper/
