@@ -11,10 +11,12 @@ import sys
 import traceback
 from typing import Any, Callable, List, Tuple
 
-# 确保项目根目录在 sys.path 中
+# 确保项目根目录和游戏源码目录在 sys.path 中
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+_demo_root = os.path.join(_project_root, "TARDS(demo)")
+for _path in (_project_root, _demo_root):
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
 
 
 def _discover_tests(module: Any, prefix: str = "test_") -> List[Tuple[str, Callable]]:

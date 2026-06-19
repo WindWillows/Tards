@@ -53,7 +53,7 @@ _plan_targeting_refactor.md
 mobile_server/.env
 ttyd.exe
 rustdesk.exe
-assets/fonts/*.ttf
+# Keep NotoSansSC-VF.ttf tracked (required to run the UI)
 assets/fonts/*.ttc
 assets/fonts/*.otf
 *_screenshot.png

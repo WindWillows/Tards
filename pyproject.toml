@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tards-demo"
+version = "0.1.7"
+description = "Tards 卡牌对战游戏 Demo"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Tards Developer", email = "dev@tards.game"},
+]
+dependencies = [
+    "Pillow>=10.0",
+    "pygame-ce>=2.5",
+    "Flask>=3.0",
+    "pyngrok>=7.0",
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/WindWillows/Tards"
+Repository = "https://github.com/WindWillows/Tards"
+
+[tool.setuptools]
+package-dir = {"" = "TARDS(demo)"}
+packages = [
+    "tards",
+    "tards.cards",
+    "tards.core",
+    "tards.data",
+    "tards.game",
+    "tards.net",
+    "card_pools",
+    "gui",
+]
+py-modules = ["local_duel"]
