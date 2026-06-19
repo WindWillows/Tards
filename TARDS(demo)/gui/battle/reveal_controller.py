@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, List, Optional
 
 from tards.data.card_db import DEFAULT_REGISTRY
 from tards.constants import EVENT_CARD_PLAYED, EVENT_DISCARDED, EVENT_MILLED
-from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
+from gui.battle.render_utils import _PIL_AVAILABLE, calc_tab_width, draw_minion_stat_badges
 
 if TYPE_CHECKING:
     from tkinter import Canvas
@@ -253,8 +253,7 @@ class RevealController:
             bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
             print(f"[Reveal]   bg_colors={bg_colors}")
 
-            # _PIL_AVAILABLE 是 BattleFrame 模块级变量
-            if getattr(self.frame, "_PIL_AVAILABLE", False):
+            if _PIL_AVAILABLE:
                 photo = self.frame._create_tab_gradient_photo(
                     cw, ch, bg_colors[0], bg_colors[1],
                     tab_w=TAB_W, tab_h=TAB_H, slant=TAB_SLANT, radius=2

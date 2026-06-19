@@ -11,7 +11,11 @@ import tkinter as tk
 from typing import Any, Optional
 
 from gui.theme import UI_THEME
-from gui.battle.render_utils import calc_tab_width, draw_minion_stat_badges
+from gui.battle.render_utils import (
+    _PIL_AVAILABLE,
+    calc_tab_width,
+    draw_minion_stat_badges,
+)
 from tards.assets import get_asset_manager
 
 
@@ -166,7 +170,7 @@ class MulliganController:
             # 带标签形状的稀有度渐变背景
             rarity_colors = self.frame._get_card_rarity_gradient_colors(card)
             bg_colors = rarity_colors if rarity_colors else UI_THEME["rarity_none"]
-            if getattr(self.frame, "_PIL_AVAILABLE", False):
+            if _PIL_AVAILABLE:
                 photo = self.frame._create_tab_gradient_photo(
                     cw, ch,
                     bg_colors[0], bg_colors[1],
