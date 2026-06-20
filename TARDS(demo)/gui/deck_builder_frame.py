@@ -118,14 +118,14 @@ class DeckBuilderFrame(tk.Frame):
         # ===== 中列：卡组属性 + 卡牌详情 =====
         center_frame = tk.Frame(main_frame, bg=UI_THEME["bg_main"])
         center_frame.grid(row=0, column=1, sticky="nsew", padx=5)
-        center_frame.rowconfigure(0, weight=1)
+        center_frame.rowconfigure(0, weight=0)
         center_frame.rowconfigure(1, weight=1)
         center_frame.columnconfigure(0, weight=1)
 
         # 1. 卡组属性栏（沉浸度 + 统计 + 操作）
         attr_frame = tk.LabelFrame(center_frame, text="卡组属性",
                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
-        attr_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
+        attr_frame.grid(row=0, column=0, sticky="new", pady=(0, 5))
 
         # 沉浸度调节（2 行 3 列）
         immersion_inner = tk.Frame(attr_frame, bg=UI_THEME["bg_panel"])
@@ -181,13 +181,13 @@ class DeckBuilderFrame(tk.Frame):
         detail_frame.columnconfigure(0, weight=1)
 
         # 卡面立绘（正方形）
-        self.detail_canvas = tk.Canvas(detail_frame, width=200, height=150,
+        self.detail_canvas = tk.Canvas(detail_frame, width=200, height=200,
                                        highlightthickness=1,
                                        highlightbackground=UI_THEME["border"],
                                        bg=UI_THEME["bg_main"])
         self.detail_canvas.grid(row=0, column=0, pady=(5, 0))
 
-        self.detail_text = tk.Text(detail_frame, height=6, wrap=tk.WORD,
+        self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
                                    bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], relief=tk.FLAT, bd=0)
         self.detail_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
