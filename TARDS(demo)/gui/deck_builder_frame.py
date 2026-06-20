@@ -118,14 +118,14 @@ class DeckBuilderFrame(tk.Frame):
         # ===== 中列：卡组属性 + 卡牌详情 =====
         center_frame = tk.Frame(main_frame, bg=UI_THEME["bg_main"])
         center_frame.grid(row=0, column=1, sticky="nsew", padx=5)
-        center_frame.rowconfigure(0, weight=0)
+        center_frame.rowconfigure(0, weight=1)
         center_frame.rowconfigure(1, weight=1)
         center_frame.columnconfigure(0, weight=1)
 
         # 1. 卡组属性栏（沉浸度 + 统计 + 操作）
         attr_frame = tk.LabelFrame(center_frame, text="卡组属性",
                                    bg=UI_THEME["bg_panel"], fg=UI_THEME["text_secondary"])
-        attr_frame.grid(row=0, column=0, sticky="new", pady=(0, 5))
+        attr_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
 
         # 沉浸度调节（2 行 3 列）
         immersion_inner = tk.Frame(attr_frame, bg=UI_THEME["bg_panel"])
@@ -158,6 +158,12 @@ class DeckBuilderFrame(tk.Frame):
         self.deck_stats_cost = tk.Label(stats_inner, text="平均费用: -", font=bold, anchor="w",
                                         bg=UI_THEME["bg_panel"], fg=UI_THEME["text_primary"])
         self.deck_stats_cost.pack(fill=tk.X, pady=1)
+
+        # 沉浸度增益（按等级着色：1灰 2黑 3红）
+        self.imm_bonuses_frame = tk.Frame(stats_inner, bg=UI_THEME["bg_panel"])
+        self.imm_bonuses_frame.pack(fill=tk.X, pady=(4, 2))
+        self._refresh_immersion_bonuses()
+
         btn_frame = tk.Frame(stats_inner, bg=UI_THEME["bg_panel"])
         btn_frame.pack(fill=tk.X, pady=(6, 2))
         tk.Button(btn_frame, text="移除所选", bg=UI_THEME["btn_secondary_bg"], fg=UI_THEME["btn_secondary_fg"],
@@ -175,13 +181,13 @@ class DeckBuilderFrame(tk.Frame):
         detail_frame.columnconfigure(0, weight=1)
 
         # 卡面立绘（正方形）
-        self.detail_canvas = tk.Canvas(detail_frame, width=200, height=200,
+        self.detail_canvas = tk.Canvas(detail_frame, width=200, height=150,
                                        highlightthickness=1,
                                        highlightbackground=UI_THEME["border"],
                                        bg=UI_THEME["bg_main"])
         self.detail_canvas.grid(row=0, column=0, pady=(5, 0))
 
-        self.detail_text = tk.Text(detail_frame, height=8, wrap=tk.WORD,
+        self.detail_text = tk.Text(detail_frame, height=6, wrap=tk.WORD,
                                    font=("Microsoft YaHei", 10), state=tk.DISABLED,
                                    bg=UI_THEME["bg_main"], fg=UI_THEME["text_primary"], relief=tk.FLAT, bd=0)
         self.detail_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
@@ -935,6 +941,9 @@ class DeckBuilderFrame(tk.Frame):
         avg_cost = round(total_cost / total, 1) if total > 0 else 0
         self.deck_stats_cost.config(text=f"平均费用: {avg_cost}T")
 
+        # 沉浸度增益
+        self._refresh_immersion_bonuses()
+
         # 验证信息
         errors = self.deck.validate()
         if errors:
@@ -944,6 +953,42 @@ class DeckBuilderFrame(tk.Frame):
                 self.validation_label.config(text="测试卡组（无构筑限制）", fg=UI_THEME["warning_dark"])
             else:
                 self.validation_label.config(text="卡组合法", fg=UI_THEME["success"])
+
+    def _refresh_immersion_bonuses(self):
+        """刷新沉浸度增益列表（1级灰色、2级黑色、3级红色）。"""
+        if not hasattr(self, "imm_bonuses_frame"):
+            return
+        for w in self.imm_bonuses_frame.winfo_children():
+            w.destroy()
+
+        bonuses = self.deck.get_immersion_bonuses()
+        if not bonuses:
+            tk.Label(
+                self.imm_bonuses_frame,
+                text="未分配沉浸点",
+                font=("Microsoft YaHei", 9),
+                anchor="w",
+                bg=UI_THEME["bg_panel"],
+                fg=UI_THEME["text_muted"],
+            ).pack(fill=tk.X, pady=1)
+            return
+
+        color_map = {
+            1: UI_THEME["text_muted"],      # 灰色
+            2: UI_THEME["text_primary"],    # 黑色
+            3: UI_THEME["danger"],          # 红色
+        }
+        for item in bonuses:
+            level = item["level"]
+            text = f"{item['pack'].value} {level}级：{item['bonus']}"
+            tk.Label(
+                self.imm_bonuses_frame,
+                text=text,
+                font=("Microsoft YaHei", 9),
+                anchor="w",
+                bg=UI_THEME["bg_panel"],
+                fg=color_map.get(level, UI_THEME["text_primary"]),
+            ).pack(fill=tk.X, pady=1)
 
     def _save_deck(self):
         name = self.name_entry.get().strip()

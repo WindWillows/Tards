@@ -200,9 +200,14 @@ class Deck:
                 defs.append(card_def)
         return defs
 
-    def get_immersion_bonuses(self) -> Dict[Pack, Dict[str, Any]]:
-        """获取当前沉浸点分配对应的沉浸增益描述（仅返回文本描述，后续可扩展为实际效果）。"""
-        bonuses = {}
+    def get_immersion_bonuses(self) -> List[Dict[str, Any]]:
+        """获取当前沉浸点分配已解锁的沉浸增益描述列表。
+
+        返回按卡包顺序、等级升序排列的列表，每个元素包含：
+            pack: Pack 枚举
+            level: 等级（1/2/3）
+            bonus: 增益文本
+        """
         # 这里先放置三个已有卡包的沉浸增益描述，后续可扩展
         discrete_bonus = {
             1: "开放矿物兑换，获得2个矿物手牌上限",
@@ -226,12 +231,20 @@ class Deck:
             Pack.BLOOD: blood_bonus,
         }
 
-        for pack, points in self.immersion_points.items():
-            if points > 0 and pack in bonus_map:
-                bonuses[pack] = {
-                    "level": points,
-                    "bonus": bonus_map[pack].get(points, "未知增益"),
-                }
+        bonuses: List[Dict[str, Any]] = []
+        for pack in Pack:
+            points = self.immersion_points.get(pack, 0)
+            if points <= 0:
+                continue
+            mapping = bonus_map.get(pack)
+            if not mapping:
+                continue
+            for level in range(1, points + 1):
+                bonuses.append({
+                    "pack": pack,
+                    "level": level,
+                    "bonus": mapping.get(level, "未知增益"),
+                })
         return bonuses
 
     def deck_summary(self) -> str:
