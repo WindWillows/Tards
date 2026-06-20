@@ -68,6 +68,10 @@ class BattleState:
     # 最近动作高亮 / 事件条
     _recent_events: List[Dict[str, Any]] = field(default_factory=list)  # 每个元素: {"time": float, "text": str, "positions": List[tuple]}
 
+    # 对手（或任意玩家）上一次公开操作，用于替换“等待玩家行动”提示
+    _last_public_actions: Dict[Any, str] = field(default_factory=dict)
+    _public_action_listeners_registered: bool = False
+
     # Mulligan（开局手牌调整）状态
     _mulligan_overlay: Optional[Any] = None
     _mulligan_player: Optional[Any] = None

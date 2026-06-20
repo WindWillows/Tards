@@ -15,6 +15,8 @@ import tkinter as tk
 
 from local_duel import LocalDuel
 from tards.core.game_logger import GameLogger
+from tards.constants import EVENT_CARD_PLAYED, EVENT_MINERAL_EXCHANGED
+from tards.cards import MinionCard, Strategy, MineralCard
 from gui.theme import UI_THEME
 
 
@@ -43,6 +45,8 @@ class GameLoopController:
         frame.state._last_discarded_info.clear()
         frame.state._history_phase = None
         frame.state._history_action_counter = 0
+        frame.state._last_public_actions.clear()
+        frame.state._public_action_listeners_registered = False
         frame.reveal_controller.reset()
 
         frame.duel.local_turn_callback = lambda: gui_refresh_event.set()
@@ -95,6 +99,45 @@ class GameLoopController:
         frame.state._game_thread.start()
 
     # ------------------------------------------------------------------
+    # 公开操作追踪（用于替换“等待玩家行动”提示）
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _format_card_action(event: Any) -> Optional[str]:
+        """把 card_played 事件转换成“玩家 动作 卡牌”文本。"""
+        player = event.data.get("player")
+        card = event.data.get("card")
+        if not player or not card:
+            return None
+        if isinstance(card, MinionCard):
+            verb = "部署"
+        elif isinstance(card, (Strategy, MineralCard)):
+            verb = "使用"
+        else:
+            verb = "打出"
+        return f"{player.name} {verb} {card.name}"
+
+    def _register_public_action_listeners(self) -> None:
+        """注册事件监听器，记录每位玩家最近一次公开操作。"""
+        game = self.frame.duel.game if self.frame.duel else None
+        if not game or self.frame.state._public_action_listeners_registered:
+            return
+
+        def on_card_played(event: Any) -> None:
+            text = self._format_card_action(event)
+            if text:
+                self.frame.state._last_public_actions[event.data.get("player")] = text
+
+        def on_mineral_exchanged(event: Any) -> None:
+            player = event.data.get("player")
+            card = event.data.get("card")
+            if player and card:
+                self.frame.state._last_public_actions[player] = f"{player.name} 兑换 {card.name}"
+
+        game.register_listener(EVENT_CARD_PLAYED, on_card_played)
+        game.register_listener(EVENT_MINERAL_EXCHANGED, on_mineral_exchanged)
+        self.frame.state._public_action_listeners_registered = True
+
+    # ------------------------------------------------------------------
     # 刷新循环
     # ------------------------------------------------------------------
     def schedule_refresh(self) -> None:
@@ -128,6 +171,7 @@ class GameLoopController:
                 if frame.duel and frame.duel.game:
                     frame.reveal_controller.register(frame.duel.game)
                     frame.state._reveal_listeners_registered = True
+            self._register_public_action_listeners()
 
             need_refresh = gui_refresh_event.is_set() or frame.duel.is_remote
             if need_refresh:
@@ -183,8 +227,12 @@ class GameLoopController:
                         "choice": "正在抉择...",
                         "targeting": "正在选择目标...",
                         "mulligan": "正在调整手牌...",
-                    }.get(remote_state, "正在行动...")
-                    status_text = f"等待 {active.name} {state_text}"
+                    }.get(remote_state, None)
+                    if state_text is None:
+                        action = frame.state._last_public_actions.get(active)
+                        status_text = action if action else f"等待 {active.name} 行动"
+                    else:
+                        status_text = f"等待 {active.name} {state_text}"
             else:
                 status_text = f"轮到 {active.name} 行动"
 

@@ -64,6 +64,7 @@ EVENT_BEFORE_STACK_RESOLVE = "before_stack_resolve"
 # 开发事件
 EVENT_DEVELOPED = "developed"
 EVENT_CONSPIRACY_TRIGGERED = "conspiracy_triggered"
+EVENT_MINERAL_EXCHANGED = "mineral_exchanged"
 
 # 指向系统事件
 EVENT_TARGETING_REQUEST = "targeting_request"

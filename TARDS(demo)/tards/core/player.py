@@ -1,5 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
-from ..constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_CARD_ADDED_TO_HAND, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT
+from ..constants import EVENT_CARD_PLAYED, EVENT_DRAW, EVENT_CARD_ADDED_TO_HAND, EVENT_MILLED, EVENT_DISCARDED, EVENT_BEFORE_POINT, EVENT_MINERAL_EXCHANGED
 from .cost import Cost
 from .cost_modifier import CostModifier, CostModifierSystem
 from ..cards import Card, Conspiracy, MineralCard, MinionCard, Strategy, Minion
@@ -492,7 +492,7 @@ class Player:
             mineral_card.move_to("hand", game)
             print(f"  {self.name} 兑换了 [{mineral_card.name}]")
             if game:
-                game.emit_event("mineral_exchanged", player=self, card=mineral_card)
+                game.emit_event(EVENT_MINERAL_EXCHANGED, player=self, card=mineral_card)
             return True
         # 3. extra_hand 满了，再尝试在 card_hand 中堆叠
         if not stacked and self._try_stack_to_hand(mineral_card):

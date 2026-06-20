@@ -16,6 +16,7 @@ from ..constants import (
     EVENT_SACRIFICE,
     EVENT_TURN_END,
     EVENT_TURN_START,
+    EVENT_MINERAL_EXCHANGED,
 )
 from ..effect_queue import EffectQueue
 from ..events import EventBus, GameEvent
@@ -194,6 +195,7 @@ class PhaseMixin:
                     card = active.squirrel_deck.pop()
                     active.add_card_to_hand(card, game=self, reason="消耗1T兑换了")
                     active.squirrel_exchanged_this_turn = True
+                    self.emit_event(EVENT_MINERAL_EXCHANGED, player=active, card=card)
             elif act_type == "play":
                 serial = action.get("serial")
                 target = action.get("target")
